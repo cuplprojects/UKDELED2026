@@ -1,0 +1,829 @@
+import React, { useState, useEffect, useMemo } from "react";
+
+export default function PersonalDetailsStep({
+  formData,
+  states = [],
+  districtOptions = ["Select"],
+  examCityOptions = ["Select"],
+  handleInputChange,
+  handleNext,
+  isLocked,
+  isCorrectionMode = false,
+}) {
+  const [errorMsg, setErrorMsg] = useState("");
+
+  // Universities list
+  const universityOptions = [
+    "Select",
+    "DEV BHOOMI UTTARAKHAND UNIVERSITY",
+    "HEMWATI NANDAN BAHUGUNA GARHWAL UNIVERSITY",
+    "KUMAUN UNIVERSITY, NAINITAL",
+    "SRI DEV SUMAN UTTARAKHAND UNIVERSITY",
+    "UTTARAKHAND OPEN UNIVERSITY",
+    "DOON UNIVERSITY, DEHRADUN",
+    "G. B. PANT UNIVERSITY OF AGRICULTURE AND TECHNOLOGY",
+    "GURUKULA KANGRI VISHWAVIDYALAYA, HARIDWAR",
+    "GRAPHIC ERA UNIVERSITY, DEHRADUN",
+    "UTTARANCHAL UNIVERSITY, DEHRADUN",
+    "DIT UNIVERSITY, DEHRADUN",
+    "SWAMI RAMA HIMALAYAN UNIVERSITY",
+    "HIMALAYAN GARHWAL UNIVERSITY",
+    "CH. CHARAN SINGH UNIVERSITY, MEERUT",
+    "M. J. P. ROHILKHAND UNIVERSITY, BAREILLY",
+    "DELHI UNIVERSITY (DU)",
+    "IGNOU (INDIRA GANDHI NATIONAL OPEN UNIVERSITY)",
+    "OTHER RECOGNIZED UNIVERSITY (अन्य मान्यता प्राप्त विश्वविद्यालय)",
+  ];
+
+  // Graduation Course Options based on Applied Category (प्रशिक्षण हेतु आवेदित वर्ग)
+  const isScienceGroup = (formData.appliedCategory || "").includes("1") || 
+    ((formData.appliedCategory || "").includes("विज्ञान वर्ग") && !(formData.appliedCategory || "").includes("विज्ञानेत्तर"));
+
+  const scienceGraduationCourses = [
+    "Select",
+    "Bachelor of Science (B.Sc.)",
+    "Bachelor of Agriculture Science(B.Sc.Agri.)",
+    "Graduate Other than B.Sc./B.Sc.Agri./B.A./B.Com. and Intermediate with Science / Agri. Science",
+  ];
+
+  const nonScienceGraduationCourses = [
+    "Select",
+    "Bachelor of Arts (B.A.)",
+    "Bachelor of Commerce (B.Com.)",
+    "Graduate Other than B.A./B.Com. and Intermediate with Humanities / Commerce",
+  ];
+
+  const graduationCourses = isScienceGroup ? scienceGraduationCourses : nonScienceGraduationCourses;
+
+  const catUpper = (formData.category || "").toUpperCase();
+  const isScStObc = catUpper.includes("SC") || 
+                    catUpper.includes("ST") || 
+                    catUpper.includes("OBC") || 
+                    catUpper.includes("SCHEDULED CASTE") || 
+                    catUpper.includes("SCHEDULED TRIBE") || 
+                    catUpper.includes("OTHER BACKWARD CLASS");
+  const isPH = formData.phyHandicapped === "YES";
+
+  const subCatUpper = (formData.subCategory || "").toUpperCase();
+  const isExServiceman = subCatUpper.includes("EX-SERVICEMAN") || 
+                        subCatUpper.includes("EX SERVICEMAN") || 
+                        subCatUpper.includes("पूर्व सैनिक");
+  const isDFF = subCatUpper.includes("DFF") || subCatUpper.includes("स्वतंत्रता");
+
+  let maxAllowedAge = 30;
+  let relaxationText = "";
+  if (isPH && (isScStObc || isDFF)) {
+    maxAllowedAge = 45;
+    relaxationText = isScStObc && isDFF 
+      ? " (including 10 years for PH and 5 years for SC/ST/OBC/DFF)" 
+      : (isScStObc ? " (including 10 years for PH and 5 years for SC/ST/OBC)" : " (including 10 years for PH and 5 years for DFF)");
+  } else if (isPH) {
+    maxAllowedAge = 40;
+    relaxationText = " (including 10 years relaxation for PH)";
+  } else if (isScStObc || isDFF) {
+    maxAllowedAge = 35;
+    relaxationText = isScStObc && isDFF 
+      ? " (including 5 years relaxation for SC/ST/OBC/DFF)" 
+      : (isScStObc ? " (including 5 years relaxation for SC/ST/OBC)" : " (including 5 years relaxation for DFF)");
+  }
+
+  const minAllowedDobYear = isExServiceman ? 1950 : 2027 - maxAllowedAge;
+  const minAllowedDob = isExServiceman ? "1950-01-01" : `${minAllowedDobYear}-07-01`;
+
+  // Calculate Age (Years, Months, Days) from DOB to Reference Date: 1st July 2027 (01/07/2027)
+  const calculatedAge = useMemo(() => {
+    if (!formData.dateOfBirth) return "";
+    const birthDate = new Date(formData.dateOfBirth);
+    if (isNaN(birthDate.getTime())) return "";
+
+    // Reference date: 1st July 2027
+    const refDate = new Date(2027, 6, 1);
+    if (birthDate > refDate) return "Invalid Date";
+
+    let years = refDate.getFullYear() - birthDate.getFullYear();
+    let months = refDate.getMonth() - birthDate.getMonth();
+    let days = refDate.getDate() - birthDate.getDate();
+
+    if (days < 0) {
+      months -= 1;
+      const prevMonthLastDay = new Date(refDate.getFullYear(), refDate.getMonth(), 0).getDate();
+      days += prevMonthLastDay;
+    }
+
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+
+    return `${years} Years, ${months} Months and ${days} Days`;
+  }, [formData.dateOfBirth]);
+
+  const validateAndProceed = (e) => {
+    e.preventDefault();
+    setErrorMsg("");
+
+    // Validation checks
+    if (!formData.appliedCategory || formData.appliedCategory === "Select") {
+      setErrorMsg("Please select Applied Training Category (प्रशिक्षण हेतु आवेदित वर्ग).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!formData.graduationCourse || formData.graduationCourse === "Select") {
+      setErrorMsg("Please select Graduation Course (स्नातक परीक्षा का नाम).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!formData.graduationUniversity || formData.graduationUniversity === "Select") {
+      setErrorMsg("Please select Name of University (विश्वविद्यालय का नाम).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!formData.graduationDate) {
+      setErrorMsg("Please enter Graduation Completion Date (स्नातक योग्यता प्राप्त करने की तिथि).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (formData.graduationDate > "2026-10-06") {
+      setErrorMsg("Graduation completion date cannot be later than 06/10/2026 (स्नातक योग्यता प्राप्त करने की तिथि 06/10/2026 से अधिक नहीं हो सकती).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!formData.gender || formData.gender === "Select") {
+      setErrorMsg("Please select Gender (लिंग).");
+      return;
+    }
+
+    if (!formData.category || formData.category === "Select") {
+      setErrorMsg("Please select Category (वर्ग).");
+      return;
+    }
+
+    if (!formData.dateOfBirth) {
+      setErrorMsg("Please enter Date of Birth (जन्म तिथि).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!isExServiceman && formData.dateOfBirth < minAllowedDob) {
+      const msg = `Age must not be more than ${maxAllowedAge} years${relaxationText} as of 01/07/2027 (01/07/2027 को आयु ${maxAllowedAge} वर्ष से अधिक नहीं होनी चाहिए। जन्म तिथि 01/07/${minAllowedDobYear} से पूर्व की नहीं हो सकती).`;
+      setErrorMsg(msg);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (!formData.motherName || !formData.motherName.trim()) {
+      setErrorMsg("Please enter Mother's Name (माता का नाम).");
+      return;
+    }
+
+    if (!formData.subCategory || formData.subCategory === "Select") {
+      setErrorMsg("Please select Sub Category (उपवर्ग).");
+      return;
+    }
+
+    if (isExServiceman) {
+      if (!formData.retirementDate) {
+        setErrorMsg("Please enter Retirement Date from Armed Forces (सेना से सेवा-निवृत्ति की तिथि).");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      if (formData.retirementDate > "2026-09-14") {
+        setErrorMsg("Date of retirement cannot be later than 14/09/2026 (सेना से सेवा-निवृत्ति की तिथि 14/09/2026 से अधिक नहीं हो सकती).");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+    }
+
+    if (!formData.phyHandicapped || formData.phyHandicapped === "Select") {
+      setErrorMsg("Please select PH status (दिव्यांग हैं/नहीं हैं).");
+      return;
+    }
+
+    if (formData.phyHandicapped === "YES" && (!formData.phyType || formData.phyType === "Select" || formData.phyType === "--Not Applicable--")) {
+      setErrorMsg("Please select PH Type (नि:शक्तता का प्रकार).");
+      return;
+    }
+
+    if (!formData.examCity1 || formData.examCity1 === "Select") {
+      setErrorMsg("Please select 1st Exam City preference (प्रथम परीक्षा शहर).");
+      return;
+    }
+
+    if (!formData.examCity2 || formData.examCity2 === "Select") {
+      setErrorMsg("Please select 2nd Exam City preference (द्वितीय परीक्षा शहर).");
+      return;
+    }
+
+    if (formData.examCity1 === formData.examCity2) {
+      setErrorMsg("1st and 2nd Exam City preferences cannot be the same.");
+      return;
+    }
+
+    if (!formData.address || !formData.address.trim()) {
+      setErrorMsg("Please enter Complete Mailing Address (पत्र व्यवहार का पूर्ण पता).");
+      return;
+    }
+
+    if (!formData.state || formData.state === "Select") {
+      setErrorMsg("Please select State (प्रदेश).");
+      return;
+    }
+
+    if (!formData.district || formData.district === "Select") {
+      setErrorMsg("Please select District (जनपद).");
+      return;
+    }
+
+    if (!formData.pincode || formData.pincode.trim().length !== 6) {
+      setErrorMsg("Please enter a valid 6-digit PIN Code (पिन कोड).");
+      return;
+    }
+
+    if (!formData.idProofType || formData.idProofType === "Select") {
+      setErrorMsg("Please select Identity Proof (पहचान पत्र).");
+      return;
+    }
+
+    if (!formData.idProofNo || !formData.idProofNo.trim()) {
+      setErrorMsg("Please enter Identity Proof Number (पहचान पत्र संख्या).");
+      return;
+    }
+
+    handleNext();
+  };
+
+  const isPHYes = formData.phyHandicapped === "YES";
+  const isMale = (formData.gender || "").toUpperCase() === "MALE";
+
+  return (
+    <div className="w-full font-sans">
+      <form onSubmit={validateAndProceed} className="space-y-3 sm:space-y-3.5">
+        
+        {errorMsg && (
+          <div className="bg-red-50 text-red-700 p-2.5 sm:p-3 rounded-xs text-xs sm:text-[13px] font-semibold border border-red-200 flex items-center gap-2">
+            <span>⚠️</span> {errorMsg}
+          </div>
+        )}
+
+        {/* Row 1: प्रशिक्षण हेतु आवेदित वर्ग */}
+        <div className="w-full">
+          <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+            प्रशिक्षण हेतु आवेदित वर्ग <span className="text-red-600 font-bold">*</span>
+          </label>
+          <select
+            name="appliedCategory"
+            value={formData.appliedCategory || "2-विज्ञानेत्तर वर्ग"}
+            onChange={handleInputChange}
+            disabled={isLocked}
+            className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+          >
+            <option value="1-विज्ञान वर्ग">1-विज्ञान वर्ग</option>
+            <option value="2-विज्ञानेत्तर वर्ग">2-विज्ञानेत्तर वर्ग</option>
+          </select>
+        </div>
+
+        {/* Row 2: Graduation Course | Name of University */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Graduation Course स्नातक परीक्षा का नाम <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="graduationCourse"
+              value={formData.graduationCourse || "Select"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              {graduationCourses.map((course) => (
+                <option key={course} value={course}>
+                  {course === "Select" ? "--Select--" : course}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Name of University (विश्वविद्यालय का नाम) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="graduationUniversity"
+              value={formData.graduationUniversity || "DEV BHOOMI UTTARAKHAND UNIVERSITY"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              {universityOptions.map((uni) => (
+                <option key={uni} value={uni}>
+                  {uni}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 3: स्नातक योग्यता प्राप्त करने की तिथि | Applicant's Name */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              स्नातक योग्यता प्राप्त करने की तिथि (dd/mm/yyyy) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <input
+              type="date"
+              name="graduationDate"
+              max="2026-10-06"
+              value={formData.graduationDate || ""}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              required
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Applicant's Name (अभ्यर्थी/अभ्यर्थिनी का नाम)
+            </label>
+            <input
+              type="text"
+              name="applicantName"
+              value={formData.applicantName || ""}
+              onChange={handleInputChange}
+              disabled={true}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-100 text-gray-700 font-bold cursor-not-allowed uppercase"
+            />
+          </div>
+        </div>
+
+        {/* Row 4: Mobile No. | Email ID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Mobile No. (मोबाइल नं.)
+            </label>
+            <input
+              type="text"
+              name="mobileNo"
+              value={formData.mobileNo || ""}
+              onChange={handleInputChange}
+              disabled={true}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-100 text-gray-700 font-bold cursor-not-allowed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Email ID (ईमेल)
+            </label>
+            <input
+              type="text"
+              name="emailId"
+              value={formData.emailId || ""}
+              onChange={handleInputChange}
+              disabled={true}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-100 text-gray-700 font-bold cursor-not-allowed"
+            />
+          </div>
+        </div>
+
+        {/* Row 5: Gender | Date of Birth | Age */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Gender (लिंग) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="gender"
+              value={formData.gender || "Select"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              <option value="Select">--Select--</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Transgender">Transgender</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Date of Birth (dd/mm/yyyy) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              min={minAllowedDob}
+              max="2027-06-30"
+              value={formData.dateOfBirth ? formData.dateOfBirth.split("T")[0] : ""}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              required
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Age (Year,Month,Days)
+            </label>
+            <input
+              type="text"
+              readOnly
+              value={calculatedAge || ""}
+              placeholder="Age will auto-calculate"
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-50 text-gray-700 font-semibold"
+            />
+          </div>
+        </div>
+
+        {/* Row 6: Father's Name | Mother's Name */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Father's Name (पिता का नाम) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <input
+              type="text"
+              name="fatherName"
+              value={formData.fatherName || ""}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              required
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase font-medium text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Mother's Name (माता का नाम) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <input
+              type="text"
+              name="motherName"
+              value={formData.motherName || ""}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              required
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase font-medium text-gray-800"
+            />
+          </div>
+        </div>
+
+        {/* Row 7: Husband Name (विवाहित महिला के पति का नाम) */}
+        <div className="w-full">
+          <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+            Husband Name (विवाहित महिला के पति का नाम)
+            {isMale && (
+              <span className="text-xs font-semibold text-gray-500 ml-2">
+                (Not Applicable for Male / पुरुष हेतु लागू नहीं)
+              </span>
+            )}
+          </label>
+          <input
+            type="text"
+            name="husbandName"
+            value={isMale ? "" : (formData.husbandName || "")}
+            onChange={handleInputChange}
+            disabled={isLocked || isMale}
+            placeholder={isMale ? "Not applicable for Male Candidates (पुरुष हेतु लागू नहीं)" : "यदि लागू हो तो पति का नाम दर्ज करें"}
+            className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded uppercase font-medium ${
+              isMale || isLocked
+                ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "border-sky-400 bg-white text-gray-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+            }`}
+          />
+        </div>
+
+        {/* Row 8: Category | Sub Category | सेना से सेवा-निवृत्ति की तिथि | खेल का प्रकार */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Category (वर्ग) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="category"
+              value={formData.category || "Select"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              <option value="Select">--Select--</option>
+              <option value="General (GEN)">General (GEN)</option>
+              <option value="Other Backward Class (OBC)">Other Backward Class (OBC)</option>
+              <option value="Scheduled Caste (SC)">Scheduled Caste (SC)</option>
+              <option value="Scheduled Tribe (ST)">Scheduled Tribe (ST)</option>
+              <option value="Economically Weaker Section (EWS)">Economically Weaker Section (EWS)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Sub Category (उपवर्ग) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="subCategory"
+              value={formData.subCategory || "लागू/कोई नहीं"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              <option value="लागू/कोई नहीं">लागू/कोई नहीं</option>
+              <option value="DFF (स्वतंत्रता संग्राम सेनानी आश्रित)">DFF (स्वतंत्रता संग्राम सेनानी आश्रित)</option>
+              <option value="EX-SERVICEMAN (पूर्व सैनिक)">EX-SERVICEMAN (पूर्व सैनिक)</option>
+              <option value="Women (महिला)">Women (महिला)</option>
+              <option value="Orphan (अनाथ)">Orphan (अनाथ)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              सेना से सेवा-निवृत्ति की तिथि
+            </label>
+            <input
+              type="date"
+              name="retirementDate"
+              max="2026-09-14"
+              value={formData.retirementDate ? formData.retirementDate.split("T")[0] : ""}
+              onChange={handleInputChange}
+              disabled={!isExServiceman || isLocked}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${
+                isExServiceman ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
+              }`}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              खेल का प्रकार
+            </label>
+            <select
+              name="sportsType"
+              value={formData.sportsType || "Select"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              <option value="Select">--Select--</option>
+              <option value="None / कोई नहीं">None / कोई नहीं</option>
+              <option value="National Level (राष्ट्रीय स्तर)">National Level (राष्ट्रीय स्तर)</option>
+              <option value="State Level (राज्य स्तर)">State Level (राज्य स्तर)</option>
+              <option value="University / College Level (विश्वविद्यालय स्तर)">University / College Level (विश्वविद्यालय स्तर)</option>
+              <option value="District Level (जनपद स्तर)">District Level (जनपद स्तर)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Row 9: PH YES/No | PH Type | Scribe Required */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-0.5">
+              PH YES or No <span className="text-red-600 font-bold">*</span>
+            </label>
+            <p className="text-[11px] text-red-600 font-semibold mb-1">
+              (दिव्यांग हैं/नहीं है 40 प्रतिशत या उससे अधिक दिव्यांगता वाले ही YES अंकित करें)
+            </p>
+            <select
+              name="phyHandicapped"
+              value={formData.phyHandicapped || "NO"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              <option value="NO">NO</option>
+              <option value="YES">YES</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-0.5">
+              If YES select PH Type
+            </label>
+            <p className="text-[11px] text-gray-600 font-medium mb-1">
+              यदि हाँ तो निःशक्तता (दिव्यांगता) का प्रकार
+            </p>
+            <select
+              name="phyType"
+              value={formData.phyType || (isPHYes ? "Select" : "--Not Applicable--")}
+              onChange={handleInputChange}
+              disabled={!isPHYes || isLocked}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${
+                isPHYes ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
+              }`}
+            >
+              <option value="--Not Applicable--">--Not Applicable--</option>
+              <option value="VI (Visually Impaired)">VI (Visually Impaired)</option>
+              <option value="HI (Hearing Impaired)">HI (Hearing Impaired)</option>
+              <option value="OH (Orthopedically Handicapped)">OH (Orthopedically Handicapped)</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-0.5">
+              Scribe Required (श्रुतलेखक की आवश्यकता)
+            </label>
+            <p className="text-[11px] text-transparent select-none mb-1">
+              Placeholder
+            </p>
+            <select
+              name="scribeRequired"
+              value={formData.scribeRequired || "--Select--"}
+              onChange={handleInputChange}
+              disabled={!isPHYes || isLocked}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${
+                isPHYes ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
+              }`}
+            >
+              <option value="--Select--">--Select--</option>
+              <option value="NO">NO</option>
+              <option value="YES">YES</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Row 10: Exam City 1st | Exam City 2nd */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Exam City 1ˢᵗ (परीक्षा में सम्मिलित होने हेतु वांछित प्रथम शहर) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="examCity1"
+              value={formData.examCity1 || "Select"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              {examCityOptions
+                .filter((opt) => opt === "Select" || opt !== formData.examCity2)
+                .map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Exam City 2ⁿᵈ (परीक्षा में सम्मिलित होने हेतु वांछित द्वितीय शहर) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="examCity2"
+              value={formData.examCity2 || "Select"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              {examCityOptions
+                .filter((opt) => opt === "Select" || opt !== formData.examCity1)
+                .map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 11: Complete Mailing Address */}
+        <div className="w-full">
+          <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+            Complete Mailing Address(पत्र व्यवहार का पूर्ण पता) <span className="text-red-600 font-bold">*</span>
+          </label>
+          <input
+            type="text"
+            name="address"
+            value={formData.address || ""}
+            onChange={handleInputChange}
+            disabled={isLocked}
+            placeholder="Complete Mailing Address"
+            required
+            className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase font-medium text-gray-800"
+          />
+        </div>
+
+        {/* Row 12: State | District */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              State (प्रदेश) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="state"
+              value={formData.state || "Uttarakhand"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              <option value="Select">--Select--</option>
+              {states.map((s) => (
+                <option key={s.id || s.name} value={s.name}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              District (जनपद) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="district"
+              value={formData.district || "Select"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              {districtOptions.map((dist) => (
+                <option key={dist} value={dist}>
+                  {dist}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Row 13: PIN Code | Identity Proof */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              PIN Code (पिन कोड) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <input
+              type="text"
+              name="pincode"
+              maxLength={6}
+              value={formData.pincode || ""}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, "");
+                handleInputChange({ target: { name: "pincode", value: val } });
+              }}
+              disabled={isLocked}
+              placeholder="6-digit PIN Code"
+              required
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Identity Proof (पहचान पत्र) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <select
+              name="idProofType"
+              value={formData.idProofType || "Aadhar Card"}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            >
+              <option value="Aadhar Card">Aadhar Card</option>
+              <option value="Voter ID Card">Voter ID Card</option>
+              <option value="PAN Card">PAN Card</option>
+              <option value="Passport">Passport</option>
+              <option value="Driving License">Driving License</option>
+              <option value="Govt ID Card">Govt ID Card</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Row 14: Identity Proof No. */}
+        <div className="w-full md:w-1/2">
+          <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+            Identity Proof No. (पहचान पत्र संख्या) <span className="text-red-600 font-bold">*</span>
+          </label>
+          <input
+            type="text"
+            name="idProofNo"
+            value={formData.idProofNo || ""}
+            onChange={handleInputChange}
+            disabled={isLocked}
+            placeholder="Identity Proof No."
+            required
+            className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase font-medium text-gray-800"
+          />
+        </div>
+
+        {/* Action Button: Save & Next */}
+        <div className="flex justify-end pt-4 border-t border-gray-200">
+          <button
+            type="submit"
+            disabled={isLocked}
+            className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold text-sm sm:text-base rounded-md shadow-sm transition cursor-pointer flex items-center gap-2"
+          >
+            Save & Next
+          </button>
+        </div>
+
+      </form>
+    </div>
+  );
+}

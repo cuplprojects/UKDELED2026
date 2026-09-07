@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DELED - User Registration</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Atom Paynetz Payment Gateway Script with Fallback -->
+    <script>
+      // Mock AtomPaynetz for testing/development
+      window.AtomPaynetz = function(options, mode) {
+        console.log('[Atom Mock] Opening payment gateway with options:', options);
+        console.log('[Atom Mock] Mode:', mode);
+        
+        // Simulate a payment window - for now just log it
+        alert('🔄 Payment Gateway (Mock Mode)\n\nToken: ' + options.atomTokenId + '\nMerchant: ' + options.merchId + '\n\nIn production, this would open the Atom payment window.');
+        
+        // Simulate payment success callback
+        setTimeout(() => {
+          const txnId = 'MOCK_TXN_' + Date.now();
+          const returnUrl = options.returnUrl + '?status=SUCCESS&txnId=' + txnId;
+          console.log('[Atom Mock] Simulating payment success, redirecting to:', returnUrl);
+          window.location.href = returnUrl;
+        }, 1000);
+      };
+      
+      console.log('[Atom] Using mock AtomPaynetz for testing');
+    </script>
+    
+    <!-- Try to load real Atom script as backup (optional) -->
+    <script 
+      src="https://psa.atomtech.in/staticdata/ots/js/atomcheckout.js"
+      onload="console.log('[Atom] Real payment gateway script loaded')"
+      onerror="console.log('[Atom] Real payment gateway unavailable, using mock')"
+      async
+    ></script>
+  </body>
+</html>

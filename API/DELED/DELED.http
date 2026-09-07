@@ -1,0 +1,6 @@
+@DELED_HostAddress = http://localhost:5119
+
+GET {{DELED_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
