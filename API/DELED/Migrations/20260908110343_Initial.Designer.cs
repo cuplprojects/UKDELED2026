@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DELED.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260906160438_DELED2026")]
-    partial class DELED2026
+    [Migration("20260908110343_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
