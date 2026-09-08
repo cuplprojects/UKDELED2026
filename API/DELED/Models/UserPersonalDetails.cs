@@ -89,7 +89,7 @@ namespace DELED.Models
         public bool IsActive { get; set; } = true;
 
         // -------------------------------------------------------------
-        // Unmapped helper properties for backward compatibility
+        // Unmapped helper properties for User registration sync
         // -------------------------------------------------------------
         [NotMapped]
         public string? EmailId { get; set; }
@@ -102,65 +102,5 @@ namespace DELED.Models
 
         [NotMapped]
         public string? MobileNo { get; set; }
-
-        [NotMapped]
-        public int HomeDistrict { get => District; set => District = value; }
-
-        [NotMapped]
-        public string? SubjectCode { get => AppliedCategory; set => AppliedCategory = value; }
-
-        [NotMapped]
-        public string? DELED1TrainingQualification { get => GraduationCourse; set => GraduationCourse = value; }
-
-        [NotMapped]
-        public string? DELED1TrainingYear { get => GraduationDate; set => GraduationDate = value; }
-
-        [NotMapped]
-        public string? EligibilityCodeDELED1 { get => GraduationUniversity; set => GraduationUniversity = value; }
-
-        [NotMapped]
-        public string? EligibilityCodeDELED2 { get => SportsType; set => SportsType = value; }
-
-        [NotMapped]
-        public string? FirstLanguage { get; set; }
-
-        [NotMapped]
-        public string? SecondLanguage { get; set; }
-
-        [NotMapped]
-        public string? DELED1TrainingStatus { get; set; }
-
-        [NotMapped]
-        public string? DELED2TrainingQualification { get; set; }
-
-        [NotMapped]
-        public string? DELED2TrainingStatus { get; set; }
-
-        [NotMapped]
-        public string? DELED2TrainingYear { get; set; }
-
-        [NotMapped]
-        public string? Deled1UdiseCode { get; set; }
-
-        [NotMapped]
-        public string? Deled2UdiseCode { get; set; }
-
-        [NotMapped]
-        public string? Deled1SchoolType { get; set; }
-
-        [NotMapped]
-        public string? Deled2SchoolType { get; set; }
-
-        [NotMapped]
-        public string? Deled1InServiceTraining { get; set; }
-
-        [NotMapped]
-        public string? Deled1InServiceTrainingOthers { get; set; }
-
-        [NotMapped]
-        public string? Deled2InServiceTraining { get; set; }
-
-        [NotMapped]
-        public string? Deled2InServiceTrainingOthers { get; set; }
     }
 }
