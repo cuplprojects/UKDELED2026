@@ -63,9 +63,45 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Issuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            var usernameClaim = context.Principal?.Identity?.Name
+                ?? context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+            var sessionIdClaim = context.Principal?.FindFirst("SessionId")?.Value;
+
+            if (!string.IsNullOrEmpty(usernameClaim))
+            {
+                var admin = await dbContext.Admins.AsNoTracking().FirstOrDefaultAsync(a => a.Username == usernameClaim);
+                if (admin != null && !string.IsNullOrEmpty(admin.SessionId) && !string.IsNullOrEmpty(sessionIdClaim))
+                {
+                    if (admin.SessionId != sessionIdClaim)
+                    {
+                        context.Fail("Your session has expired because your admin account was logged in from another device/browser.");
+                    }
+                }
+            }
+        }
+    };
 });
 
 var app = builder.Build();
+
+// Ensure SessionId column exists in Admins table
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.ExecuteSqlRaw("ALTER TABLE `Admins` ADD COLUMN `SessionId` VARCHAR(100) NULL;");
+    }
+    catch (Exception)
+    {
+        // Column already exists
+    }
+}
 
 // Configure the HTTP request pipeline.
 app.UseSwagger();

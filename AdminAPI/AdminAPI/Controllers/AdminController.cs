@@ -38,7 +38,7 @@ namespace DELED.Controllers
             return Ok(new { success = true, isAdmin = true, username = User.Identity?.Name });
         }
 
-        private string GenerateToken(Admin admin)
+        private string GenerateToken(Admin admin, string sessionId)
         {
             var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
@@ -47,7 +47,8 @@ namespace DELED.Controllers
             {
                 new Claim(ClaimTypes.Name, admin.Username),
                 new Claim(ClaimTypes.Role, "Admin"),
-                new Claim("AdminId", admin.Id.ToString())
+                new Claim("AdminId", admin.Id.ToString()),
+                new Claim("SessionId", sessionId)
             };
 
             var token = new JwtSecurityToken(
@@ -84,7 +85,11 @@ namespace DELED.Controllers
                 return Unauthorized("Invalid registration or password.");
             }
 
-            var token = GenerateToken(admin);
+            string sessionId = Guid.NewGuid().ToString();
+            admin.SessionId = sessionId;
+            _context.SaveChanges();
+
+            var token = GenerateToken(admin, sessionId);
 
             return Ok(new { token = token, username = admin.Username });
         }

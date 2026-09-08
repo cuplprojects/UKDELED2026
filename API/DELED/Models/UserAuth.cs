@@ -16,5 +16,8 @@ namespace DELED.Models
 
         [PasswordPropertyText]
         public string? ClearPass { get; set; }
+
+        [MaxLength(100)]
+        public string? SessionId { get; set; }
     }
 }

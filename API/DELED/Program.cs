@@ -77,10 +77,56 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = builder.Configuration["Jwt:Issuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
     };
+    options.Events = new JwtBearerEvents
+    {
+        OnTokenValidated = async context =>
+        {
+            var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            var userIdClaim = context.Principal?.Identity?.Name
+                ?? context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
+            var sessionIdClaim = context.Principal?.FindFirst("SessionId")?.Value;
+
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                var userAuth = await dbContext.UserAuths.AsNoTracking().FirstOrDefaultAsync(u => u.UserId == userId);
+                if (userAuth != null && !string.IsNullOrEmpty(userAuth.SessionId) && !string.IsNullOrEmpty(sessionIdClaim))
+                {
+                    if (userAuth.SessionId != sessionIdClaim)
+                    {
+                        context.Fail("Your session has expired because your account was logged in from another device/browser.");
+                    }
+                }
+            }
+        }
+    };
 });
 
 
 var app = builder.Build();
+
+// Ensure SessionId column exists in UserAuths and Admins tables
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.ExecuteSqlRaw("ALTER TABLE `UserAuths` ADD COLUMN `SessionId` VARCHAR(100) NULL;");
+    }
+    catch (Exception)
+    {
+        // Column already exists
+    }
+
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Database.ExecuteSqlRaw("ALTER TABLE `Admins` ADD COLUMN `SessionId` VARCHAR(100) NULL;");
+    }
+    catch (Exception)
+    {
+        // Column already exists
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

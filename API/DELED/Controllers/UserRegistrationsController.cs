@@ -585,11 +585,13 @@ namespace DELED.Controllers
                 string hashedPassword = Sha256Hasher.ComputeSHA256Hash(generatedPassword);
 
                 // Create UserAuth entry
+                string sessionId = Guid.NewGuid().ToString();
                 var userAuth = new UserAuth
                 {
                     UserId = user.UserId,
                     Password = hashedPassword,
-                    ClearPass = generatedPassword
+                    ClearPass = generatedPassword,
+                    SessionId = sessionId
                 };
 
                 _context.UserAuths.Add(userAuth);
@@ -676,6 +678,7 @@ namespace DELED.Controllers
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.UserId.ToString()),
+                    new Claim("SessionId", sessionId)
                 };
 
                 var token = new JwtSecurityToken(
@@ -787,11 +790,13 @@ namespace DELED.Controllers
                 string hashedPassword = Sha256Hasher.ComputeSHA256Hash(generatedPassword);
 
                 // Create UserAuth entry
+                string mobileSessionId = Guid.NewGuid().ToString();
                 var userAuth = new UserAuth
                 {
                     UserId = user.UserId,
                     Password = hashedPassword,
-                    ClearPass = generatedPassword
+                    ClearPass = generatedPassword,
+                    SessionId = mobileSessionId
                 };
 
                 _context.UserAuths.Add(userAuth);
@@ -878,6 +883,7 @@ namespace DELED.Controllers
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.Name, user.UserId.ToString()),
+                    new Claim("SessionId", mobileSessionId)
                 };
 
                 var token = new JwtSecurityToken(
