@@ -839,7 +839,29 @@ namespace DELED.Controllers
                 }
 
                 // Map DTO to Model, taking ApplicantName from the Users table as requested
-                personal.ExamTypeId = dto.ExamTypeId;
+                string appliedCat = dto.SubjectCode ?? dto.AppliedCategory ?? "";
+                bool isScienceCat = appliedCat.Contains("1") || (appliedCat.Contains("विज्ञान") && !appliedCat.Contains("विज्ञानेत्तर"));
+                bool isScStCat = !string.IsNullOrEmpty(dto.Category) &&
+                                 (dto.Category.ToUpper().Contains("SC") ||
+                                  dto.Category.ToUpper().Contains("ST") ||
+                                  dto.Category.ToUpper().Contains("SCHEDULED CASTE") ||
+                                  dto.Category.ToUpper().Contains("SCHEDULED TRIBE"));
+
+                int resolvedExamTypeId = 1;
+                if (isScienceCat)
+                {
+                    if (dto.IsPhysicallyHandicapped) resolvedExamTypeId = 3;
+                    else if (isScStCat) resolvedExamTypeId = 2;
+                    else resolvedExamTypeId = 1;
+                }
+                else
+                {
+                    if (dto.IsPhysicallyHandicapped) resolvedExamTypeId = 6;
+                    else if (isScStCat) resolvedExamTypeId = 5;
+                    else resolvedExamTypeId = 4;
+                }
+
+                personal.ExamTypeId = resolvedExamTypeId;
                 personal.Gender = dto.Gender;
                 personal.DOB = dto.DOB;
                 personal.MotherName = dto.MotherName;

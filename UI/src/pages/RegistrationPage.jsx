@@ -437,8 +437,7 @@ export default function RegistrationPage() {
     };
     fetchStatesAndExamCities();
   }, []);
-  const getExamTypeId = (applyFor, category, phyHandicapped) => {
-    if (!applyFor) return 0;
+  const getExamTypeId = (category, phyHandicapped, appliedCategory) => {
     const isPH =
       phyHandicapped === "YES" ||
       phyHandicapped === true ||
@@ -451,22 +450,21 @@ export default function RegistrationPage() {
       catStr.includes("(ST)") ||
       catStr.includes("SC") ||
       catStr.includes("ST");
-    const targetCategory = isPH || isScSt ? "SC/ST/PH" : "GENERAL/OBC";
 
-    const type = examTypes.find((et) => {
-      const name = et.name.toLowerCase();
-      const val = applyFor.toLowerCase();
-      const etCategory = et.category || "";
-      const nameMatches =
-        name === val ||
-        (val === "deledi" &&
-          name.includes("deled-i") &&
-          !name.includes("deled-ii")) ||
-        (val === "deledii" && name.includes("deled-ii")) ||
-        (val === "both" && (name.includes("both") || name.includes("&")));
-      return nameMatches && etCategory.toUpperCase() === targetCategory;
-    });
-    return type ? type.id : 0;
+    const isScience =
+      (appliedCategory || "").includes("1") ||
+      ((appliedCategory || "").includes("विज्ञान") && !(appliedCategory || "").includes("विज्ञानेत्तर"));
+
+    if (isScience) {
+      if (isPH) return 3;
+      if (isScSt) return 2;
+      return 1;
+    } else {
+      // 2-विज्ञानेत्तर वर्ग
+      if (isPH) return 6;
+      if (isScSt) return 5;
+      return 4;
+    }
   };
 
   const handleInputChange = (e) => {
@@ -951,7 +949,7 @@ export default function RegistrationPage() {
       return cityObj ? cityObj.cityId : 0;
     };
 
-    const typeId = formData.appliedCategory?.includes("1") ? 1 : 2;
+    const typeId = getExamTypeId(formData.category, formData.phyHandicapped, formData.appliedCategory);
 
     return {
       examTypeId: typeId,
