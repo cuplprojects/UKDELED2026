@@ -410,7 +410,7 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
@@ -608,7 +608,7 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
@@ -813,7 +813,7 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
@@ -1146,7 +1146,7 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
