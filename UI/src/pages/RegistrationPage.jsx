@@ -830,9 +830,57 @@ export default function RegistrationPage() {
     if (!formData.graduationDate) {
       return { isValid: false, message: "Please enter Graduation Completion Date (स्नातक योग्यता प्राप्त करने की तिथि)." };
     }
-    if (!formData.dateOfBirth) {
-      return { isValid: false, message: "Please enter your Date of Birth." };
+    if (formData.graduationDate > "2026-10-06") {
+      return { isValid: false, message: "Graduation completion date cannot be later than 06/10/2026 (स्नातक योग्यता प्राप्त करने की तिथि 06/10/2026 से अधिक नहीं हो सकती)." };
     }
+    if (!formData.dateOfBirth) {
+      return { isValid: false, message: "Please enter your Date of Birth (जन्म तिथि)." };
+    }
+
+    // Age / Date of Birth Validation
+    const catUpper = (formData.category || "").toUpperCase();
+    const isScStObc = catUpper.includes("SC") || 
+                      catUpper.includes("ST") || 
+                      catUpper.includes("OBC") || 
+                      catUpper.includes("SCHEDULED CASTE") || 
+                      catUpper.includes("SCHEDULED TRIBE") || 
+                      catUpper.includes("OTHER BACKWARD CLASS");
+    const isPH = formData.phyHandicapped === "YES";
+    const subCatUpper = (formData.subCategory || "").toUpperCase();
+    const isExServiceman = subCatUpper.includes("EX-SERVICEMAN") || 
+                          subCatUpper.includes("EX SERVICEMAN") || 
+                          subCatUpper.includes("पूर्व सैनिक");
+    const isDFF = subCatUpper.includes("DFF") || subCatUpper.includes("स्वतंत्रता");
+
+    let maxAllowedAge = 30;
+    let relaxationText = "";
+    if (isPH && (isScStObc || isDFF)) {
+      maxAllowedAge = 45;
+      relaxationText = isScStObc && isDFF 
+        ? " (including 10 years for PH and 5 years for SC/ST/OBC/DFF)" 
+        : (isScStObc ? " (including 10 years for PH and 5 years for SC/ST/OBC)" : " (including 10 years for PH and 5 years for DFF)");
+    } else if (isPH) {
+      maxAllowedAge = 40;
+      relaxationText = " (including 10 years relaxation for PH)";
+    } else if (isScStObc || isDFF) {
+      maxAllowedAge = 35;
+      relaxationText = isScStObc && isDFF 
+        ? " (including 5 years relaxation for SC/ST/OBC/DFF)" 
+        : (isScStObc ? " (including 5 years relaxation for SC/ST/OBC)" : " (including 5 years relaxation for DFF)");
+    }
+
+    const minAllowedDobYear = isExServiceman ? 1950 : 2027 - maxAllowedAge;
+    const minAllowedDob = isExServiceman ? "1950-01-01" : `${minAllowedDobYear}-07-01`;
+
+    if (formData.dateOfBirth > "2008-07-01") {
+      return { isValid: false, message: "Minimum age must be 19 years as of 01/07/2027 (01/07/2027 को न्यूनतम आयु 19 वर्ष होनी चाहिए। जन्म तिथि 01/07/2008 के बाद की नहीं हो सकती)." };
+    }
+
+    if (!isExServiceman && formData.dateOfBirth < minAllowedDob) {
+      const msg = `Age must not be more than ${maxAllowedAge} years${relaxationText} as of 01/07/2027 (01/07/2027 को आयु ${maxAllowedAge} वर्ष से अधिक नहीं होनी चाहिए। जन्म तिथि 01/07/${minAllowedDobYear} से पूर्व की नहीं हो सकती).`;
+      return { isValid: false, message: msg };
+    }
+
     if (!formData.gender || formData.gender === "Select") {
       return { isValid: false, message: "Please select gender." };
     }
@@ -845,9 +893,12 @@ export default function RegistrationPage() {
     if (!formData.subCategory || formData.subCategory === "Select") {
       return { isValid: false, message: "Please select Sub Category." };
     }
-    if (formData.subCategory === "EX-SERVICEMAN (पूर्व सैनिक)" || formData.subCategory === "EX-SERVICEMAN (Self)") {
+    if (isExServiceman) {
       if (!formData.retirementDate) {
-        return { isValid: false, message: "Please enter Retirement Date." };
+        return { isValid: false, message: "Please enter Retirement Date from Armed Forces (सेना से सेवा-निवृत्ति की तिथि)." };
+      }
+      if (formData.retirementDate > "2026-09-14") {
+        return { isValid: false, message: "Date of retirement cannot be later than 14/09/2026 (सेना से सेवा-निवृत्ति की तिथि 14/09/2026 से अधिक नहीं हो सकती)." };
       }
     }
     if (!formData.phyHandicapped || formData.phyHandicapped === "Select") {

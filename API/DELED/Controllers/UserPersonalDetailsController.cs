@@ -75,10 +75,6 @@ namespace DELED.Controllers
                                              on (personal != null ? personal.ExamTypeId : 0) equals exam.Id into examGroup
                                              from exam in examGroup.DefaultIfEmpty()
                                              
-                                             join homeDist in _context.City
-                                             on (personal != null ? personal.HomeDistrict : 0) equals homeDist.Id into homeDistGroup
-                                             from homeDist in homeDistGroup.DefaultIfEmpty()
-                                             
                                              join city1 in _context.ExamCity
                                              on (personal != null ? personal.ExamCity1 : 0) equals city1.CityId into city1Group
                                              from city1 in city1Group.DefaultIfEmpty()
@@ -97,66 +93,55 @@ namespace DELED.Controllers
                                              
                                              where usr.UserId == user.UserId
                                              select new UserCompleteDetailsDTO
-                                             {
-                                                 UserId = usr.UserId,
-                                                 FullName = usr.FullName,
-                                                 FatherName = usr.FatherName,
-                                                 PhoneNumber = usr.PhoneNumber,
-                                                 Email = usr.Email,
-                                                 CreatedOn = usr.CreatedOn,
-                                                 IsOTPVerified = usr.IsOTPVerified,
-                                                 RegistrationNo = usr.RegistrationNo,
-                                                 IsPaymentCompleted = false,
-                                                 PaymentDate = null,
+                                              {
+                                                  UserId = usr.UserId,
+                                                  FullName = usr.FullName,
+                                                  FatherName = usr.FatherName,
+                                                  PhoneNumber = usr.PhoneNumber,
+                                                  Email = usr.Email,
+                                                  CreatedOn = usr.CreatedOn,
+                                                  IsOTPVerified = usr.IsOTPVerified,
+                                                  RegistrationNo = usr.RegistrationNo,
+                                                  IsPaymentCompleted = false,
+                                                  PaymentDate = null,
 
-                                                 PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
-                                                 ApplicationFor = exam != null ? exam.Name : "",
-                                                 Gender = personal != null ? personal.Gender : "",
-                                                 DOB = personal != null ? personal.DOB : null,
-                                                 MotherName = personal != null ? personal.MotherName : "",
-                                                 HusbandName = personal != null ? personal.HusbandName : null,
-                                                 HomeDistrict = homeDist != null ? homeDist.Name : "",
-                                                 Category = personal != null ? personal.Category : "",
-                                                 SubCategory = personal != null ? personal.SubCategory : "",
-                                                 RetirementDate = personal != null ? personal.RetirementDate : null,
-                                                 IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
-                                                 DisabilityType = personal != null ? personal.DisabilityType : null,
-                                                 ScribeRequired = personal != null && personal.ScribeRequired,
-                                                 FirstLanguage = personal != null ? personal.FirstLanguage : "",
-                                                 SecondLanguage = personal != null ? personal.SecondLanguage : "",
-                                                 SubjectCode = personal != null ? personal.SubjectCode : null,
-                                                 DELED1TrainingQualification = personal != null ? personal.DELED1TrainingQualification : null,
-                                                 DELED1TrainingStatus = personal != null ? personal.DELED1TrainingStatus : null,
-                                                 DELED1TrainingYear = personal != null ? personal.DELED1TrainingYear : null,
-                                                 DELED2TrainingQualification = personal != null ? personal.DELED2TrainingQualification : null,
-                                                 DELED2TrainingStatus = personal != null ? personal.DELED2TrainingStatus : null,
-                                                 DELED2TrainingYear = personal != null ? personal.DELED2TrainingYear : null,
-                                                 Deled1UdiseCode = personal != null ? personal.Deled1UdiseCode : null,
-                                                 Deled2UdiseCode = personal != null ? personal.Deled2UdiseCode : null,
-                                                 Deled1SchoolType = personal != null ? personal.Deled1SchoolType : null,
-                                                 Deled2SchoolType = personal != null ? personal.Deled2SchoolType : null,
-                                                 Deled1InServiceTraining = personal != null ? personal.Deled1InServiceTraining : null,
-                                                 Deled1InServiceTrainingOthers = personal != null ? personal.Deled1InServiceTrainingOthers : null,
-                                                 Deled2InServiceTraining = personal != null ? personal.Deled2InServiceTraining : null,
-                                                 Deled2InServiceTrainingOthers = personal != null ? personal.Deled2InServiceTrainingOthers : null,
-                                                 EligibilityCodeDELED1 = personal != null ? personal.EligibilityCodeDELED1 : null,
-                                                 EligibilityCodeDELED2 = personal != null ? personal.EligibilityCodeDELED2 : null,
-                                                 ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
-                                                 ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
-                                                 MailingAddress = personal != null ? personal.MailingAddress : "",
-                                                 State = state != null ? state.Name : "",
-                                                 District = dist != null ? dist.Name : "",
-                                                 PinCode = personal != null ? personal.PinCode : "",
-                                                 IdentityProof = personal != null ? personal.IdentityProof : "",
-                                                 IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
-                                                 PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
-                                                 PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
-                                                 PersonalDetailsIsActive = personal != null && personal.IsActive,
-                                                 TransactionId = null,
-                                                 TransactionDate = null,
-                                                 TransactionAmount = null,
-                                                 TransactionStatus = null,
-                                             }).FirstOrDefaultAsync();
+                                                  PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
+                                                  ExamTypeId = personal != null ? (int?)personal.ExamTypeId : null,
+                                                  ApplicationFor = exam != null ? exam.Name : "",
+                                                  AppliedCategory = personal != null ? personal.AppliedCategory : null,
+                                                  GraduationCourse = personal != null ? personal.GraduationCourse : null,
+                                                  GraduationUniversity = personal != null ? personal.GraduationUniversity : null,
+                                                  GraduationDate = personal != null ? personal.GraduationDate : null,
+                                                  ApplicantName = usr.FullName,
+                                                  Gender = personal != null ? personal.Gender : "",
+                                                  DOB = personal != null ? personal.DOB : null,
+                                                  MotherName = personal != null ? personal.MotherName : "",
+                                                  HusbandName = personal != null ? personal.HusbandName : null,
+                                                  Category = personal != null ? personal.Category : "",
+                                                  SubCategory = personal != null ? personal.SubCategory : "",
+                                                  RetirementDate = personal != null ? personal.RetirementDate : null,
+                                                  SportsType = personal != null ? personal.SportsType : null,
+                                                  IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
+                                                  DisabilityType = personal != null ? personal.DisabilityType : null,
+                                                  ScribeRequired = personal != null && personal.ScribeRequired,
+                                                  ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
+                                                  ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
+                                                  MailingAddress = personal != null ? personal.MailingAddress : "",
+                                                  StateId = personal != null ? personal.StateId : 0,
+                                                  State = state != null ? state.Name : "",
+                                                  DistrictId = personal != null ? personal.District : 0,
+                                                  District = dist != null ? dist.Name : "",
+                                                  PinCode = personal != null ? personal.PinCode : "",
+                                                  IdentityProof = personal != null ? personal.IdentityProof : "",
+                                                  IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
+                                                  PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
+                                                  PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
+                                                  PersonalDetailsIsActive = personal != null && personal.IsActive,
+                                                  TransactionId = null,
+                                                  TransactionDate = null,
+                                                  TransactionAmount = null,
+                                                  TransactionStatus = null,
+                                              }).FirstOrDefaultAsync();
 
                 if (completeDetails == null)
                 {
@@ -234,10 +219,6 @@ namespace DELED.Controllers
                                              on (personal != null ? personal.ExamTypeId : 0) equals exam.Id into examGroup
                                              from exam in examGroup.DefaultIfEmpty()
                                              
-                                             join homeDist in _context.City
-                                             on (personal != null ? personal.HomeDistrict : 0) equals homeDist.Id into homeDistGroup
-                                             from homeDist in homeDistGroup.DefaultIfEmpty()
-                                             
                                              join city1 in _context.ExamCity
                                              on (personal != null ? personal.ExamCity1 : 0) equals city1.CityId into city1Group
                                              from city1 in city1Group.DefaultIfEmpty()
@@ -269,54 +250,43 @@ namespace DELED.Controllers
                                                  IsPaymentCompleted = false, // Will be set below
                                                  PaymentDate = null, // Will be set below
 
-                                                 // User Personal Details (null if not exists)
-                                                 PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
-                                                 ApplicationFor = exam != null ? exam.Name : "",
-                                                 Gender = personal != null ? personal.Gender : "",
-                                                 DOB = personal != null ? personal.DOB : null,
-                                                 MotherName = personal != null ? personal.MotherName : "",
-                                                 HusbandName = personal != null ? personal.HusbandName : null,
-                                                 HomeDistrict = homeDist != null ? homeDist.Name : "",
-                                                 Category = personal != null ? personal.Category : "",
-                                                 SubCategory = personal != null ? personal.SubCategory : "",
-                                                 RetirementDate = personal != null ? personal.RetirementDate : null,
-                                                 IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
-                                                 DisabilityType = personal != null ? personal.DisabilityType : null,
-                                                 ScribeRequired = personal != null && personal.ScribeRequired,
-                                                 FirstLanguage = personal != null ? personal.FirstLanguage : "",
-                                                 SecondLanguage = personal != null ? personal.SecondLanguage : "",
-                                                 SubjectCode = personal != null ? personal.SubjectCode : null,
-                                                 DELED1TrainingQualification = personal != null ? personal.DELED1TrainingQualification : null,
-                                                 DELED1TrainingStatus = personal != null ? personal.DELED1TrainingStatus : null,
-                                                 DELED1TrainingYear = personal != null ? personal.DELED1TrainingYear : null,
-                                                 DELED2TrainingQualification = personal != null ? personal.DELED2TrainingQualification : null,
-                                                 DELED2TrainingStatus = personal != null ? personal.DELED2TrainingStatus : null,
-                                                 DELED2TrainingYear = personal != null ? personal.DELED2TrainingYear : null,
-                                                 Deled1UdiseCode = personal != null ? personal.Deled1UdiseCode : null,
-                                                 Deled2UdiseCode = personal != null ? personal.Deled2UdiseCode : null,
-                                                 Deled1SchoolType = personal != null ? personal.Deled1SchoolType : null,
-                                                 Deled2SchoolType = personal != null ? personal.Deled2SchoolType : null,
-                                                 Deled1InServiceTraining = personal != null ? personal.Deled1InServiceTraining : null,
-                                                 Deled1InServiceTrainingOthers = personal != null ? personal.Deled1InServiceTrainingOthers : null,
-                                                 Deled2InServiceTraining = personal != null ? personal.Deled2InServiceTraining : null,
-                                                 Deled2InServiceTrainingOthers = personal != null ? personal.Deled2InServiceTrainingOthers : null,
-                                                 EligibilityCodeDELED1 = personal != null ? personal.EligibilityCodeDELED1 : null,
-                                                 EligibilityCodeDELED2 = personal != null ? personal.EligibilityCodeDELED2 : null,
-                                                 ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
-                                                 ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
-                                                 MailingAddress = personal != null ? personal.MailingAddress : "",
-                                                 State = state != null ? state.Name : "",
-                                                 District = dist != null ? dist.Name : "",
-                                                 PinCode = personal != null ? personal.PinCode : "",
-                                                 IdentityProof = personal != null ? personal.IdentityProof : "",
-                                                 IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
-                                                 PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
-                                                 PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
-                                                 PersonalDetailsIsActive = personal != null && personal.IsActive,
-                                                 TransactionId = null,
-                                                 TransactionDate = null,
-                                                 TransactionAmount = null,
-                                                 TransactionStatus = null,
+                                                                                                   // User Personal Details (null if not exists)
+                                                  PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
+                                                  ExamTypeId = personal != null ? (int?)personal.ExamTypeId : null,
+                                                  ApplicationFor = exam != null ? exam.Name : "",
+                                                  AppliedCategory = personal != null ? personal.AppliedCategory : null,
+                                                  GraduationCourse = personal != null ? personal.GraduationCourse : null,
+                                                  GraduationUniversity = personal != null ? personal.GraduationUniversity : null,
+                                                  GraduationDate = personal != null ? personal.GraduationDate : null,
+                                                  ApplicantName = user.FullName,
+                                                  Gender = personal != null ? personal.Gender : "",
+                                                  DOB = personal != null ? personal.DOB : null,
+                                                  MotherName = personal != null ? personal.MotherName : "",
+                                                  HusbandName = personal != null ? personal.HusbandName : null,
+                                                  Category = personal != null ? personal.Category : "",
+                                                  SubCategory = personal != null ? personal.SubCategory : "",
+                                                  RetirementDate = personal != null ? personal.RetirementDate : null,
+                                                  SportsType = personal != null ? personal.SportsType : null,
+                                                  IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
+                                                  DisabilityType = personal != null ? personal.DisabilityType : null,
+                                                  ScribeRequired = personal != null && personal.ScribeRequired,
+                                                  ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
+                                                  ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
+                                                  MailingAddress = personal != null ? personal.MailingAddress : "",
+                                                  StateId = personal != null ? personal.StateId : 0,
+                                                  State = state != null ? state.Name : "",
+                                                  DistrictId = personal != null ? personal.District : 0,
+                                                  District = dist != null ? dist.Name : "",
+                                                  PinCode = personal != null ? personal.PinCode : "",
+                                                  IdentityProof = personal != null ? personal.IdentityProof : "",
+                                                  IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
+                                                  PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
+                                                  PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
+                                                  PersonalDetailsIsActive = personal != null && personal.IsActive,
+                                                  TransactionId = null,
+                                                  TransactionDate = null,
+                                                  TransactionAmount = null,
+                                                  TransactionStatus = null,
                                              }).FirstOrDefaultAsync();
 
                 if (completeDetails == null)
@@ -381,10 +351,6 @@ namespace DELED.Controllers
                                                  on (personal != null ? personal.ExamTypeId : 0) equals exam.Id into examGroup
                                                  from exam in examGroup.DefaultIfEmpty()
                                                  
-                                                 join homeDist in _context.City
-                                                 on (personal != null ? personal.HomeDistrict : 0) equals homeDist.Id into homeDistGroup
-                                                 from homeDist in homeDistGroup.DefaultIfEmpty()
-                                                 
                                                  join city1 in _context.ExamCity
                                                  on (personal != null ? personal.ExamCity1 : 0) equals city1.CityId into city1Group
                                                  from city1 in city1Group.DefaultIfEmpty()
@@ -415,54 +381,43 @@ namespace DELED.Controllers
                                                      IsPaymentCompleted = false, // Will be set below
                                                      PaymentDate = null, // Will be set below
 
-                                                     // User Personal Details (null if not exists)
-                                                     PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
-                                                     ApplicationFor = exam != null ? exam.Name : "",
-                                                     Gender = personal != null ? personal.Gender : "",
-                                                     DOB = personal != null ? personal.DOB : null,
-                                                     MotherName = personal != null ? personal.MotherName : "",
-                                                     HusbandName = personal != null ? personal.HusbandName : null,
-                                                     HomeDistrict = homeDist != null ? homeDist.Name : "",
-                                                     Category = personal != null ? personal.Category : "",
-                                                     SubCategory = personal != null ? personal.SubCategory : "",
-                                                     RetirementDate = personal != null ? personal.RetirementDate : null,
-                                                     IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
-                                                     DisabilityType = personal != null ? personal.DisabilityType : null,
-                                                     ScribeRequired = personal != null && personal.ScribeRequired,
-                                                     FirstLanguage = personal != null ? personal.FirstLanguage : "",
-                                                     SecondLanguage = personal != null ? personal.SecondLanguage : "",
-                                                     SubjectCode = personal != null ? personal.SubjectCode : null,
-                                                     DELED1TrainingQualification = personal != null ? personal.DELED1TrainingQualification : null,
-                                                     DELED1TrainingStatus = personal != null ? personal.DELED1TrainingStatus : null,
-                                                     Deled1UdiseCode = personal!=null ? personal.Deled1UdiseCode : null,
-                                                     Deled2UdiseCode = personal!=null ? personal.Deled2UdiseCode: null,
-                                                     Deled1SchoolType = personal != null ? personal.Deled1SchoolType : null,
-                                                     Deled2SchoolType = personal != null ? personal.Deled2SchoolType : null,
-                                                     Deled1InServiceTraining = personal != null ? personal.Deled1InServiceTraining : null,
-                                                     Deled1InServiceTrainingOthers = personal != null ? personal.Deled1InServiceTrainingOthers : null,
-                                                     Deled2InServiceTraining = personal != null ? personal.Deled2InServiceTraining : null,
-                                                     Deled2InServiceTrainingOthers = personal != null ? personal.Deled2InServiceTrainingOthers : null,
-                                                     DELED1TrainingYear = personal != null ? personal.DELED1TrainingYear : null,
-                                                     DELED2TrainingQualification = personal != null ? personal.DELED2TrainingQualification : null,
-                                                     DELED2TrainingStatus = personal != null ? personal.DELED2TrainingStatus : null,
-                                                     DELED2TrainingYear = personal != null ? personal.DELED2TrainingYear : null,
-                                                     EligibilityCodeDELED1 = personal != null ? personal.EligibilityCodeDELED1 : null,
-                                                     EligibilityCodeDELED2 = personal != null ? personal.EligibilityCodeDELED2 : null,
-                                                     ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
-                                                     ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
-                                                     MailingAddress = personal != null ? personal.MailingAddress : "",
-                                                     State = state != null ? state.Name : "",
-                                                     District = dist != null ? dist.Name : "",
-                                                     PinCode = personal != null ? personal.PinCode : "",
-                                                     IdentityProof = personal != null ? personal.IdentityProof : "",
-                                                     IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
-                                                     PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
-                                                     PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
-                                                     PersonalDetailsIsActive = personal != null && personal.IsActive,
-                                                     TransactionId = null,
-                                                     TransactionDate = null,
-                                                     TransactionAmount = null,
-                                                     TransactionStatus = null,
+                                                                                                       // User Personal Details (null if not exists)
+                                                  PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
+                                                  ExamTypeId = personal != null ? (int?)personal.ExamTypeId : null,
+                                                  ApplicationFor = exam != null ? exam.Name : "",
+                                                  AppliedCategory = personal != null ? personal.AppliedCategory : null,
+                                                  GraduationCourse = personal != null ? personal.GraduationCourse : null,
+                                                  GraduationUniversity = personal != null ? personal.GraduationUniversity : null,
+                                                  GraduationDate = personal != null ? personal.GraduationDate : null,
+                                                  ApplicantName = user.FullName,
+                                                  Gender = personal != null ? personal.Gender : "",
+                                                  DOB = personal != null ? personal.DOB : null,
+                                                  MotherName = personal != null ? personal.MotherName : "",
+                                                  HusbandName = personal != null ? personal.HusbandName : null,
+                                                  Category = personal != null ? personal.Category : "",
+                                                  SubCategory = personal != null ? personal.SubCategory : "",
+                                                  RetirementDate = personal != null ? personal.RetirementDate : null,
+                                                  SportsType = personal != null ? personal.SportsType : null,
+                                                  IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
+                                                  DisabilityType = personal != null ? personal.DisabilityType : null,
+                                                  ScribeRequired = personal != null && personal.ScribeRequired,
+                                                  ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
+                                                  ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
+                                                  MailingAddress = personal != null ? personal.MailingAddress : "",
+                                                  StateId = personal != null ? personal.StateId : 0,
+                                                  State = state != null ? state.Name : "",
+                                                  DistrictId = personal != null ? personal.District : 0,
+                                                  District = dist != null ? dist.Name : "",
+                                                  PinCode = personal != null ? personal.PinCode : "",
+                                                  IdentityProof = personal != null ? personal.IdentityProof : "",
+                                                  IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
+                                                  PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
+                                                  PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
+                                                  PersonalDetailsIsActive = personal != null && personal.IsActive,
+                                                  TransactionId = null,
+                                                  TransactionDate = null,
+                                                  TransactionAmount = null,
+                                                  TransactionStatus = null,
                                                  }).ToListAsync();
 
                 // Set payment details from the latest transactions
@@ -634,6 +589,14 @@ namespace DELED.Controllers
                 else
                 {
                     var dob = dto.DOB.Value.Date;
+
+                    // Minimum Age: 19 years as of 01/07/2027 (DOB cannot be later than 01/07/2008)
+                    var maxAllowedDob = new DateTime(2008, 7, 1);
+                    if (dob > maxAllowedDob)
+                    {
+                        return BadRequest(new { success = false, message = "Minimum age must be 19 years as of 01/07/2027 (01/07/2027 को न्यूनतम आयु 19 वर्ष होनी चाहिए। जन्म तिथि 01/07/2008 के बाद की नहीं हो सकती)." });
+                    }
+
                     string catUpper = (dto.Category ?? "").ToUpper();
                     bool isScStObc = catUpper.Contains("SC") || 
                                      catUpper.Contains("ST") || 
@@ -772,6 +735,17 @@ namespace DELED.Controllers
                     }
                 }
 
+                if (string.IsNullOrWhiteSpace(dto.PinCode) || dto.PinCode.Trim().Length != 6 || !System.Text.RegularExpressions.Regex.IsMatch(dto.PinCode.Trim(), @"^\d{6}$"))
+                {
+                    return BadRequest(new { success = false, message = "Please enter a valid 6-digit PIN Code (पिन कोड 6 अंकों का होना चाहिए)." });
+                }
+
+                var idProofError = ValidateIdentityProof(dto.IdentityProof, dto.IdentityProofNo);
+                if (idProofError != null)
+                {
+                    return BadRequest(new { success = false, message = idProofError });
+                }
+
                 var user = await _context.Users.FindAsync(userId);
                 if (user == null)
                 {
@@ -814,10 +788,7 @@ namespace DELED.Controllers
                     {
                         return BadRequest(new { success = false, message = "Sub Category cannot be changed from the backend during correction mode." });
                     }
-                    if (personal.HomeDistrict != dto.HomeDistrict)
-                    {
-                        return BadRequest(new { success = false, message = "Home District cannot be changed from the backend during correction mode." });
-                    }
+                    
                 }
 
                 // Log step progress in the tracking table
@@ -839,7 +810,7 @@ namespace DELED.Controllers
                 }
 
                 // Map DTO to Model, taking ApplicantName from the Users table as requested
-                string appliedCat = dto.SubjectCode ?? dto.AppliedCategory ?? "";
+                string appliedCat = dto.AppliedCategory ?? "";
                 bool isScienceCat = appliedCat.Contains("1") || (appliedCat.Contains("विज्ञान") && !appliedCat.Contains("विज्ञानेत्तर"));
                 bool isScStCat = !string.IsNullOrEmpty(dto.Category) &&
                                  (dto.Category.ToUpper().Contains("SC") ||
@@ -862,28 +833,21 @@ namespace DELED.Controllers
                 }
 
                 personal.ExamTypeId = resolvedExamTypeId;
+                personal.AppliedCategory = dto.AppliedCategory;
+                personal.GraduationCourse = dto.GraduationCourse;
+                personal.GraduationUniversity = dto.GraduationUniversity;
+                personal.GraduationDate = dto.GraduationDate;
                 personal.Gender = dto.Gender;
                 personal.DOB = dto.DOB;
                 personal.MotherName = dto.MotherName;
                 personal.HusbandName = string.Equals(dto.Gender?.Trim(), "Male", StringComparison.OrdinalIgnoreCase) ? null : dto.HusbandName;
-                personal.HomeDistrict = dto.HomeDistrict;
                 personal.Category = dto.Category;
                 personal.SubCategory = dto.SubCategory;
                 personal.RetirementDate = dto.RetirementDate;
+                personal.SportsType = dto.SportsType;
                 personal.IsPhysicallyHandicapped = dto.IsPhysicallyHandicapped;
                 personal.DisabilityType = dto.DisabilityType;
                 personal.ScribeRequired = dto.ScribeRequired;
-                personal.FirstLanguage = dto.FirstLanguage;
-                personal.SecondLanguage = dto.SecondLanguage;
-                personal.SubjectCode = dto.SubjectCode;
-                personal.DELED1TrainingQualification = dto.DELED1TrainingQualification;
-                personal.DELED1TrainingStatus = dto.DELED1TrainingStatus;
-                personal.DELED1TrainingYear = dto.DELED1TrainingYear;
-                personal.DELED2TrainingQualification = dto.DELED2TrainingQualification;
-                personal.DELED2TrainingStatus = dto.DELED2TrainingStatus;
-                personal.DELED2TrainingYear = dto.DELED2TrainingYear;
-                personal.EligibilityCodeDELED1 = dto.EligibilityCodeDELED1;
-                personal.EligibilityCodeDELED2 = dto.EligibilityCodeDELED2;
                 personal.ExamCity1 = dto.ExamCity1;
                 personal.ExamCity2 = dto.ExamCity2;
                 personal.MailingAddress = dto.MailingAddress;
@@ -892,14 +856,7 @@ namespace DELED.Controllers
                 personal.PinCode = dto.PinCode;
                 personal.IdentityProof = dto.IdentityProof;
                 personal.IdentityProofNo = dto.IdentityProofNo;
-                personal.Deled1UdiseCode = dto.Deled1UdiseCode;
-                personal.Deled2UdiseCode = dto.Deled2UdiseCode;
-                personal.Deled1SchoolType = dto.Deled1SchoolType;
-                personal.Deled2SchoolType = dto.Deled2SchoolType;
-                personal.Deled1InServiceTraining = dto.Deled1InServiceTraining;
-                personal.Deled1InServiceTrainingOthers = dto.Deled1InServiceTrainingOthers;
-                personal.Deled2InServiceTraining = dto.Deled2InServiceTraining;
-                personal.Deled2InServiceTrainingOthers = dto.Deled2InServiceTrainingOthers;
+
                 if (isNew)
                 {
                     personal.CreatedOn = DELED.Helpers.TimeHelper.GetIST();

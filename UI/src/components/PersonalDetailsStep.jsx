@@ -169,6 +169,12 @@ export default function PersonalDetailsStep({
       return;
     }
 
+    if (formData.dateOfBirth > "2008-07-01") {
+      setErrorMsg("Minimum age must be 19 years as of 01/07/2027 (01/07/2027 को न्यूनतम आयु 19 वर्ष होनी चाहिए। जन्म तिथि 01/07/2008 के बाद की नहीं हो सकती).");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
     if (!isExServiceman && formData.dateOfBirth < minAllowedDob) {
       const msg = `Age must not be more than ${maxAllowedAge} years${relaxationText} as of 01/07/2027 (01/07/2027 को आयु ${maxAllowedAge} वर्ष से अधिक नहीं होनी चाहिए। जन्म तिथि 01/07/${minAllowedDobYear} से पूर्व की नहीं हो सकती).`;
       setErrorMsg(msg);
@@ -420,7 +426,7 @@ export default function PersonalDetailsStep({
               type="date"
               name="dateOfBirth"
               min={minAllowedDob}
-              max="2027-06-30"
+              max="2008-07-01"
               value={formData.dateOfBirth ? formData.dateOfBirth.split("T")[0] : ""}
               onChange={handleInputChange}
               disabled={isLocked}
