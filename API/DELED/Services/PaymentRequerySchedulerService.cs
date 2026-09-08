@@ -81,12 +81,10 @@ namespace DELED.Services
                             var personal = await context.UserPersonalDetails.FirstOrDefaultAsync(p => p.UserId == txn.UserId, stoppingToken);
                             if (personal != null)
                             {
-                                var examType = await context.ExamTypes.FindAsync(personal.ExamTypeId);
-                                if (examType != null)
-                                {
-                                    amountToQuery = (decimal)examType.Payment;
-                                    _logger.LogInformation("PaymentRequeryScheduler: Amount was 0 for TxnId: {MerchantTxnId}, using exam fee: {Amount}", txn.MerchantTxnId, amountToQuery);
-                                }
+                                int examTypeId = personal.IsPhysicallyHandicapped ? 3 : (!string.IsNullOrEmpty(personal.Category) && (personal.Category.ToUpper().Contains("SC") || personal.Category.ToUpper().Contains("ST")) ? 2 : 1);
+                                var examType = await context.ExamTypes.FindAsync(examTypeId);
+                                amountToQuery = examType != null && examType.Payment > 0 ? (decimal)examType.Payment : (examTypeId == 3 ? 150m : (examTypeId == 2 ? 300m : 600m));
+                                _logger.LogInformation("PaymentRequeryScheduler: Amount was 0 for TxnId: {MerchantTxnId}, using exam fee: {Amount}", txn.MerchantTxnId, amountToQuery);
                             }
                         }
 
@@ -207,11 +205,9 @@ namespace DELED.Services
                              var personal = await context.UserPersonalDetails.FirstOrDefaultAsync(p => p.UserId == txn.UserId, stoppingToken);
                              if (personal != null)
                              {
-                                 var examType = await context.ExamTypes.FindAsync(personal.ExamTypeId);
-                                 if (examType != null)
-                                 {
-                                     amountToQuery = (decimal)examType.Payment;
-                                 }
+                                 int examTypeId = personal.IsPhysicallyHandicapped ? 3 : (!string.IsNullOrEmpty(personal.Category) && (personal.Category.ToUpper().Contains("SC") || personal.Category.ToUpper().Contains("ST")) ? 2 : 1);
+                                 var examType = await context.ExamTypes.FindAsync(examTypeId);
+                                 amountToQuery = examType != null && examType.Payment > 0 ? (decimal)examType.Payment : (examTypeId == 3 ? 150m : (examTypeId == 2 ? 300m : 600m));
                              }
                          }
 

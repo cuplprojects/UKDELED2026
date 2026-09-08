@@ -48,6 +48,87 @@ namespace DELED.Controllers
         }
 
         [Authorize]
+        [HttpGet("fee")]
+        public async Task<IActionResult> GetFee()
+        {
+            try
+            {
+                int userId = GetUserIdFromToken();
+                if (userId <= 0)
+                {
+                    return BadRequest(new { success = false, message = "Valid Registration ID is required." });
+                }
+
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "User not found." });
+                }
+
+                var personal = await _context.UserPersonalDetails.FirstOrDefaultAsync(p => p.UserId == userId);
+
+                int examTypeId = 1;
+                if (personal != null)
+                {
+                    bool isScience = !string.IsNullOrEmpty(personal.AppliedCategory) && 
+                                     (personal.AppliedCategory.Contains("1") || 
+                                      (personal.AppliedCategory.Contains("विज्ञान") && !personal.AppliedCategory.Contains("विज्ञानेत्तर")));
+
+                    bool isScSt = !string.IsNullOrEmpty(personal.Category) && 
+                                  (personal.Category.ToUpper().Contains("SC") || 
+                                   personal.Category.ToUpper().Contains("ST") || 
+                                   personal.Category.ToUpper().Contains("SCHEDULED CASTE") || 
+                                   personal.Category.ToUpper().Contains("SCHEDULED TRIBE"));
+
+                    if (isScience)
+                    {
+                        if (personal.IsPhysicallyHandicapped) examTypeId = 3; // 1-विज्ञान वर्ग PH (150)
+                        else if (isScSt) examTypeId = 2;                     // 1-विज्ञान वर्ग SC/ST (300)
+                        else examTypeId = 1;                                 // 1-विज्ञान वर्ग GENERAL/OBC/EWS (600)
+                    }
+                    else
+                    {
+                        if (personal.IsPhysicallyHandicapped) examTypeId = 6; // 2-विज्ञानेत्तर वर्ग PH (150)
+                        else if (isScSt) examTypeId = 5;                     // 2-विज्ञानेत्तर वर्ग SC/ST (300)
+                        else examTypeId = 4;                                 // 2-विज्ञानेत्तर वर्ग GENERAL/OBC/EWS (600)
+                    }
+
+                    if (personal.ExamTypeId != examTypeId)
+                    {
+                        personal.ExamTypeId = examTypeId;
+                        _context.UserPersonalDetails.Update(personal);
+                        await _context.SaveChangesAsync();
+                    }
+                }
+
+                var examType = await _context.ExamTypes.FindAsync(examTypeId);
+                double feeAmount = examType != null && examType.Payment > 0
+                    ? examType.Payment
+                    : (examTypeId == 3 ? 150 : (examTypeId == 2 ? 300 : 600));
+
+                return Ok(new
+                {
+                    success = true,
+                    applicantId = user.RegistrationNo ?? user.UserId.ToString(),
+                    applicantName = user.FullName ?? personal?.ApplicantName ?? "Applicant",
+                    category = personal?.Category ?? "GENERAL",
+                    isPhysicallyHandicapped = personal?.IsPhysicallyHandicapped ?? false,
+                    examTypeId = examTypeId,
+                    examName = examType?.Name ?? "DELED",
+                    categoryName = examType?.Category ?? (examTypeId == 3 ? "PH" : (examTypeId == 2 ? "SC/ST" : "GENERAL/OBC/EWS")),
+                    applicationFee = feeAmount,
+                    processingFee = 0,
+                    totalAmount = feeAmount,
+                    isPaymentCompleted = user.IsPaymentCompleted
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [Authorize]
         [HttpPost("initiate")]
         public async Task<IActionResult> Initiate([FromBody] PaymentRequestDto dto)
         {
@@ -87,22 +168,50 @@ namespace DELED.Controllers
                     return BadRequest(new { success = false, message = "User email and phone number are required." });
                 }
 
-                // Query personal details to get ExamTypeId
+                // Query personal details
                 var personal = await _context.UserPersonalDetails.FirstOrDefaultAsync(p => p.UserId == regId);
                 if (personal == null)
                 {
                     return BadRequest(new { success = false, message = "Personal details not found for this candidate." });
                 }
 
-                // Get exam type fee
-                var examType = await _context.ExamTypes.FindAsync(personal.ExamTypeId);
-                if (examType == null)
+                // Resolve ExamTypeId based on appliedCategory (1-विज्ञान वर्ग / 2-विज्ञानेत्तर वर्ग) and category & PH status
+                int examTypeId = personal.ExamTypeId;
+                bool isScienceCandidate = !string.IsNullOrEmpty(personal.AppliedCategory) && 
+                                          (personal.AppliedCategory.Contains("1") || 
+                                           (personal.AppliedCategory.Contains("विज्ञान") && !personal.AppliedCategory.Contains("विज्ञानेत्तर")));
+
+                bool isScStCandidate = !string.IsNullOrEmpty(personal.Category) && 
+                                       (personal.Category.ToUpper().Contains("SC") || 
+                                        personal.Category.ToUpper().Contains("ST") || 
+                                        personal.Category.ToUpper().Contains("SCHEDULED CASTE") || 
+                                        personal.Category.ToUpper().Contains("SCHEDULED TRIBE"));
+
+                if (isScienceCandidate)
                 {
-                    return BadRequest(new { success = false, message = "Exam type fee details not found." });
+                    if (personal.IsPhysicallyHandicapped) examTypeId = 3;
+                    else if (isScStCandidate) examTypeId = 2;
+                    else examTypeId = 1;
+                }
+                else
+                {
+                    if (personal.IsPhysicallyHandicapped) examTypeId = 6;
+                    else if (isScStCandidate) examTypeId = 5;
+                    else examTypeId = 4;
                 }
 
-                // Calculate total amount = examType fee
-                decimal totalAmount = (decimal)examType.Payment;
+                if (personal.ExamTypeId != examTypeId)
+                {
+                    personal.ExamTypeId = examTypeId;
+                    _context.UserPersonalDetails.Update(personal);
+                    await _context.SaveChangesAsync();
+                }
+
+                // Get exam type fee
+                var examType = await _context.ExamTypes.FindAsync(examTypeId);
+                decimal totalAmount = examType != null && examType.Payment > 0 
+                    ? (decimal)examType.Payment 
+                    : (personal.IsPhysicallyHandicapped ? 150m : (examTypeId == 2 ? 300m : 600m));
 
                 var token = await _paymentService.GenerateToken(
                     regId,

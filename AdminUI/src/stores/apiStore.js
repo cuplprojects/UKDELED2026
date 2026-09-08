@@ -25,13 +25,18 @@ console.log('[API Store] Initialized with baseURL:', API_BASE_URL);
 console.log('[API Store] Initialized with userBaseURL:', USER_API_BASE_URL);
 
 // Function to handle logout and redirect
-const handleAuthFailure = () => {
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
+let isAlertingAdminSessionExpired = false;
+const handleAuthFailure = (message) => {
+  const hadToken = !!localStorage.getItem("token");
   localStorage.removeItem("token");
   localStorage.removeItem("isAdmin");
   localStorage.removeItem("username");
-  // Force a hard redirect or window reload to reset the application state
-  window.location.href = isAdmin ? "/admin/login" : "/";
+  
+  if (hadToken && !isAlertingAdminSessionExpired) {
+    isAlertingAdminSessionExpired = true;
+    alert(message || "Your admin session has expired or you have logged in from another device. Please log in again.");
+  }
+  window.location.href = "/admin/login";
 };
 
 // Request interceptor to automatically attach JWT token from authStore
@@ -71,31 +76,20 @@ userApi.interceptors.request.use((config) => {
 });
 
 // Response interceptor for logging & auth failure handling
-// api.interceptors.response.use(
-//   (response) => {
-//     console.log(`[API] Response ${response.status} from ${response.config.url}`);
-//     return response;
-//   },
-//   (error) => {
-//     console.error(`[API] Error ${error.response?.status} from ${error.config?.url}:`, error.message);
-    
-//     // Check if the server is unreachable or down
-//     const isNetworkError = !error.response;
-//     const isServerDown = error.response && (error.response.status === 502 || error.response.status === 503 || error.response.status === 504);
-    
-//     if (isNetworkError || isServerDown) {
-//       console.error("[API] Server is unreachable or down. Redirecting to maintenance page...");
-//       window.location.href = "/test/under-maintenance";
-//       return Promise.reject(error);
-//     }
-
-//     if (error.response?.status === 401) {
-//       console.warn("[API] Received 401 Unauthorized. Logging out...");
-//       handleAuthFailure();
-//     }
-//     return Promise.reject(error);
-//   }
-// );
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    const isLoginEndpoint = error.config?.url?.toLowerCase().includes("/login");
+    if (error.response?.status === 401 && !isLoginEndpoint) {
+      console.warn("[API] Received 401 Unauthorized. Admin session expired or logged in on another device.");
+      const serverMsg = error.response?.data?.message || (typeof error.response?.data === 'string' ? error.response?.data : "");
+      handleAuthFailure(serverMsg || "Your admin session has expired because your account was logged in from another device/browser.");
+    }
+    return Promise.reject(error);
+  }
+);
 
 export const useApiStore = create((set) => ({
   loading: false,

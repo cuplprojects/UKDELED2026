@@ -39,6 +39,16 @@ namespace DELED.Data
                     CreatedOn = new DateTime(2026, 6, 25, 0, 0, 0, DateTimeKind.Local)
                 }
             );
+
+            // Seed default DELED Exam Types & Fees (2 Exam Types: 1-विज्ञान वर्ग & 2-विज्ञानेत्तर वर्ग with Category & Fee)
+            modelBuilder.Entity<ExamType>().HasData(
+                new ExamType { Id = 1, Name = "1-विज्ञान वर्ग", Category = "GENERAL/OBC/EWS", Payment = 600 },
+                new ExamType { Id = 2, Name = "1-विज्ञान वर्ग", Category = "SC/ST", Payment = 300 },
+                new ExamType { Id = 3, Name = "1-विज्ञान वर्ग", Category = "PH", Payment = 150 },
+                new ExamType { Id = 4, Name = "2-विज्ञानेत्तर वर्ग", Category = "GENERAL/OBC/EWS", Payment = 600 },
+                new ExamType { Id = 5, Name = "2-विज्ञानेत्तर वर्ग", Category = "SC/ST", Payment = 300 },
+                new ExamType { Id = 6, Name = "2-विज्ञानेत्तर वर्ग", Category = "PH", Payment = 150 }
+            );
         }
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; }
         public DbSet<ExamCity> ExamCity { get; set; }

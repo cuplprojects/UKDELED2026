@@ -3,28 +3,50 @@ import { api } from '../stores/apiStore'
 import { notification } from 'antd'
 import { checkAtomPaymentStatus } from '../utils/atomPaymentUtils'
 
-export default function PaymentStep({ formData, onProceedPayment, onBackToPreview, examTypes = [], isLocked }) {
+export default function PaymentStep({ formData = {}, onProceedPayment, onBackToPreview, examTypes = [], isLocked }) {
   const [agreeTerms, setAgreeTerms] = useState(true)
   const [isLoading, setIsLoading] = useState(false)
+  const [isFeeLoading, setIsFeeLoading] = useState(true)
+  const [feeData, setFeeData] = useState(null)
   const [error, setError] = useState(null)
   const [isPaymentInProgress, setIsPaymentInProgress] = useState(false) // Track payment state
   const [isCheckingStatus, setIsCheckingStatus] = useState(false)
   // ✅ NEW: Check if payment already completed
   const [isAlreadyPaid, setIsAlreadyPaid] = useState(false)
 
+  // Fetch verified payment fee breakdown directly from backend API
   useEffect(() => {
     setAgreeTerms(true);
     
-    // ✅ NEW: Check if formData indicates payment already completed
+    // Check if formData indicates payment already completed
     if (formData?.isPaymentCompleted) {
       setIsAlreadyPaid(true);
-      notification.success({
-        message: "Payment Already Completed",
-        description: "Your payment has been successfully processed. You can now proceed to submit your application.",
-        duration: 5
-      });
     }
-  }, []);
+
+    const fetchFeeDetails = async () => {
+      setIsFeeLoading(true);
+      try {
+        const response = await api.get('/api/Payment/fee');
+        if (response.data && response.data.success) {
+          setFeeData(response.data);
+          if (response.data.isPaymentCompleted) {
+            setIsAlreadyPaid(true);
+            notification.success({
+              message: "Payment Already Completed",
+              description: "Your payment has been successfully processed. You can now proceed to submit your application.",
+              duration: 5
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[PaymentStep] Error fetching fee from backend:', err);
+      } finally {
+        setIsFeeLoading(false);
+      }
+    };
+
+    fetchFeeDetails();
+  }, [formData?.isPaymentCompleted]);
 
   // Disable back button and prevent navigation on the payment page
   useEffect(() => {
@@ -50,14 +72,13 @@ export default function PaymentStep({ formData, onProceedPayment, onBackToPrevie
     }
   }, [isPaymentInProgress])
 
-  const getApplicationFee = () => {
-    if (!formData.applyFor || !examTypes || examTypes.length === 0) return 0;
-    
+  const getFallbackApplicationFee = () => {
     const phyHandicapped = formData.phyHandicapped;
     const isPH =
       phyHandicapped === "YES" ||
       phyHandicapped === true ||
-      phyHandicapped === "1";
+      phyHandicapped === "1" ||
+      formData.isPhysicallyHandicapped === true;
       
     const catStr = (formData.category || "").toUpperCase();
     const isScSt =
@@ -67,27 +88,17 @@ export default function PaymentStep({ formData, onProceedPayment, onBackToPrevie
       catStr.includes("(ST)") ||
       catStr.includes("SC") ||
       catStr.includes("ST");
-      
-    const targetCategory = isPH || isScSt ? "SC/ST/PH" : "GENERAL/OBC";
 
-    const type = examTypes.find(et => {
-      const name = et.name.toLowerCase();
-      const val = formData.applyFor.toLowerCase();
-      const etCategory = et.category || "";
-      
-      const nameMatches = name === val || 
-             (val === "deledi" && name.includes("deled-i") && !name.includes("deled-ii")) ||
-             (val === "deledii" && name.includes("deled-ii")) ||
-             (val === "both" && (name.includes("both") || name.includes("&")));
-             
-      return nameMatches && etCategory.toUpperCase() === targetCategory;
-    });
-    return type ? type.payment : 0;
+    if (isPH) return 150;
+    if (isScSt) return 300;
+    return 600;
   };
 
-  const applicationFee = getApplicationFee();
-  const processingFee = 0
-  const totalAmount = applicationFee + processingFee
+  const applicationFee = feeData?.applicationFee ?? getFallbackApplicationFee();
+  const processingFee = feeData?.processingFee ?? 0;
+  const totalAmount = feeData?.totalAmount ?? (applicationFee + processingFee);
+  const applicantId = feeData?.applicantId || formData.applicantId || formData.registrationNo || 'N/A';
+  const applicantName = feeData?.applicantName || formData.applicantName || 'N/A';
 
   const handleProceedPayment = async () => {
     console.log('[Payment] Button clicked!');
@@ -286,18 +297,25 @@ export default function PaymentStep({ formData, onProceedPayment, onBackToPrevie
           <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4 text-sm sm:text-base">
             <div>
               <p className="text-gray-600 font-semibold text-sm">Applicant ID</p>
-              <p className="font-extrabold text-lg sm:text-xl md:text-2xl text-gray-900">{formData.applicantId || 'N/A'}</p>
+              <p className="font-extrabold text-lg sm:text-xl md:text-2xl text-gray-900">{applicantId}</p>
             </div>
             <div className="text-left sm:text-right w-full sm:w-auto">
               <p className="text-gray-600 font-semibold text-sm">Applicant</p>
-              <p className="font-extrabold text-base sm:text-lg md:text-xl break-words text-gray-900">{formData.applicantName || 'N/A'}</p>
+              <p className="font-extrabold text-base sm:text-lg md:text-xl break-words text-gray-900">{applicantName}</p>
             </div>
           </div>
         </div>
 
         {/* Amount Card */}
         <div className="bg-white rounded-lg shadow p-4 sm:p-5 md:p-6 mb-3 sm:mb-4">
-          <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-3 pb-2 border-b-2 border-blue-200">Amount Breakdown</h2>
+          <div className="flex justify-between items-center mb-3 pb-2 border-b-2 border-blue-200">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">Amount Breakdown</h2>
+            {feeData?.categoryName && (
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 text-xs sm:text-sm font-semibold rounded-full">
+                Category: {feeData.categoryName}
+              </span>
+            )}
+          </div>
           
           <div className="space-y-2 mb-4">
             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg text-sm sm:text-base">

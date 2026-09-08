@@ -24,15 +24,16 @@ namespace DELED.Controllers
             _context = context;
         }
 
-        private string GenerateToken(UserAuth user)
+        private string GenerateToken(UserAuth user, string sessionId)
         {
             var securitykey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
             var credentials = new SigningCredentials(securitykey, SecurityAlgorithms.HmacSha256);
 
             var claims = new List<Claim>
-        {
-            new Claim(ClaimTypes.Name, user.UserId.ToString()), // Assuming UserID is the unique identifier
-        };
+            {
+                new Claim(ClaimTypes.Name, user.UserId.ToString()), // Assuming UserID is the unique identifier
+                new Claim("SessionId", sessionId)
+            };
 
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
@@ -78,7 +79,11 @@ namespace DELED.Controllers
                 return Unauthorized("Invalid registration or password");
             }
 
-            var token = GenerateToken(ua);
+            string sessionId = Guid.NewGuid().ToString();
+            ua.SessionId = sessionId;
+            await _context.SaveChangesAsync();
+
+            var token = GenerateToken(ua, sessionId);
 
             return Ok(new { token = token, userId = ua.UserId });
         }

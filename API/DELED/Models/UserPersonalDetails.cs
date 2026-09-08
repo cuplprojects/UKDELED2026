@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -5,12 +6,91 @@ namespace DELED.Models
 {
     public class UserPersonalDetails
     {
+        // -------------------------------------------------------------
+        // Starting 3 columns (kept as-is)
+        // -------------------------------------------------------------
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int PersonalDetailId { get; set; }
 
         public int UserId { get; set; }
 
+        public int ExamTypeId { get; set; }
+
+        // -------------------------------------------------------------
+        // Application form columns in exact UI order
+        // -------------------------------------------------------------
+        // Row 1: प्रशिक्षण हेतु आवेदित वर्ग
+        public string? AppliedCategory { get; set; }
+
+        // Row 2: Graduation Course | Name of University
+        public string? GraduationCourse { get; set; }
+
+        public string? GraduationUniversity { get; set; }
+
+        // Row 3: स्नातक योग्यता प्राप्त करने की तिथि
+        public string? GraduationDate { get; set; }
+
+        // Row 5: Gender | Date of Birth
+        public string Gender { get; set; } = "";
+
+        public DateTime? DOB { get; set; }
+
+        // Row 6: Mother's Name (ApplicantName & FatherName reside in Users table)
+        public string MotherName { get; set; } = "";
+
+        // Row 7: Husband Name
+        public string? HusbandName { get; set; }
+
+        // Row 8: Category | Sub Category | सेना से सेवा-निवृत्ति की तिथि | खेल का प्रकार
+        public string Category { get; set; } = "";
+
+        public string SubCategory { get; set; } = "";
+
+        public DateTime? RetirementDate { get; set; }
+
+        public string? SportsType { get; set; }
+
+        // Row 9: PH YES/No | If YES select PH Type | Scribe Required
+        public bool IsPhysicallyHandicapped { get; set; }
+
+        public string? DisabilityType { get; set; }
+
+        public bool ScribeRequired { get; set; }
+
+        // Row 10: Exam City 1st | Exam City 2nd
+        public int ExamCity1 { get; set; } 
+
+        public int ExamCity2 { get; set; } 
+
+        // Row 11: Complete Mailing Address
+        public string MailingAddress { get; set; } = "";
+
+        // Row 12: State | District
+        public int StateId { get; set; }
+
+        public int District { get; set; }
+
+        // Row 13: PIN Code | Identity Proof
+        public string PinCode { get; set; } = "";
+
+        public string IdentityProof { get; set; } = "";
+
+        // Row 14: Identity Proof No.
+        public string IdentityProofNo { get; set; } = "";
+
+        // -------------------------------------------------------------
+        // Audit Fields
+        // -------------------------------------------------------------
+        public DateTime CreatedOn { get; set; } = DELED.Helpers.TimeHelper.GetIST();
+
+        public DateTime? UpdatedOn { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        // -------------------------------------------------------------
+        // Unmapped helper properties for backward compatibility
+        // -------------------------------------------------------------
         [NotMapped]
         public string? EmailId { get; set; }
 
@@ -23,135 +103,64 @@ namespace DELED.Models
         [NotMapped]
         public string? MobileNo { get; set; }
 
-        // 1. Application
-        public int ExamTypeId { get; set; }  // 1-विज्ञान वर्ग, 2-विज्ञानेत्तर वर्ग
+        [NotMapped]
+        public int HomeDistrict { get => District; set => District = value; }
 
         [NotMapped]
-        public string? AppliedCategory { get => SubjectCode; set => SubjectCode = value; }
+        public string? SubjectCode { get => AppliedCategory; set => AppliedCategory = value; }
 
         [NotMapped]
-        public string? GraduationCourse { get => DELED1TrainingQualification; set => DELED1TrainingQualification = value; }
+        public string? DELED1TrainingQualification { get => GraduationCourse; set => GraduationCourse = value; }
 
         [NotMapped]
-        public string? GraduationUniversity { get => EligibilityCodeDELED1; set => EligibilityCodeDELED1 = value; }
+        public string? DELED1TrainingYear { get => GraduationDate; set => GraduationDate = value; }
 
         [NotMapped]
-        public string? GraduationDate { get => DELED1TrainingYear; set => DELED1TrainingYear = value; }
+        public string? EligibilityCodeDELED1 { get => GraduationUniversity; set => GraduationUniversity = value; }
 
         [NotMapped]
-        public string? SportsType { get => EligibilityCodeDELED2; set => EligibilityCodeDELED2 = value; }
+        public string? EligibilityCodeDELED2 { get => SportsType; set => SportsType = value; }
 
+        [NotMapped]
+        public string? FirstLanguage { get; set; }
 
-        // 5. Gender
-        public string Gender { get; set; } = "";
+        [NotMapped]
+        public string? SecondLanguage { get; set; }
 
-        // 6. DOB
-        public DateTime? DOB { get; set; }
+        [NotMapped]
+        public string? DELED1TrainingStatus { get; set; }
 
-        // 7. Father's Name
-     
-
-        // 8. Mother's Name
-        public string MotherName { get; set; } = "";
-
-        // 9. Husband Name
-        public string? HusbandName { get; set; }
-
-        // 10. Home District
-        public int HomeDistrict { get; set; }
-
-        // 11. Category
-        public string Category { get; set; } = "";
-
-        // 12. Sub Category
-        public string SubCategory { get; set; } = "";
-
-        // 13. PH Yes/No
-        public bool IsPhysicallyHandicapped { get; set; }
-
-        // 14. Disability Type
-        public string? DisabilityType { get; set; }
-
-        // 15. Scribe Required
-        public bool ScribeRequired { get; set; }
-
-        // 16. First Language
-        public string FirstLanguage { get; set; } = "";
-
-        // 17. Second Language
-        public string SecondLanguage { get; set; } = "";
-
-        // 18. Subject Code (DELED-II)
-        public string? SubjectCode { get; set; }   // Maths/Science, Social Studies
-
-        // ---------------- DELED-I Training ----------------
-
-        // 19.
-        public string? DELED1TrainingQualification { get; set; }
-
-        // 20.
-        public string? DELED1TrainingStatus { get; set; } // Passed/In Training/Enrolled
-
-        // 21.
-        public string? DELED1TrainingYear { get; set; }
-
-        // ---------------- DELED-II Training ----------------
-
-        // 22.
+        [NotMapped]
         public string? DELED2TrainingQualification { get; set; }
 
-        // 23.
+        [NotMapped]
         public string? DELED2TrainingStatus { get; set; }
 
-        // 24.
+        [NotMapped]
         public string? DELED2TrainingYear { get; set; }
 
-        // 25.
-        public string? EligibilityCodeDELED1 { get; set; }
+        [NotMapped]
+        public string? Deled1UdiseCode { get; set; }
 
-        // 26.
-        public string? EligibilityCodeDELED2 { get; set; }
+        [NotMapped]
+        public string? Deled2UdiseCode { get; set; }
 
-        // 27.
-        public int ExamCity1 { get; set; } 
-
-        // 28.
-        public int ExamCity2 { get; set; } 
-
-        // 29.
-        public string MailingAddress { get; set; } = "";
-
-        // 30.
-        public int StateId { get; set; }
-
-        // 31.
-        public int District { get; set; }
-
-        // 32.
-        public string PinCode { get; set; } = "";
-
-        // 33.
-        public string IdentityProof { get; set; } = "";   // Aadhaar, PAN, Passport, DL
-
-        // 34.
-        public string IdentityProofNo { get; set; } = "";
-
-
-
-        // Audit Fields
-        public DateTime CreatedOn { get; set; } = DELED.Helpers.TimeHelper.GetIST();
-
-        public DateTime? UpdatedOn { get; set; }
-
-        public bool IsActive { get; set; } = true;
-        public string? Deled1UdiseCode {  get; set; }
-        public string? Deled2UdiseCode { get;set; }
-        public string? Deled1InServiceTraining { get; set; }
-        public string? Deled1InServiceTrainingOthers { get; set; }
-        public string? Deled2InServiceTraining { get; set; }
-        public string? Deled2InServiceTrainingOthers { get; set; }
+        [NotMapped]
         public string? Deled1SchoolType { get; set; }
+
+        [NotMapped]
         public string? Deled2SchoolType { get; set; }
-        public DateTime? RetirementDate { get; set; }
+
+        [NotMapped]
+        public string? Deled1InServiceTraining { get; set; }
+
+        [NotMapped]
+        public string? Deled1InServiceTrainingOthers { get; set; }
+
+        [NotMapped]
+        public string? Deled2InServiceTraining { get; set; }
+
+        [NotMapped]
+        public string? Deled2InServiceTrainingOthers { get; set; }
     }
 }

@@ -15,5 +15,8 @@ namespace DELED.Models
         [Required]
         [PasswordPropertyText]
         public string Password { get; set; }
+
+        [MaxLength(100)]
+        public string? SessionId { get; set; }
     }
 }
