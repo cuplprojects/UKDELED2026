@@ -70,7 +70,7 @@ namespace DELED.Data
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Notice> Notices { get; set; }
         public DbSet<ImpDocument> ImpDocuments { get; set; }
-        public DbSet<EligibilityCode> EligibilityCodes { get; set; }
+       
         public DbSet<Admin> Admins { get; set; }
         public DbSet<RegistrationTimeline> RegistrationTimelines { get; set; }
         public DbSet<SystemAlert> SystemAlerts { get; set; }
