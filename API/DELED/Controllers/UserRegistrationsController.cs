@@ -410,13 +410,13 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
 
                         <div style=""text-align: center; margin-bottom: 20px;"">
-                            <h3 style=""color: blue; font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">Email Verification OTP</h3>
+                            <h3 style=""color: blue; font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">OTP Code</h3>
                         </div>
 
                         <div style=""font-size: 14px; line-height: 1.6; margin-bottom: 25px;"">
@@ -426,9 +426,7 @@ namespace DELED.Controllers
                             <p style=""margin: 20px 0; font-size: 15px;"">
                                 One Time Password (OTP) for <strong>Email Verification</strong>: <strong style=""font-size: 22px; font-family: monospace; letter-spacing: 2px; color: #1e40af; margin-left: 5px;"">{emailOtp}</strong>
                             </p>
-                            <p style=""margin: 0; font-size: 13px; color: #555;"">
-                                Note: A separate OTP has also been sent to your registered mobile number ({user.PhoneNumber}).
-                            </p>
+                            
                         </div>
 
                         <div style=""color: red; font-size: 13.5px; line-height: 1.6; border-top: 1px solid #f9cbd3; padding-top: 15px; margin-bottom: 25px; font-weight: bold;"">
@@ -608,7 +606,7 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
@@ -813,7 +811,7 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
@@ -973,9 +971,7 @@ namespace DELED.Controllers
                             <p style=""margin: 20px 0; font-size: 15px;"">
                                 One Time Password (OTP) for <strong>Email Verification</strong>: <strong style=""font-size: 20px; font-family: monospace; letter-spacing: 1px; color: #1e40af; margin-left: 5px;"">{emailOtp}</strong>
                             </p>
-                            <p style=""margin: 0; font-size: 13px; color: #555;"">
-                                Note: A separate OTP has also been sent to your registered mobile number ({user.PhoneNumber}).
-                            </p>
+                            
                         </div>
 
                         <div style=""color: red; font-size: 13.5px; line-height: 1.6; border-top: 1px solid #f9cbd3; padding-top: 15px; margin-bottom: 25px; font-weight: bold;"">
@@ -1146,7 +1142,7 @@ namespace DELED.Controllers
                                 <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
                                     <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
                                     <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखंड</h2>
-                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखंड अध्यापक पात्रता परीक्षा (DELED) 2026</h2>
+                                    <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
                                 </td>
                             </tr>
                         </table>
