@@ -494,15 +494,15 @@ export default function CorrectionPage() {
     } else if (e.target.name === "mobileNo" || e.target.name === "pincode") {
       value = value.replace(/\D/g, "");
     } else if (e.target.name === "idProofNo") {
-      if (
-        formData.idProofType === "Pan Card" ||
-        formData.idProofType === "Passport" ||
-        formData.idProofType === "Voter ID" ||
-        formData.idProofType === "Driving License"
-      ) {
-        value = value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-      } else if (formData.idProofType === "Aadhar Card") {
-        value = value.replace(/\D/g, "");
+      const idType = formData.idProofType;
+      if (idType === "Aadhar Card") {
+        value = value.replace(/\D/g, "").substring(0, 12);
+      } else if (idType === "PAN Card") {
+        value = value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 10);
+      } else if (idType === "Passport") {
+        value = value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 8);
+      } else if (idType === "Voter ID Card" || idType === "Driving License") {
+        value = value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 20);
       }
     }
 
@@ -563,8 +563,13 @@ export default function CorrectionPage() {
         updated.phyType = "Select";
         updated.scribeRequired = "NO";
       }
-      if (e.target.name === "subCategory" && value !== "EX-SERVICEMAN (पूर्व सैनिक)" && value !== "EX-SERVICEMAN (Self)") {
-        updated.retirementDate = "";
+      if (e.target.name === "subCategory") {
+        if (value !== "EX-SERVICEMAN (पूर्व सैनिक)" && value !== "EX-SERVICEMAN (Self)" && value !== "EX-SERVICEMAN (भूतपूर्व सैनिक(स्वयं))") {
+          updated.retirementDate = "";
+        }
+        if (!value.toUpperCase().includes("SPORTS")) {
+          updated.sportsType = "Select";
+        }
       }
       return updated;
     });
@@ -862,6 +867,20 @@ export default function CorrectionPage() {
     }
     if (!formData.idProofNo || !formData.idProofNo.trim()) {
       return { isValid: false, message: "Please enter Identity Proof number." };
+    }
+
+    const idType = formData.idProofType;
+    const idNo = formData.idProofNo.trim();
+    if (idType === "Aadhar Card" && !/^\d{12}$/.test(idNo)) {
+      return { isValid: false, message: "Aadhar Card Number must be exactly 12 digits." };
+    } else if (idType === "PAN Card" && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(idNo)) {
+      return { isValid: false, message: "Invalid PAN Card Number format (e.g. ABCDE1234F)." };
+    } else if (idType === "Voter ID Card" && !/^[A-Za-z0-9]+$/.test(idNo)) {
+      return { isValid: false, message: "Voter ID must contain only alphanumeric characters." };
+    } else if (idType === "Passport" && !/^[A-Z][0-9]{7}$/.test(idNo)) {
+      return { isValid: false, message: "Invalid Passport Number format (e.g. A1234567)." };
+    } else if (idType === "Driving License" && !/^[A-Za-z0-9]+$/.test(idNo)) {
+      return { isValid: false, message: "Driving License must contain only alphanumeric characters." };
     }
 
     return { isValid: true };

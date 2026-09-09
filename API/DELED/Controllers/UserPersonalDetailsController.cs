@@ -844,7 +844,10 @@ namespace DELED.Controllers
                 personal.Category = dto.Category;
                 personal.SubCategory = dto.SubCategory;
                 personal.RetirementDate = dto.RetirementDate;
-                personal.SportsType = dto.SportsType;
+                
+                bool isSportsCat = dto.SubCategory != null && dto.SubCategory.ToUpper().Contains("SPORTS");
+                personal.SportsType = isSportsCat ? dto.SportsType : null;
+
                 personal.IsPhysicallyHandicapped = dto.IsPhysicallyHandicapped;
                 personal.DisabilityType = dto.DisabilityType;
                 personal.ScribeRequired = dto.ScribeRequired;

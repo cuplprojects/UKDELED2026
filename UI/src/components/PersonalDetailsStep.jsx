@@ -69,6 +69,7 @@ export default function PersonalDetailsStep({
                         subCatUpper.includes("EX SERVICEMAN") || 
                         subCatUpper.includes("पूर्व सैनिक");
   const isDFF = subCatUpper.includes("DFF") || subCatUpper.includes("स्वतंत्रता");
+  const isSports = subCatUpper.includes("SPORTS");
 
   let maxAllowedAge = 30;
   let relaxationText = "";
@@ -257,6 +258,25 @@ export default function PersonalDetailsStep({
 
     if (!formData.idProofNo || !formData.idProofNo.trim()) {
       setErrorMsg("Please enter Identity Proof Number (पहचान पत्र संख्या).");
+      return;
+    }
+
+    const idType = formData.idProofType;
+    const idNo = formData.idProofNo.trim();
+    if (idType === "Aadhar Card" && !/^\d{12}$/.test(idNo)) {
+      setErrorMsg("Aadhar Card Number must be exactly 12 digits.");
+      return;
+    } else if (idType === "PAN Card" && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(idNo)) {
+      setErrorMsg("Invalid PAN Card Number format (e.g. ABCDE1234F).");
+      return;
+    } else if (idType === "Voter ID Card" && !/^[A-Za-z0-9]+$/.test(idNo)) {
+      setErrorMsg("Voter ID must contain only alphanumeric characters.");
+      return;
+    } else if (idType === "Passport" && !/^[A-Z][0-9]{7}$/.test(idNo)) {
+      setErrorMsg("Invalid Passport Number format (e.g. A1234567).");
+      return;
+    } else if (idType === "Driving License" && !/^[A-Za-z0-9]+$/.test(idNo)) {
+      setErrorMsg("Driving License must contain only alphanumeric characters.");
       return;
     }
 
@@ -543,8 +563,9 @@ export default function PersonalDetailsStep({
             >
               <option value="लागू/कोई नहीं">लागू/कोई नहीं</option>
               <option value="DFF (स्वतंत्रता संग्राम सेनानी आश्रित)">DFF (स्वतंत्रता संग्राम सेनानी आश्रित)</option>
-              <option value="EX-SERVICEMAN (पूर्व सैनिक)">EX-SERVICEMAN (पूर्व सैनिक)</option>
-              <option value="Women (महिला)">Women (महिला)</option>
+              <option value="EX-SERVICEMAN (भूतपूर्व सैनिक(स्वयं))">EX-SERVICEMAN (भूतपूर्व सैनिक(स्वयं))</option>
+              <option value="SPORTS (खेलकूद)">SPORTS (खेलकूद)</option>
+              <option value="राज्य आंदोलनकारी और उनके आश्रित">राज्य आंदोलनकारी और उनके आश्रित</option>
               <option value="Orphan (अनाथ)">Orphan (अनाथ)</option>
             </select>
           </div>
@@ -574,8 +595,10 @@ export default function PersonalDetailsStep({
               name="sportsType"
               value={formData.sportsType || "Select"}
               onChange={handleInputChange}
-              disabled={isLocked}
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+              disabled={!isSports || isLocked}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${
+                isSports ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
+              }`}
             >
               <option value="Select">--Select--</option>
               <option value="None / कोई नहीं">None / कोई नहीं</option>
@@ -800,7 +823,6 @@ export default function PersonalDetailsStep({
               <option value="PAN Card">PAN Card</option>
               <option value="Passport">Passport</option>
               <option value="Driving License">Driving License</option>
-              <option value="Govt ID Card">Govt ID Card</option>
             </select>
           </div>
         </div>

@@ -556,6 +556,10 @@ export default function ProfileVerificationCapture({
     };
   }, [videoStream]);
 
+  if (!hasCameraDevice) {
+    return null;
+  }
+
   return (
     <>
       {/* Trigger Button inside Form / Step */}
