@@ -1,4 +1,5 @@
 import React from "react";
+import ProfileVerificationCapture from "./ProfileVerificationCapture";
 
 export default function UploadDocumentsStep({
   formData,
@@ -16,12 +17,14 @@ export default function UploadDocumentsStep({
           <p className="text-red-600 text-sm sm:text-base font-bold font-mono">.jpg / .jpeg (05 - 100 KB)</p>
           <p className="text-red-600 text-sm sm:text-base font-bold">नोट : फोटो का बैकग्राउंड प्लेन(एक कलर में) होना आवश्यक है</p>
           <p className="text-red-600 text-sm sm:text-base font-bold">आवश्यक आकार (Pixel) : Width : 140, Height : 170</p>
-          <a href="https://ukdeled.com/Photo/index.html" target="_blank" rel="noopener noreferrer" className="inline-block text-[#1a56db] hover:underline text-sm sm:text-base font-bold mt-1">
-            Online Tool to Create Photo
-          </a>
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <a href="https://ukdeled.com/Photo/index.html" target="_blank" rel="noopener noreferrer" className="inline-block text-[#1a56db] hover:underline text-sm sm:text-base font-bold">
+              Online Tool to Create Photo
+            </a>
+          </div>
         </div>
         <div className="flex flex-col items-start sm:items-end gap-3 w-full md:w-auto">
-          <div className="w-full sm:w-[140px] md:w-[160px] aspect-video sm:aspect-auto sm:h-[170px] md:h-[190px] border border-gray-400 bg-gray-50 flex items-center justify-center overflow-hidden rounded-sm">
+          <div className="w-full sm:w-[140px] md:w-[160px] aspect-video sm:aspect-auto sm:h-[170px] md:h-[190px] border border-gray-400 bg-gray-50 flex items-center justify-center overflow-hidden rounded-sm shadow-xs">
             {formData.photoFilePreview ? (
               <img src={formData.photoFilePreview} alt="Photo Preview" className="w-full h-full object-contain" />
             ) : (
@@ -31,20 +34,34 @@ export default function UploadDocumentsStep({
               </div>
             )}
           </div>
-          <div className="border border-sky-400 rounded-md bg-white overflow-hidden flex items-center w-full md:w-auto">
-            <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-4 py-2.5 border-r border-gray-300 font-bold select-none shrink-0 ${isLocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
-              Choose File
-              <input
-                type="file"
-                accept="image/jpeg,.jpg,.jpeg"
-                onChange={(e) => handleFileChange(e, "photoFile")}
-                disabled={isLocked}
-                className="hidden"
-              />
-            </label>
-            <span className="text-sm sm:text-base text-gray-600 px-3.5 truncate max-w-[200px]">
-              {formData.photoFile ? formData.photoFile.name : "No file chosen"}
-            </span>
+          
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+            {/* Live Camera Capture Button */}
+            <ProfileVerificationCapture
+              onFileSelect={(e) => handleFileChange(e, "photoFile")}
+              isLocked={isLocked}
+              targetWidth={140}
+              targetHeight={170}
+              minSizeKB={5}
+              maxSizeKB={100}
+            />
+
+            {/* Standard File Upload */}
+            <div className="border border-sky-400 rounded-md bg-white overflow-hidden flex items-center w-full sm:w-auto">
+              <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-3.5 py-2 border-r border-gray-300 font-bold select-none shrink-0 ${isLocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+                Choose File
+                <input
+                  type="file"
+                  accept="image/jpeg,.jpg,.jpeg"
+                  onChange={(e) => handleFileChange(e, "photoFile")}
+                  disabled={isLocked}
+                  className="hidden"
+                />
+              </label>
+              <span className="text-xs sm:text-sm text-gray-600 px-3 truncate max-w-[140px]">
+                {formData.photoFile ? (formData.photoFile.name || "Photo Selected") : "No file chosen"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

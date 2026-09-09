@@ -631,7 +631,7 @@ export default function CorrectionPage() {
   };
 
   const handleFileChange = async (e, fileKey) => {
-    const file = e.target.files[0];
+    const file = e?.target?.files ? e.target.files[0] : (e instanceof File ? e : e?.file);
     if (!file) return;
 
     setValidatingFile(true);
@@ -653,7 +653,7 @@ export default function CorrectionPage() {
         message: "Invalid File Format",
         description: `${spec.name}: Only .jpg / .jpeg files are allowed.`,
       });
-      e.target.value = "";
+      if (e?.target && "value" in e.target) e.target.value = "";
       setValidatingFile(false);
       return;
     }
@@ -665,7 +665,7 @@ export default function CorrectionPage() {
         message: "Invalid File Size",
         description: `${spec.name}: File size must be between ${spec.minSizeKB} KB and ${spec.maxSizeKB} KB. Current size: ${fileSizeKB.toFixed(2)} KB.`,
       });
-      e.target.value = "";
+      if (e?.target && "value" in e.target) e.target.value = "";
       setValidatingFile(false);
       return;
     }
@@ -677,7 +677,7 @@ export default function CorrectionPage() {
         message: "Invalid Dimensions",
         description: `${spec.name}: ${dimensionValidation.message}`,
       });
-      e.target.value = "";
+      if (e?.target && "value" in e.target) e.target.value = "";
       setValidatingFile(false);
       return;
     }
