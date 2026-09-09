@@ -268,7 +268,7 @@ export default function PersonalDetailsStep({
 
   return (
     <div className="w-full font-sans">
-      <form onSubmit={validateAndProceed} className="space-y-3 sm:space-y-3.5">
+      <form autoComplete="off" onSubmit={validateAndProceed} className="space-y-3 sm:space-y-3.5">
         
         {errorMsg && (
           <div className="bg-red-50 text-red-700 p-2.5 sm:p-3 rounded-xs text-xs sm:text-[13px] font-semibold border border-red-200 flex items-center gap-2">
@@ -283,11 +283,12 @@ export default function PersonalDetailsStep({
           </label>
           <select
             name="appliedCategory"
-            value={formData.appliedCategory || "2-विज्ञानेत्तर वर्ग"}
+            value={formData.appliedCategory || "Select"}
             onChange={handleInputChange}
             disabled={isLocked}
             className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
           >
+            <option value="Select">--Select--</option>
             <option value="1-विज्ञान वर्ग">1-विज्ञान वर्ग</option>
             <option value="2-विज्ञानेत्तर वर्ग">2-विज्ञानेत्तर वर्ग</option>
           </select>
@@ -320,7 +321,7 @@ export default function PersonalDetailsStep({
             </label>
             <select
               name="graduationUniversity"
-              value={formData.graduationUniversity || "DEV BHOOMI UTTARAKHAND UNIVERSITY"}
+              value={formData.graduationUniversity || "Select"}
               onChange={handleInputChange}
               disabled={isLocked}
               className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
@@ -460,9 +461,9 @@ export default function PersonalDetailsStep({
               name="fatherName"
               value={formData.fatherName || ""}
               onChange={handleInputChange}
-              disabled={isLocked}
+              disabled={true}
               required
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase font-medium text-gray-800"
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-100 uppercase text-gray-700 font-bold cursor-not-allowed"
             />
           </div>
 
@@ -597,11 +598,12 @@ export default function PersonalDetailsStep({
             </p>
             <select
               name="phyHandicapped"
-              value={formData.phyHandicapped || "NO"}
+              value={formData.phyHandicapped || "Select"}
               onChange={handleInputChange}
               disabled={isLocked}
               className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
             >
+              <option value="Select">--Select--</option>
               <option value="NO">NO</option>
               <option value="YES">YES</option>
             </select>
@@ -623,6 +625,7 @@ export default function PersonalDetailsStep({
                 isPHYes ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
               }`}
             >
+              <option value="Select">--Select--</option>
               <option value="--Not Applicable--">--Not Applicable--</option>
               <option value="VI (Visually Impaired)">VI (Visually Impaired)</option>
               <option value="HI (Hearing Impaired)">HI (Hearing Impaired)</option>
@@ -786,11 +789,12 @@ export default function PersonalDetailsStep({
             </label>
             <select
               name="idProofType"
-              value={formData.idProofType || "Aadhar Card"}
+              value={formData.idProofType || "Select"}
               onChange={handleInputChange}
               disabled={isLocked}
               className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
             >
+              <option value="Select">--Select--</option>
               <option value="Aadhar Card">Aadhar Card</option>
               <option value="Voter ID Card">Voter ID Card</option>
               <option value="PAN Card">PAN Card</option>

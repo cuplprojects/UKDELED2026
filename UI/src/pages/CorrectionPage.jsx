@@ -107,9 +107,9 @@ export default function CorrectionPage() {
     return val !== "DELEDII" && val !== "DELED2";
   };
 
-  // Route Guard: Redirect to Home if token is not in localStorage
+  // Route Guard: Redirect to Home if token is not in sessionStorage
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       navigate("/");
     }
@@ -173,7 +173,7 @@ export default function CorrectionPage() {
   // Fetch last completed step from UserStepProgress and set current step
   useEffect(() => {
     const fetchUserStepProgress = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (token) {
         try {
           const res = await api.get(`/api/UserStepProgresses`);
@@ -206,7 +206,7 @@ export default function CorrectionPage() {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (token) {
         try {
           const res = await api.get(`/api/UserPersonalDetails/complete/me`);
@@ -1247,7 +1247,7 @@ export default function CorrectionPage() {
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs font-sans p-2 sm:p-3 md:p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-xs sm:max-w-sm md:max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="bg-[#1e40af] text-white px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 flex justify-between items-center gap-2 sticky top-0 z-10">
+            <div className="bg-blue-700 text-white px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 flex justify-between items-center gap-2 sticky top-0 z-10">
               <h2 className="font-extrabold text-xs sm:text-sm md:text-base tracking-wide">
                 CHANGE PASSWORD
               </h2>
@@ -1258,7 +1258,7 @@ export default function CorrectionPage() {
                 ×
               </button>
             </div>
-            <form onSubmit={handlePasswordSubmit} className="p-2 sm:p-3 md:p-4 lg:p-6 space-y-2 sm:space-y-3 md:space-y-4">
+            <form autoComplete="off" onSubmit={handlePasswordSubmit} className="p-2 sm:p-3 md:p-4 lg:p-6 space-y-2 sm:space-y-3 md:space-y-4">
               {passwordError && (
                 <div className="bg-red-50 text-red-600 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-bold border border-red-200">
                   {passwordError}
@@ -1284,7 +1284,7 @@ export default function CorrectionPage() {
                         oldPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden"
                     placeholder="Enter old password"
                   />
                   <button
@@ -1310,7 +1310,7 @@ export default function CorrectionPage() {
                         newPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden"
                     placeholder="Enter new password"
                   />
                   <button
@@ -1336,7 +1336,7 @@ export default function CorrectionPage() {
                         confirmPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden"
                     placeholder="Confirm new password"
                   />
                   <button
@@ -1360,7 +1360,7 @@ export default function CorrectionPage() {
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="flex-1 py-1.5 sm:py-2 md:py-2.5 px-2 sm:px-4 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded text-xs sm:text-sm font-bold transition disabled:opacity-50 cursor-pointer"
+                  className="flex-1 py-1.5 sm:py-2 md:py-2.5 px-2 sm:px-4 bg-blue-700 hover:bg-blue-800 text-white rounded text-xs sm:text-sm font-bold transition disabled:opacity-50 cursor-pointer"
                 >
                   {passwordLoading ? "CHANGING..." : "CHANGE"}
                 </button>

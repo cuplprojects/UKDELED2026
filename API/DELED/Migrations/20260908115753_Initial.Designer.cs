@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DELED.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260908110343_Initial")]
+    [Migration("20260908115753_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -36,6 +36,10 @@ namespace DELED.Migrations
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasColumnType("longtext");
+
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -190,27 +194,6 @@ namespace DELED.Migrations
                     b.ToTable("DbEventLogs");
                 });
 
-            modelBuilder.Entity("DELED.Models.EligibilityCode", b =>
-                {
-                    b.Property<int>("EligibilityCodeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("EligibilityCodeId"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("path")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.HasKey("EligibilityCodeId");
-
-                    b.ToTable("EligibilityCodes");
-                });
-
             modelBuilder.Entity("DELED.Models.EmailLog", b =>
                 {
                     b.Property<int>("Id")
@@ -327,6 +310,50 @@ namespace DELED.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("ExamTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "GENERAL/OBC/EWS",
+                            Name = "1-विज्ञान वर्ग",
+                            Payment = 600.0
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "SC/ST",
+                            Name = "1-विज्ञान वर्ग",
+                            Payment = 300.0
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "PH",
+                            Name = "1-विज्ञान वर्ग",
+                            Payment = 150.0
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "GENERAL/OBC/EWS",
+                            Name = "2-विज्ञानेत्तर वर्ग",
+                            Payment = 600.0
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "SC/ST",
+                            Name = "2-विज्ञानेत्तर वर्ग",
+                            Payment = 300.0
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "PH",
+                            Name = "2-विज्ञानेत्तर वर्ग",
+                            Payment = 150.0
+                        });
                 });
 
             modelBuilder.Entity("DELED.Models.ImpDocument", b =>
@@ -571,6 +598,10 @@ namespace DELED.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
@@ -587,6 +618,9 @@ namespace DELED.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PersonalDetailId"));
 
+                    b.Property<string>("AppliedCategory")
+                        .HasColumnType("longtext");
+
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasColumnType("longtext");
@@ -594,62 +628,14 @@ namespace DELED.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime(6)");
 
-                    b.Property<string>("DELED1TrainingQualification")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DELED1TrainingStatus")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DELED1TrainingYear")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DELED2TrainingQualification")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DELED2TrainingStatus")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("DELED2TrainingYear")
-                        .HasColumnType("longtext");
-
                     b.Property<DateTime?>("DOB")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<string>("Deled1InServiceTraining")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Deled1InServiceTrainingOthers")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Deled1SchoolType")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Deled1UdiseCode")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Deled2InServiceTraining")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Deled2InServiceTrainingOthers")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Deled2SchoolType")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Deled2UdiseCode")
-                        .HasColumnType("longtext");
 
                     b.Property<string>("DisabilityType")
                         .HasColumnType("longtext");
 
                     b.Property<int>("District")
                         .HasColumnType("int");
-
-                    b.Property<string>("EligibilityCodeDELED1")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("EligibilityCodeDELED2")
-                        .HasColumnType("longtext");
 
                     b.Property<int>("ExamCity1")
                         .HasColumnType("int");
@@ -660,16 +646,18 @@ namespace DELED.Migrations
                     b.Property<int>("ExamTypeId")
                         .HasColumnType("int");
 
-                    b.Property<string>("FirstLanguage")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
                     b.Property<string>("Gender")
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int>("HomeDistrict")
-                        .HasColumnType("int");
+                    b.Property<string>("GraduationCourse")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("GraduationDate")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("GraduationUniversity")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("HusbandName")
                         .HasColumnType("longtext");
@@ -706,8 +694,7 @@ namespace DELED.Migrations
                     b.Property<bool>("ScribeRequired")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<string>("SecondLanguage")
-                        .IsRequired()
+                    b.Property<string>("SportsType")
                         .HasColumnType("longtext");
 
                     b.Property<int>("StateId")
@@ -715,9 +702,6 @@ namespace DELED.Migrations
 
                     b.Property<string>("SubCategory")
                         .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("SubjectCode")
                         .HasColumnType("longtext");
 
                     b.Property<DateTime?>("UpdatedOn")

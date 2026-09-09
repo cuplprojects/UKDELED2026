@@ -41,7 +41,7 @@ export default function InstructionsPage() {
             {lang === "hi" ? (
               <>
                 <div className="text-center space-y-2 mb-10">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#1e40af] tracking-wide uppercase">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-700 tracking-wide uppercase">
                     ऑनलाइन आवेदन
                   </h2>
                   <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-black">
@@ -133,7 +133,7 @@ export default function InstructionsPage() {
             ) : (
               <>
                 <div className="text-center space-y-2 mb-10">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#1e40af] tracking-wide uppercase">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-700 tracking-wide uppercase">
                     ONLINE APPLICATION FORM
                   </h2>
                   <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-black">
@@ -240,7 +240,7 @@ export default function InstructionsPage() {
                     position: "relative",
                     top: "3px",
                     cursor: "pointer",
-                    accentColor: "#1e40af",
+                    accentColor: "#074b7c",
                     flexShrink: 0
                   }}
                 />
@@ -266,8 +266,8 @@ export default function InstructionsPage() {
               disabled={!agreed}
               className={`px-8 sm:px-10 py-2.5 sm:py-3 font-bold text-sm sm:text-base rounded transition ${
                 agreed
-                  ? "bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-md cursor-pointer"
-                  : "bg-[#1e40af]/40 text-white/80 cursor-not-allowed"
+                  ? "bg-blue-700 hover:bg-blue-800 text-white shadow-md cursor-pointer"
+                  : "bg-blue-700/40 text-white/80 cursor-not-allowed"
               }`}
             >
               Proceed to Registration

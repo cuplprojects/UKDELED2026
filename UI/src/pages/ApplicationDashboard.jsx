@@ -122,7 +122,7 @@ export default function ApplicationDashboard() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       navigate("/");
       return;
@@ -434,12 +434,12 @@ export default function ApplicationDashboard() {
 
         {/* Eye-catching status tracker at the top spanning full width */}
         {!showPreview && (
-          <div className="mb-5 bg-white rounded-xl shadow-sm border-t-4 border-t-[#1e40af] border-x border-b border-gray-200 overflow-hidden print:hidden">
+          <div className="mb-5 bg-white rounded-xl shadow-sm border-t-4 border-t-blue-700 border-x border-b border-gray-200 overflow-hidden print:hidden">
             <div className="bg-gradient-to-r from-emerald-50 to-white px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-3 md:gap-4 border-b border-gray-100">
               <div>
                 <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
                   <span className="text-sm md:text-base">⚙️</span>
-                  <span className="font-extrabold text-[#1e40af] text-[10px] sm:text-xs md:text-sm uppercase tracking-wider">
+                  <span className="font-extrabold text-blue-700 text-[10px] sm:text-xs md:text-sm uppercase tracking-wider">
                     Application Status Tracker
                   </span>
                   <span className="bg-blue-600 text-white px-1.5 py-0.5 rounded-full text-[7px] sm:text-[8px] md:text-[8px] uppercase font-bold tracking-widest animate-pulse">
@@ -481,7 +481,7 @@ export default function ApplicationDashboard() {
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-[10px] shadow-sm shrink-0 ${hasApplied
                       ? "bg-blue-600 text-white"
-                      : "bg-[#1e40af] text-white"
+                      : "bg-blue-700 text-white"
                       }`}
                   >
                     1
@@ -607,7 +607,7 @@ export default function ApplicationDashboard() {
           <div className="space-y-4 sm:space-y-5 md:space-y-6 print:hidden">
             {/* My Profile Card */}
             <div className="flex flex-col border border-gray-200 rounded-lg overflow-hidden bg-white shadow-md h-fit font-sans">
-              <div className="bg-[#1e40af] text-white text-center py-2 sm:py-2.5 md:py-3 font-extrabold text-xs sm:text-sm md:text-base tracking-wider uppercase">
+              <div className="bg-blue-700 text-white text-center py-2 sm:py-2.5 md:py-3 font-extrabold text-xs sm:text-sm md:text-base tracking-wider uppercase">
                 My Profile
               </div>
 
@@ -632,10 +632,10 @@ export default function ApplicationDashboard() {
                 </div>
               </div>
 
-              <div className="bg-[#1e40af] text-white flex flex-col text-[10px] sm:text-xs md:text-sm font-bold divide-y divide-[#1e3a8a]">
+              <div className="bg-blue-700 text-white flex flex-col text-[10px] sm:text-xs md:text-sm font-bold divide-y divide-blue-800">
                 <button
                   onClick={() => navigate("/application")}
-                  className="flex items-center gap-2.5 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 hover:bg-[#1e3a8a] transition text-left w-full cursor-pointer text-white border-0"
+                  className="flex items-center gap-2.5 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 hover:bg-blue-800 transition text-left w-full cursor-pointer text-white border-0"
                 >
                   <FaHome className="w-3 sm:w-4 md:w-5 h-3 sm:h-4 md:h-5 text-amber-400" /> HOMEPAGE
                 </button>
@@ -653,13 +653,13 @@ export default function ApplicationDashboard() {
                     setShowConfirmPassword(false);
                     setShowPasswordModal(true);
                   }}
-                  className="flex items-center gap-2.5 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 hover:bg-[#1e3a8a] transition text-left w-full cursor-pointer text-white border-0"
+                  className="flex items-center gap-2.5 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 hover:bg-blue-800 transition text-left w-full cursor-pointer text-white border-0"
                 >
                   <span>🔑</span> CHANGE PASSWORD
                 </button>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2.5 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 hover:bg-[#1e3a8a] transition text-left w-full cursor-pointer text-white border-0"
+                  className="flex items-center gap-2.5 sm:gap-3 md:gap-4 px-3 sm:px-4 md:px-5 py-2 sm:py-2.5 md:py-3 hover:bg-blue-800 transition text-left w-full cursor-pointer text-white border-0"
                 >
                   <span>⏻</span> LOG OUT
                 </button>
@@ -671,7 +671,7 @@ export default function ApplicationDashboard() {
           <div className="lg:col-span-2 space-y-4 sm:space-y-5 md:space-y-6 print:hidden">
             {/* Application Menu */}
             <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-              <div className="bg-[#2563eb] text-white px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 flex items-center justify-between font-bold text-xs sm:text-sm md:text-base">
+              <div className="bg-blue-600 text-white px-3 sm:px-4 md:px-6 py-2 sm:py-2.5 md:py-3 flex items-center justify-between font-bold text-xs sm:text-sm md:text-base">
                 <span>📝 Application Menu</span>
                 <span className="bg-white/20 px-2 py-0.5 rounded text-[8px] sm:text-[9px] md:text-[10px] uppercase font-mono tracking-wider">
                   DELED 2026
@@ -688,7 +688,7 @@ export default function ApplicationDashboard() {
                   {!isLocked && !isFeeClosed ? (
                     <button
                       onClick={() => navigate("/registration-form")}
-                      className="flex items-center justify-center gap-2 p-3 sm:p-4 md:p-5 bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-extrabold text-xs sm:text-sm md:text-base rounded-lg transition duration-200 shadow-md hover:scale-[1.01] cursor-pointer"
+                      className="flex items-center justify-center gap-2 p-3 sm:p-4 md:p-5 bg-blue-700 hover:bg-blue-800 text-white font-extrabold text-xs sm:text-sm md:text-base rounded-lg transition duration-200 shadow-md hover:scale-[1.01] cursor-pointer"
                     >
                       <span>✍️</span>{" "}
                       {hasApplied
@@ -1213,7 +1213,7 @@ export default function ApplicationDashboard() {
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs font-sans">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
-            <div className="bg-[#1e40af] text-white px-6 py-4 flex justify-between items-center">
+            <div className="bg-blue-700 text-white px-6 py-4 flex justify-between items-center">
               <h2 className="font-extrabold text-base tracking-wide">
                 CHANGE PASSWORD
               </h2>
@@ -1224,7 +1224,7 @@ export default function ApplicationDashboard() {
                 ×
               </button>
             </div>
-            <form onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
+            <form autoComplete="off" onSubmit={handlePasswordSubmit} className="p-6 space-y-4">
               {passwordError && (
                 <div className="bg-red-50 text-red-600 px-4 py-2 rounded text-xs font-bold border border-red-200">
                   {passwordError}
@@ -1250,7 +1250,7 @@ export default function ApplicationDashboard() {
                         oldPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-10 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden bg-white text-gray-900"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-10 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden bg-white text-gray-900"
                     placeholder="Enter old password"
                   />
                   <button
@@ -1276,7 +1276,7 @@ export default function ApplicationDashboard() {
                         newPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-10 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden bg-white text-gray-900"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-10 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden bg-white text-gray-900"
                     placeholder="Enter new password"
                   />
                   <button
@@ -1302,7 +1302,7 @@ export default function ApplicationDashboard() {
                         confirmPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-10 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden bg-white text-gray-900"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-10 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden bg-white text-gray-900"
                     placeholder="Confirm new password"
                   />
                   <button
@@ -1326,7 +1326,7 @@ export default function ApplicationDashboard() {
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="flex-1 py-2 px-4 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded text-xs font-bold transition disabled:opacity-50 cursor-pointer border-0"
+                  className="flex-1 py-2 px-4 bg-blue-700 hover:bg-blue-800 text-white rounded text-xs font-bold transition disabled:opacity-50 cursor-pointer border-0"
                 >
                   {passwordLoading ? "CHANGING..." : "CHANGE"}
                 </button>

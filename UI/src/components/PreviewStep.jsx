@@ -382,7 +382,7 @@ export default function PreviewStep({
           type="button"
           onClick={handleNext}
           disabled={!formData.agreedTerms}
-          className="px-8 py-3 bg-[#1e40af] hover:bg-[#1e3a8a] disabled:bg-gray-400 text-white font-extrabold text-base sm:text-lg rounded-lg shadow-md transition cursor-pointer"
+          className="px-8 py-3 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-extrabold text-base sm:text-lg rounded-lg shadow-md transition cursor-pointer"
         >
           {isLocked ? "Proceed to Payment" : "Confirm & Proceed to Payment"}
         </button>

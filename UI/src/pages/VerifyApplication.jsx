@@ -383,7 +383,7 @@ export default function VerifyApplication() {
                   </tr>
                   <tr>
                     <th>Registration No.</th>
-                    <td style={{ fontWeight: "bold", color: "#1e40af" }}>
+                    <td style={{ fontWeight: "bold", color: "#074b7c" }}>
                       {applicationData.registrationNo || "N/A"}
                     </td>
                     <th>प्रशिक्षण हेतु आवेदित वर्ग</th>
@@ -580,7 +580,7 @@ export default function VerifyApplication() {
                             style={{
                               color:
                                 applicationData.transactionStatus === "SUCCESS"
-                                  ? "#2563eb"
+                                  ? "#085f9e"
                                   : "#dc2626",
                               fontWeight: "bold"
                             }}

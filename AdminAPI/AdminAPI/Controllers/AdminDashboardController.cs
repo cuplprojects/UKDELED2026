@@ -191,11 +191,11 @@ namespace DELED.Controllers
                 }).ToList();
 
                 // Payment transactions in database
-                var paymentsList = await (from pay in _context.Payments
+                var paymentsList = await (from pay in _context.PaymentTransactions
                                           join usr in _context.Users on pay.UserId equals usr.UserId
                                           select new
                                           {
-                                              txId = pay.TransactionId,
+                                              txId = pay.AtomTxnId ?? pay.MerchantTxnId,
                                               regNo = usr.RegistrationNo,
                                               name = usr.FullName,
                                               status = pay.Status,
@@ -753,20 +753,20 @@ namespace DELED.Controllers
             try
             {
                 var usersQuery = _context.Users.AsQueryable();
-                var paymentsQuery = _context.Payments.Where(p => p.Status == "SUCCESS").AsQueryable();
+                var paymentsQuery = _context.PaymentTransactions.Where(p => p.Status == "SUCCESS").AsQueryable();
 
                 if (startDate.HasValue)
                 {
                     var startVal = startDate.Value.Date;
                     usersQuery = usersQuery.Where(u => u.CreatedOn.Date >= startVal);
-                    paymentsQuery = paymentsQuery.Where(p => p.PaymentDate.Date >= startVal);
+                    paymentsQuery = paymentsQuery.Where(p => p.UpdatedOn.HasValue && p.UpdatedOn.Value.Date >= startVal);
                 }
 
                 if (endDate.HasValue)
                 {
                     var endVal = endDate.Value.Date;
                     usersQuery = usersQuery.Where(u => u.CreatedOn.Date <= endVal);
-                    paymentsQuery = paymentsQuery.Where(p => p.PaymentDate.Date <= endVal);
+                    paymentsQuery = paymentsQuery.Where(p => p.UpdatedOn.HasValue && p.UpdatedOn.Value.Date <= endVal);
                 }
 
                 var usersByDate = await usersQuery
@@ -775,7 +775,7 @@ namespace DELED.Controllers
                     .ToListAsync();
 
                 var paymentsByDate = await paymentsQuery
-                    .GroupBy(p => p.PaymentDate.Date)
+                    .GroupBy(p => p.UpdatedOn.Value.Date)
                     .Select(g => new { Date = g.Key, Count = g.Count() })
                     .ToListAsync();
 

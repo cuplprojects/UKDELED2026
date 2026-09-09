@@ -4,7 +4,7 @@ import { isTokenExpired } from "../utils/jwt";
 import { api } from "../stores/apiStore";
 
 const AdminProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   const [isValidating, setIsValidating] = useState(true);
   const [isValidAdmin, setIsValidAdmin] = useState(false);
 
@@ -35,9 +35,9 @@ const AdminProtectedRoute = ({ children }) => {
   }, [token]);
 
   if (!token || isTokenExpired(token)) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("username");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("isAdmin");
+    sessionStorage.removeItem("username");
     return <Navigate to="/admin/login" replace />;
   }
 
@@ -53,9 +53,9 @@ const AdminProtectedRoute = ({ children }) => {
   }
 
   if (!isValidAdmin) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("username");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("isAdmin");
+    sessionStorage.removeItem("username");
     return <Navigate to="/admin/login" replace />;
   }
 

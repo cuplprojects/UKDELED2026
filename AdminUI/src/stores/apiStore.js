@@ -27,10 +27,10 @@ console.log('[API Store] Initialized with userBaseURL:', USER_API_BASE_URL);
 // Function to handle logout and redirect
 let isAlertingAdminSessionExpired = false;
 const handleAuthFailure = (message) => {
-  const hadToken = !!localStorage.getItem("token");
-  localStorage.removeItem("token");
-  localStorage.removeItem("isAdmin");
-  localStorage.removeItem("username");
+  const hadToken = !!sessionStorage.getItem("token");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("isAdmin");
+  sessionStorage.removeItem("username");
   
   if (hadToken && !isAlertingAdminSessionExpired) {
     isAlertingAdminSessionExpired = true;
@@ -41,7 +41,7 @@ const handleAuthFailure = (message) => {
 
 // Request interceptor to automatically attach JWT token from authStore
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   if (token) {
     if (isTokenExpired(token)) {
       console.warn("[API] Token has expired. Logging out...");
@@ -59,7 +59,7 @@ api.interceptors.request.use((config) => {
 
 // Request interceptor for userApi
 userApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   if (token) {
     if (isTokenExpired(token)) {
       console.warn("[User API] Token has expired. Logging out...");
@@ -142,9 +142,9 @@ export const useApiStore = create((set) => ({
         otp: typeof mobileOtp === "string" ? mobileOtp : "",
       });
       
-      // Save token to localStorage after successful OTP verification
+      // Save token to sessionStorage after successful OTP verification
       if (response.data && response.data.token) {
-        localStorage.setItem("token", response.data.token);
+        sessionStorage.setItem("token", response.data.token);
       }
       
       set({ loading: false, success: response.data.message || "OTP verified successfully." });

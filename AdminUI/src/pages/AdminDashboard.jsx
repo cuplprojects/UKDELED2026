@@ -47,7 +47,7 @@ import {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { logout } = useAuthStore();
-  const username = localStorage.getItem("username") || "Admin";
+  const username = sessionStorage.getItem("username") || "Admin";
   const [activeTab, setActiveTab] = useState("dashboard");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -102,10 +102,10 @@ export default function AdminDashboard() {
   const [paymentRegNo, setPaymentRegNo] = useState("");
   const [paymentResultText, setPaymentResultText] = useState("");
 
-  // States for Review Paid Application tab (with localStorage persistence)
+  // States for Review Paid Application tab (with sessionStorage persistence)
   const getSavedPaidFilters = () => {
     try {
-      const saved = localStorage.getItem("reviewPaid_filters");
+      const saved = sessionStorage.getItem("reviewPaid_filters");
       return saved ? JSON.parse(saved) : null;
     } catch {
       return null;
@@ -455,10 +455,10 @@ export default function AdminDashboard() {
     }
   }, [activeTab, paidCurrentPage, paidPageSize, paidSortOrder, paidSortBy]);
 
-  // Persist Review Paid filters & pagination to localStorage whenever they change
+  // Persist Review Paid filters & pagination to sessionStorage whenever they change
   useEffect(() => {
     try {
-      localStorage.setItem("reviewPaid_filters", JSON.stringify({
+      sessionStorage.setItem("reviewPaid_filters", JSON.stringify({
         page: paidCurrentPage,
         pageSize: paidPageSize,
         search: paidSearchQuery,
@@ -466,7 +466,7 @@ export default function AdminDashboard() {
         sortOrder: paidSortOrder
       }));
     } catch (e) {
-      console.error("Failed to save reviewPaid filters to localStorage", e);
+      console.error("Failed to save reviewPaid filters to sessionStorage", e);
     }
   }, [paidCurrentPage, paidPageSize, paidSearchQuery, paidSortBy, paidSortOrder]);
 

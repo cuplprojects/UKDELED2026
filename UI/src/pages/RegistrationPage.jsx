@@ -31,21 +31,21 @@ export default function RegistrationPage() {
       emailId: stateData.email || "",
       registrationNo: stateData.registrationNo || "",
       applicantId: stateData.registrationNo || "",
-      appliedCategory: "2-विज्ञानेत्तर वर्ग",
-      graduationCourse: "Bachelor of Arts (B.A.)",
-      graduationUniversity: "DEV BHOOMI UTTARAKHAND UNIVERSITY",
+      appliedCategory: "Select",
+      graduationCourse: "Select",
+      graduationUniversity: "Select",
       graduationDate: "",
       sportsType: "Select",
       husbandName: "",
       category: "Select",
-      subCategory: "लागू/कोई नहीं",
+      subCategory: "Select",
       retirementDate: "",
-      phyHandicapped: "NO",
-      phyType: "--Not Applicable--",
+      phyHandicapped: "Select",
+      phyType: "Select",
       scribeRequired: "--Select--",
-      state: "Uttarakhand",
+      state: "Select",
       district: "Select",
-      idProofType: "Aadhar Card",
+      idProofType: "Select",
       idProofNo: "",
       address: "",
       pincode: "",
@@ -101,9 +101,9 @@ export default function RegistrationPage() {
     return val !== "DELEDII" && val !== "DELED2";
   };
 
-  // Route Guard: Redirect to Home if token is not in localStorage
+  // Route Guard: Redirect to Home if token is not in sessionStorage
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     if (!token) {
       navigate("/");
     }
@@ -167,7 +167,7 @@ export default function RegistrationPage() {
   // Fetch last completed step from UserStepProgress and set current step
   useEffect(() => {
     const fetchUserStepProgress = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (token) {
         try {
           const res = await api.get(`/api/UserStepProgresses`);
@@ -202,7 +202,7 @@ export default function RegistrationPage() {
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const token = localStorage.getItem("token");
+      const token = sessionStorage.getItem("token");
       if (token) {
         try {
           const res = await api.get(`/api/UserPersonalDetails/complete/me`);
@@ -227,9 +227,9 @@ export default function RegistrationPage() {
                   applicantId: d.registrationNo || "",
 
                   // Load saved personal details
-                  appliedCategory: d.appliedCategory || d.subjectCode || "2-विज्ञानेत्तर वर्ग",
-                  graduationCourse: d.graduationCourse || d.deled1TrainingQualification || "Bachelor of Arts (B.A.)",
-                  graduationUniversity: d.graduationUniversity || d.eligibilityCodeDELED1 || "DEV BHOOMI UTTARAKHAND UNIVERSITY",
+                  appliedCategory: d.appliedCategory || d.subjectCode || "Select",
+                  graduationCourse: d.graduationCourse || d.deled1TrainingQualification || "Select",
+                  graduationUniversity: d.graduationUniversity || d.eligibilityCodeDELED1 || "Select",
                   graduationDate: d.graduationDate ? d.graduationDate.split("T")[0] : d.deled1TrainingYear ? d.deled1TrainingYear.split("T")[0] : "",
                   sportsType: d.sportsType || d.eligibilityCodeDELED2 || "Select",
                   isPaymentCompleted: d.isPaymentCompleted || false,
@@ -238,26 +238,26 @@ export default function RegistrationPage() {
                   motherName: d.motherName || prev.motherName || "",
                   husbandName: (d.gender || prev.gender || "").toUpperCase() === "MALE" ? "" : (d.husbandName || prev.husbandName || ""),
                   category: d.category || prev.category || "Select",
-                  subCategory: d.subCategory || prev.subCategory || "लागू/कोई नहीं",
+                  subCategory: d.subCategory || prev.subCategory || "Select",
                   retirementDate: d.retirementDate ? d.retirementDate.split("T")[0] : prev.retirementDate || "",
                   phyHandicapped: d.personalDetailId
                     ? d.isPhysicallyHandicapped
                       ? "YES"
                       : "NO"
-                    : "NO",
-                  phyType: d.disabilityType || prev.phyType || "--Not Applicable--",
+                    : "Select",
+                  phyType: d.disabilityType || prev.phyType || "Select",
                   scribeRequired: d.personalDetailId
                     ? d.scribeRequired
                       ? "YES"
                       : "NO"
-                    : "--Select--",
+                    : "Select",
                   examCity1: d.examCity1 || prev.examCity1 || "Select",
                   examCity2: d.examCity2 || prev.examCity2 || "Select",
                   address: d.mailingAddress || prev.address || "",
                   state: stateVal,
                   district: distVal,
                   pincode: d.pinCode || prev.pincode || "",
-                  idProofType: d.identityProof || prev.idProofType || "Aadhar Card",
+                  idProofType: d.identityProof || prev.idProofType || "Select",
                   idProofNo: d.identityProofNo || prev.idProofNo || "",
                 };
               });
@@ -1351,7 +1351,7 @@ export default function RegistrationPage() {
       {showPasswordModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs font-sans p-2 sm:p-3 md:p-4">
           <div className="bg-white rounded-lg shadow-2xl w-full max-w-xs sm:max-w-sm md:max-w-md overflow-hidden max-h-[90vh] overflow-y-auto">
-            <div className="bg-[#1e40af] text-white px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 flex justify-between items-center gap-2 sticky top-0 z-10">
+            <div className="bg-blue-700 text-white px-2 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 flex justify-between items-center gap-2 sticky top-0 z-10">
               <h2 className="font-extrabold text-xs sm:text-sm md:text-base tracking-wide">
                 CHANGE PASSWORD
               </h2>
@@ -1362,7 +1362,7 @@ export default function RegistrationPage() {
                 ×
               </button>
             </div>
-            <form onSubmit={handlePasswordSubmit} className="p-2 sm:p-3 md:p-4 lg:p-6 space-y-2 sm:space-y-3 md:space-y-4">
+            <form autoComplete="off" onSubmit={handlePasswordSubmit} className="p-2 sm:p-3 md:p-4 lg:p-6 space-y-2 sm:space-y-3 md:space-y-4">
               {passwordError && (
                 <div className="bg-red-50 text-red-600 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded text-xs sm:text-sm font-bold border border-red-200">
                   {passwordError}
@@ -1388,7 +1388,7 @@ export default function RegistrationPage() {
                         oldPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden"
                     placeholder="Enter old password"
                   />
                   <button
@@ -1414,7 +1414,7 @@ export default function RegistrationPage() {
                         newPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden"
                     placeholder="Enter new password"
                   />
                   <button
@@ -1440,7 +1440,7 @@ export default function RegistrationPage() {
                         confirmPassword: e.target.value,
                       }))
                     }
-                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-[#1e40af] focus:border-[#1e40af] outline-hidden"
+                    className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 pr-8 sm:pr-10 border border-gray-300 rounded text-xs sm:text-sm focus:ring-1 focus:ring-blue-700 focus:border-blue-700 outline-hidden"
                     placeholder="Confirm new password"
                   />
                   <button
@@ -1464,7 +1464,7 @@ export default function RegistrationPage() {
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="flex-1 py-1.5 sm:py-2 md:py-2.5 px-2 sm:px-4 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded text-xs sm:text-sm font-bold transition disabled:opacity-50 cursor-pointer"
+                  className="flex-1 py-1.5 sm:py-2 md:py-2.5 px-2 sm:px-4 bg-blue-700 hover:bg-blue-800 text-white rounded text-xs sm:text-sm font-bold transition disabled:opacity-50 cursor-pointer"
                 >
                   {passwordLoading ? "CHANGING..." : "CHANGE"}
                 </button>
