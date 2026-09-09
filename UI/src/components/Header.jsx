@@ -49,10 +49,10 @@ export default function Header() {
         <div className="flex items-center gap-3">
           <FaEnvelope className="w-5 h-5 text-[#dc2626] shrink-0" />
           <a
-            href="mailto:helpdesk@ukdeled.com"
+            href="mailto:info@ukdeled.com"
             className="text-[#dc2626] font-bold text-base sm:text-lg md:text-[18px] hover:underline"
           >
-            helpdesk@ukdeled.com
+            info@ukdeled.com
           </a>
         </div>
       </div>
