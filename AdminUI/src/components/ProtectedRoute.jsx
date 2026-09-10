@@ -2,13 +2,13 @@ import { Navigate } from "react-router-dom";
 import { isTokenExpired } from "../utils/jwt";
 
 const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem("token");
-  const isAdmin = localStorage.getItem("isAdmin");
+  const token = sessionStorage.getItem("token");
+  const isAdmin = sessionStorage.getItem("isAdmin");
 
   if (token && isTokenExpired(token)) {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("username");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("isAdmin");
+    sessionStorage.removeItem("username");
     return <Navigate to="/" replace />;
   }
 

@@ -394,7 +394,7 @@ namespace DELED.Services
                         The detailed statistics from the start of registration to today are available in the attached PDF report.<br/><br/>
                         Best regards,<br/>
                         Uttarakhand DELED 2026 Online Portal Team<br/>
-                        Email: helpdesk@ukdeled.com | Phone: 8062987406
+                        Email: info@ukdeled.com | Phone: 8062987406
                     </p>
                 </body>
                 </html>";

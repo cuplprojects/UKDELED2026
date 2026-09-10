@@ -84,11 +84,11 @@ export default function ForgotPassword() {
       <main className="flex-1 flex items-center justify-center px-2 sm:px-3 md:px-4 py-6 sm:py-8 md:py-10">
         <div className="w-full max-w-sm sm:max-w-md bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
           {/* Card Title */}
-          <div className="bg-[#2563eb] text-white px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 font-bold text-sm sm:text-base md:text-lg">
+          <div className="bg-blue-600 text-white px-3 sm:px-4 py-2 sm:py-3 flex items-center gap-2 font-bold text-sm sm:text-base md:text-lg">
             <span>👤🔒</span> Retrieve Your Password
           </div>
 
-          <form onSubmit={handleSubmit} className="p-4 sm:p-5 md:p-6 space-y-3 sm:space-y-4">
+          <form autoComplete="off" onSubmit={handleSubmit} className="p-4 sm:p-5 md:p-6 space-y-3 sm:space-y-4">
             {error && (
               <div className="bg-red-50 text-red-700 px-2 sm:px-3 py-2 sm:py-2.5 rounded-md text-xs sm:text-xs font-semibold border border-red-200">
                 ⚠️ {error}
@@ -155,7 +155,7 @@ export default function ForgotPassword() {
                 
                 {/* Captcha Image Mock Box */}
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <div className="bg-[#bce0ff] border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-md font-mono text-lg sm:text-xl tracking-wider font-extrabold text-blue-900 line-through decoration-double decoration-blue-800 whitespace-nowrap">
+                  <div className="bg-blue-200 border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-md font-mono text-lg sm:text-xl tracking-wider font-extrabold text-blue-900 line-through decoration-double decoration-blue-800 whitespace-nowrap">
                     {captchaVal}
                   </div>
                   <button
@@ -184,7 +184,7 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded-md font-semibold text-xs sm:text-sm md:text-base transition shadow-md flex items-center justify-center gap-1.5"
+                className="w-full sm:flex-1 px-3 sm:px-4 py-2 sm:py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-md font-semibold text-xs sm:text-sm md:text-base transition shadow-md flex items-center justify-center gap-1.5"
               >
                 <span>🔒</span> Get Password
               </button>

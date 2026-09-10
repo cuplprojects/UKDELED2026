@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { api } from "../stores/apiStore";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 
@@ -10,21 +10,210 @@ export default function PreviewStep({
   isLocked,
   isCorrectionMode = false,
 }) {
+  const [loading, setLoading] = useState(true);
+  const [previewData, setPreviewData] = useState(null);
+
   useEffect(() => {
-    if (isLocked) {
+    if (isLocked && setFormData) {
       setFormData((prev) => ({ ...prev, agreedTerms: true }));
     }
   }, [isLocked, setFormData]);
 
   const formatDob = (dobStr) => {
     if (!dobStr) return "N/A";
-    const cleanStr = dobStr.split("T")[0];
+    const cleanStr = String(dobStr).split("T")[0];
     const parts = cleanStr.split("-");
     if (parts.length === 3) {
       return `${parts[2]}-${parts[1]}-${parts[0]}`;
     }
     return dobStr;
   };
+
+  const getMediaUrl = (path, fallback) => {
+    if (!path) return fallback || null;
+    if (
+      path.startsWith("http://") ||
+      path.startsWith("https://") ||
+      path.startsWith("blob:") ||
+      path.startsWith("data:")
+    ) {
+      return path;
+    }
+    const baseUrl = api.defaults.baseURL || "";
+    const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+    return baseUrl ? `${baseUrl}/${cleanPath}` : `/${cleanPath}`;
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchAllData = async () => {
+      setLoading(true);
+      try {
+        let resultData = null;
+        let uploadsObj = null;
+        let encToken = "";
+
+        // 1. Fetch complete applicant data via authenticated endpoint
+        try {
+          const res = await api.get("/api/UserPersonalDetails/complete/me");
+          if (res.data && res.data.success && res.data.data) {
+            resultData = res.data.data;
+            uploadsObj = res.data.uploads || null;
+            encToken = res.data.encryptedToken || "";
+          }
+        } catch (err) {
+          console.warn("Could not fetch via complete/me, attempting applicant fallback...", err);
+        }
+
+        // 2. Fallback: Query applicant by registration number if needed
+        const regNo = formData?.applicantId || formData?.registrationNo;
+        if (!resultData && regNo) {
+          try {
+            const fallbackRes = await api.get(
+              `/api/UserPersonalDetails/applicant/${encodeURIComponent(regNo)}`
+            );
+            if (fallbackRes.data && fallbackRes.data.success && fallbackRes.data.data) {
+              resultData = fallbackRes.data.data;
+              uploadsObj = fallbackRes.data.uploads || null;
+              encToken = fallbackRes.data.encryptedToken || "";
+            }
+          } catch (fallbackErr) {
+            console.warn("Could not fetch via applicant/regNo fallback", fallbackErr);
+          }
+        }
+
+        // 3. Fallback for uploaded files if not returned above
+        if (!uploadsObj) {
+          try {
+            const uRes = await api.get("/api/Uploads/user");
+            if (uRes.data && uRes.data.length > 0) {
+              uploadsObj = uRes.data[0] || uRes.data;
+            }
+          } catch (uErr) {
+            // Uploads not found
+          }
+        }
+
+        if (isMounted) {
+          if (resultData) {
+            const resolvedPhoto = getMediaUrl(
+              uploadsObj?.photoFile,
+              formData.photoFilePreview
+            );
+            const resolvedSign = getMediaUrl(
+              uploadsObj?.signatureFile,
+              formData.signatureFilePreview
+            );
+            const resolvedThumb = getMediaUrl(
+              uploadsObj?.thumbImp,
+              formData.thumbFilePreview
+            );
+
+            const isFemale =
+              (resultData.gender || formData.gender || "").toUpperCase() === "FEMALE";
+
+            const merged = {
+              ...formData,
+              ...resultData,
+              applicantId: resultData.registrationNo || formData.applicantId || formData.registrationNo,
+              registrationNo: resultData.registrationNo || formData.registrationNo,
+              applicantName: resultData.fullName || resultData.applicantName || formData.applicantName,
+              fatherName: resultData.fatherName || formData.fatherName,
+              motherName: resultData.motherName || formData.motherName,
+              husbandName: isFemale ? (resultData.husbandName || formData.husbandName || "") : "",
+              mobileNo: resultData.phoneNumber || formData.mobileNo,
+              emailId: resultData.email || formData.emailId,
+              gender: resultData.gender || formData.gender,
+              dateOfBirth: resultData.dob ? resultData.dob.split("T")[0] : formData.dateOfBirth,
+              appliedCategory: resultData.appliedCategory || formData.appliedCategory,
+              graduationCourse: resultData.graduationCourse || formData.graduationCourse,
+              graduationUniversity: resultData.graduationUniversity || formData.graduationUniversity,
+              graduationDate: resultData.graduationDate
+                ? resultData.graduationDate.split("T")[0]
+                : formData.graduationDate,
+              category: resultData.category || formData.category,
+              subCategory: resultData.subCategory || formData.subCategory,
+              retirementDate: resultData.retirementDate
+                ? resultData.retirementDate.split("T")[0]
+                : formData.retirementDate,
+              sportsType: resultData.sportsType || formData.sportsType,
+              phyHandicapped:
+                resultData.isPhysicallyHandicapped
+                  ? "YES"
+                  : resultData.personalDetailId
+                  ? "NO"
+                  : formData.phyHandicapped,
+              phyType: resultData.disabilityType || formData.phyType,
+              scribeRequired:
+                resultData.scribeRequired
+                  ? "YES"
+                  : resultData.personalDetailId
+                  ? "NO"
+                  : formData.scribeRequired,
+              examCity1: resultData.examCity1 || formData.examCity1,
+              examCity2: resultData.examCity2 || formData.examCity2,
+              address: resultData.mailingAddress || formData.address,
+              state: resultData.state || formData.state,
+              district: resultData.district || formData.district,
+              pincode: resultData.pinCode || formData.pincode,
+              idProofType: resultData.identityProof || formData.idProofType,
+              idProofNo: resultData.identityProofNo || formData.idProofNo,
+              isPaymentCompleted:
+                resultData.isPaymentCompleted ?? formData.isPaymentCompleted,
+              photoFilePreview: resolvedPhoto,
+              signatureFilePreview: resolvedSign,
+              thumbFilePreview: resolvedThumb,
+              encryptedToken: encToken || formData.encryptedToken,
+            };
+
+            setPreviewData(merged);
+            if (setFormData) {
+              setFormData((prev) => ({
+                ...prev,
+                ...merged,
+              }));
+            }
+          } else {
+            // Fallback to existing formData if backend returns no record
+            setPreviewData(formData);
+          }
+          setLoading(false);
+        }
+      } catch (err) {
+        console.error("PreviewStep API fetch error:", err);
+        if (isMounted) {
+          setPreviewData(formData);
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchAllData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const data = previewData || formData;
+  const isFemaleCandidate = (data.gender || "").toUpperCase() === "FEMALE";
+
+  if (loading) {
+    return (
+      <div className="font-sans py-16 flex flex-col items-center justify-center space-y-4">
+        <div className="w-12 h-12 border-4 border-blue-700 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-center space-y-1">
+          <p className="text-base sm:text-lg font-bold text-gray-900">
+            आवेदन पत्र का विवरण लोड हो रहा है...
+          </p>
+          <p className="text-xs sm:text-sm text-gray-500 font-medium">
+            Fetching complete application details from database...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans text-xs sm:text-sm md:text-base text-gray-800 space-y-4 sm:space-y-5 md:space-y-6">
@@ -59,7 +248,7 @@ export default function PreviewStep({
                 <h3 className="text-xs sm:text-sm md:text-base font-bold text-gray-800 leading-tight">
                   आवेदन पत्र समीक्षा (Application Review)
                 </h3>
-                {!formData.isPaymentCompleted && (
+                {!data.isPaymentCompleted && (
                   <div className="text-[10px] sm:text-xs md:text-sm font-bold text-red-600 mt-1 sm:mt-2">
                     (UNPAID APPLICATION PREVIEW)
                   </div>
@@ -68,7 +257,11 @@ export default function PreviewStep({
               <td className="w-[20%] border border-gray-300 p-2 sm:p-3 text-center align-middle">
                 <div className="flex justify-center">
                   <QRCode
-                    value={`https://ukdeled.com/verify/${formData.applicantId || 'N/A'}`}
+                    value={
+                      data.encryptedToken
+                        ? `https://ukdeled.com/verify?token=${data.encryptedToken}`
+                        : `https://ukdeled.com/verify/${data.applicantId || data.registrationNo || 'N/A'}`
+                    }
                     size={128}
                     level="M"
                     includeMargin={true}
@@ -81,7 +274,7 @@ export default function PreviewStep({
         </table>
       </div>
 
-      {!formData.isPaymentCompleted && (
+      {!data.isPaymentCompleted && (
         <div className="text-center text-red-600 font-extrabold text-[13px] border border-red-200 bg-red-50/50 p-3 rounded-lg leading-relaxed mb-4">
           आवेदक ऑनलाइन रजिस्ट्रेशन के समय भरे गये विवरण, ऑनलाइन फीस पेमेंट रसीद
           का प्रिंट आउट तथा पूर्ण आवेदन का प्रिंट आउट अपने पास अवश्य सुरक्षित
@@ -99,13 +292,13 @@ export default function PreviewStep({
                   Registration No.
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-gray-900 w-1/4 text-sm sm:text-base">
-                  {formData.applicantId || formData.registrationNo || "N/A"}
+                  {data.applicantId || data.registrationNo || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold w-1/4 text-sm sm:text-base">
                   प्रशिक्षण हेतु आवेदित वर्ग
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-gray-900 w-1/4 text-sm sm:text-base">
-                  {formData.appliedCategory || formData.subjectCode || "2-विज्ञानेत्तर वर्ग"}
+                  {data.appliedCategory || data.subjectCode || "2-विज्ञानेत्तर वर्ग"}
                 </td>
               </tr>
               <tr>
@@ -113,13 +306,13 @@ export default function PreviewStep({
                   Graduation Course
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.graduationCourse || formData.deled1TrainingQualification || "N/A"}
+                  {data.graduationCourse || data.deled1TrainingQualification || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   University Name
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.graduationUniversity || formData.eligibilityCodeDELED1 || "N/A"}
+                  {data.graduationUniversity || data.eligibilityCodeDELED1 || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -127,13 +320,13 @@ export default function PreviewStep({
                   Graduation Date
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formatDob(formData.graduationDate || formData.deled1TrainingYear)}
+                  {formatDob(data.graduationDate || data.deled1TrainingYear)}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Candidate's Name
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-bold text-gray-900">
-                  {formData.applicantName || "N/A"}
+                  {data.applicantName || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -141,13 +334,13 @@ export default function PreviewStep({
                   Mobile Number
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.mobileNo || "N/A"}
+                  {data.mobileNo || data.phoneNumber || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Email ID
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold break-all">
-                  {formData.emailId || "N/A"}
+                  {data.emailId || data.email || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -155,13 +348,13 @@ export default function PreviewStep({
                   Gender
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.gender || "N/A"}
+                  {data.gender || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Date of Birth
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formatDob(formData.dateOfBirth)}
+                  {formatDob(data.dateOfBirth || data.dob)}
                 </td>
               </tr>
               <tr>
@@ -169,13 +362,13 @@ export default function PreviewStep({
                   Father's Name
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.fatherName || "N/A"}
+                  {data.fatherName || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Mother's Name
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.motherName || "N/A"}
+                  {data.motherName || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -183,13 +376,13 @@ export default function PreviewStep({
                   Husband's Name
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.husbandName || "N/A"}
+                  {isFemaleCandidate ? (data.husbandName || "N/A") : "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Category
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.category || "N/A"}
+                  {data.category || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -197,13 +390,13 @@ export default function PreviewStep({
                   Sub Category
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.subCategory || "N/A"}
+                  {data.subCategory || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Retirement Date
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.retirementDate ? formatDob(formData.retirementDate) : "N/A"}
+                  {data.retirementDate ? formatDob(data.retirementDate) : "N/A"}
                 </td>
               </tr>
               <tr>
@@ -211,14 +404,14 @@ export default function PreviewStep({
                   खेल का प्रकार
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.sportsType || formData.eligibilityCodeDELED2 || "None"}
+                  {data.sportsType || data.eligibilityCodeDELED2 || "None"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Physically Handicapped
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.phyHandicapped === "YES"
-                    ? `YES (${formData.phyType || "N/A"})`
+                  {data.phyHandicapped === "YES" || data.isPhysicallyHandicapped
+                    ? `YES (${data.phyType || data.disabilityType || "N/A"})`
                     : "NO"}
                 </td>
               </tr>
@@ -227,13 +420,17 @@ export default function PreviewStep({
                   Scribe Required
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.scribeRequired || "N/A"}
+                  {data.scribeRequired === true || data.scribeRequired === "YES"
+                    ? "YES"
+                    : data.scribeRequired === false || data.scribeRequired === "NO"
+                    ? "NO"
+                    : "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Exam City 1ˢᵗ
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.examCity1 || "N/A"}
+                  {data.examCity1 || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -241,13 +438,13 @@ export default function PreviewStep({
                   Exam City 2ⁿᵈ
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.examCity2 || "N/A"}
+                  {data.examCity2 || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Complete Mailing Address
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.address || "N/A"}
+                  {data.address || data.mailingAddress || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -255,13 +452,13 @@ export default function PreviewStep({
                   State
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.state || "N/A"}
+                  {data.state || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   District
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.district || "N/A"}
+                  {data.district || "N/A"}
                 </td>
               </tr>
               <tr>
@@ -269,14 +466,16 @@ export default function PreviewStep({
                   PIN Code
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.pincode || "N/A"}
+                  {data.pincode || data.pinCode || "N/A"}
                 </td>
                 <th className="border border-gray-300 bg-gray-50 px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-sm sm:text-base">
                   Identity Proof
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
-                  {formData.idProofType
-                    ? `${formData.idProofType} (${formData.idProofNo || "N/A"})`
+                  {data.idProofType || data.identityProof
+                    ? `${data.idProofType || data.identityProof} (${
+                        data.idProofNo || data.identityProofNo || "N/A"
+                      })`
                     : "N/A"}
                 </td>
               </tr>
@@ -289,16 +488,14 @@ export default function PreviewStep({
           {/* Photo */}
           <div className="flex flex-col items-center w-full gap-1">
             <div className="w-full h-32 sm:h-40 md:h-48 border-2 border-gray-300 bg-gray-50 rounded flex items-center justify-center overflow-hidden">
-              {formData.photoFilePreview ? (
+              {data.photoFilePreview ? (
                 <img
-                  src={formData.photoFilePreview}
+                  src={data.photoFilePreview}
                   alt="Candidate Photo"
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <span className="text-gray-400 text-xs">
-                  Photo
-                </span>
+                <span className="text-gray-400 text-xs">Photo</span>
               )}
             </div>
             <p className="text-xs text-gray-600 font-bold text-center leading-tight">
@@ -308,16 +505,14 @@ export default function PreviewStep({
           {/* Thumb */}
           <div className="flex flex-col items-center w-full gap-1">
             <div className="w-full h-16 sm:h-18 md:h-20 border-2 border-gray-300 bg-white flex items-center justify-center overflow-hidden">
-              {formData.thumbFilePreview ? (
+              {data.thumbFilePreview ? (
                 <img
-                  src={formData.thumbFilePreview}
+                  src={data.thumbFilePreview}
                   alt="Left Thumb"
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <span className="text-xs text-gray-400">
-                  Thumb
-                </span>
+                <span className="text-xs text-gray-400">Thumb</span>
               )}
             </div>
             <p className="text-xs text-gray-600 font-bold text-center leading-tight">
@@ -327,16 +522,14 @@ export default function PreviewStep({
           {/* Signature */}
           <div className="flex flex-col items-center w-full gap-1">
             <div className="w-full h-14 sm:h-16 md:h-18 border-2 border-gray-300 bg-white flex items-center justify-center overflow-hidden">
-              {formData.signatureFilePreview ? (
+              {data.signatureFilePreview ? (
                 <img
-                  src={formData.signatureFilePreview}
+                  src={data.signatureFilePreview}
                   alt="Signature"
                   className="w-full h-full object-contain"
                 />
               ) : (
-                <span className="text-xs text-gray-400">
-                  Sign
-                </span>
+                <span className="text-xs text-gray-400">Sign</span>
               )}
             </div>
             <p className="text-xs text-gray-600 font-bold text-center leading-tight">
@@ -348,21 +541,32 @@ export default function PreviewStep({
 
       {/* Declaration */}
       <div className="border border-gray-300 p-4 sm:p-5 rounded-lg bg-gray-50 space-y-3">
-        <h4 className="font-extrabold text-gray-900 text-base sm:text-lg">घोषणा (Declaration):</h4>
+        <h4 className="font-extrabold text-gray-900 text-base sm:text-lg">
+          घोषणा (Declaration):
+        </h4>
         <p className="text-sm sm:text-base text-gray-800 leading-relaxed font-medium">
-          मैं प्रमाणित करता/करती हूँ कि मेरे द्वारा आवेदन पत्र में दी गई समस्त प्रविष्टियाँ पूर्णतः सत्य एवं सही हैं। यदि कोई भी प्रविष्टि असत्य या गलत पाई जाती है तो मेरा अभ्यर्थन किसी भी स्तर पर निरस्त किया जा सकता है।
+          मैं प्रमाणित करता/करती हूँ कि मेरे द्वारा आवेदन पत्र में दी गई समस्त
+          प्रविष्टियाँ पूर्णतः सत्य एवं सही हैं। यदि कोई भी प्रविष्टि असत्य या
+          गलत पाई जाती है तो मेरा अभ्यर्थन किसी भी स्तर पर निरस्त किया जा सकता
+          है।
         </p>
         <div className="pt-2 flex items-center gap-3">
           <input
             type="checkbox"
             id="agreedTerms"
             checked={formData.agreedTerms || false}
-            onChange={(e) => setFormData((prev) => ({ ...prev, agreedTerms: e.target.checked }))}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, agreedTerms: e.target.checked }))
+            }
             disabled={isLocked}
             className="w-5 h-5 text-blue-600 rounded cursor-pointer shrink-0"
           />
-          <label htmlFor="agreedTerms" className="text-sm sm:text-base font-bold text-gray-900 cursor-pointer">
-            I accept all the terms and declare that the information provided is true to the best of my knowledge.
+          <label
+            htmlFor="agreedTerms"
+            className="text-sm sm:text-base font-bold text-gray-900 cursor-pointer"
+          >
+            I accept all the terms and declare that the information provided is
+            true to the best of my knowledge.
           </label>
         </div>
       </div>
@@ -382,7 +586,7 @@ export default function PreviewStep({
           type="button"
           onClick={handleNext}
           disabled={!formData.agreedTerms}
-          className="px-8 py-3 bg-[#1e40af] hover:bg-[#1e3a8a] disabled:bg-gray-400 text-white font-extrabold text-base sm:text-lg rounded-lg shadow-md transition cursor-pointer"
+          className="px-8 py-3 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-extrabold text-base sm:text-lg rounded-lg shadow-md transition cursor-pointer"
         >
           {isLocked ? "Proceed to Payment" : "Confirm & Proceed to Payment"}
         </button>

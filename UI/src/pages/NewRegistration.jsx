@@ -139,11 +139,11 @@ export default function NewRegistration() {
       <main className="flex-1 flex items-center justify-center p-2 sm:p-3 md:p-4 py-6 sm:py-8 md:py-10">
         <div className="w-full max-w-xs sm:max-w-sm md:max-w-lg bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
           {/* Card Title */}
-          <div className="bg-[#2563eb] text-white px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-3.5 flex items-center gap-2 font-bold text-sm sm:text-base md:text-lg">
+          <div className="bg-blue-600 text-white px-3 sm:px-4 md:px-5 py-2.5 sm:py-3 md:py-3.5 flex items-center gap-2 font-bold text-sm sm:text-base md:text-lg">
             <span className="text-base sm:text-lg md:text-xl">ℹ️</span> <span className="truncate">New user Registration</span>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
+          <form autoComplete="off" onSubmit={handleSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
             {/* Form Tagline */}
             <p className="text-center font-bold text-red-600 text-xs sm:text-sm md:text-base border-b border-gray-100 pb-2 sm:pb-3">
               अभ्यर्थी अपना व्यक्तिगत मोबाइल एवं ईमेल अंकित करें।
@@ -259,7 +259,7 @@ export default function NewRegistration() {
                 
                 {/* Captcha Image Mock Box */}
                 <div className="flex items-center gap-1 sm:gap-2 justify-center sm:justify-start">
-                  <div className="bg-[#bce0ff] border border-blue-300 select-none px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-md font-mono text-base sm:text-lg md:text-xl tracking-wider font-extrabold text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
+                  <div className="bg-blue-200 border border-blue-300 select-none px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-md font-mono text-base sm:text-lg md:text-xl tracking-wider font-extrabold text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
                     {captchaVal}
                   </div>
                   <button
@@ -288,7 +288,7 @@ export default function NewRegistration() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-[#1e40af] hover:bg-[#1e3a8a] disabled:bg-gray-400 text-white rounded-md font-semibold text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-1 sm:gap-2 order-1 sm:order-2"
+                className="px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white rounded-md font-semibold text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-1 sm:gap-2 order-1 sm:order-2"
               >
                 {loading ? (
                   <>

@@ -1402,9 +1402,9 @@ namespace DELED.Controllers
                     .Select(g => new { Date = g.Key, Count = g.Count() })
                     .ToListAsync();
 
-                var paymentsByDate = await _context.Payments
-                    .Where(p => p.Status == "SUCCESS")
-                    .GroupBy(p => p.PaymentDate.Date)
+                var paymentsByDate = await _context.PaymentTransactions
+                    .Where(p => p.Status == "SUCCESS" && p.UpdatedOn.HasValue)
+                    .GroupBy(p => p.UpdatedOn.Value.Date)
                     .Select(g => new { Date = g.Key, Count = g.Count() })
                     .ToListAsync();
 

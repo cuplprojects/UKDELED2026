@@ -41,25 +41,25 @@ export default function InstructionsPage() {
             {lang === "hi" ? (
               <>
                 <div className="text-center space-y-2 mb-10">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#1e40af] tracking-wide uppercase">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-700 tracking-wide uppercase">
                     ऑनलाइन आवेदन
                   </h2>
                   <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-black">
-                    उत्तराखण्ड डी०एल०एड० प्रवेश परीक्षा 2025
+                    उत्तराखण्ड डी०एल०एड० प्रवेश परीक्षा 2026
                   </h3>
                   <h4 className="text-xl sm:text-2xl md:text-3xl font-black text-red-600 uppercase">
-                    अभ्यर्थियों के लिए महत्वपूर्ण दिशानिर्देश
+                    अभ्यर्थियों के लिए महत्वपूर्ण दिशा निर्देश
                   </h4>
                 </div>
 
                 <div className="space-y-4 sm:space-y-5">
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">1.</span>
-                    <p>अभ्यर्थी परिषद् वेबसाइट <span className="font-bold text-black">www.ukdeled.com</span> पर डी०एल०एड० प्रवेश परीक्षा 2025 के लिए ऑनलाइन आवेदन कर सकते हैं।</p>
+                    <p>अभ्यर्थी परिषद् वेबसाइट <span className="font-bold text-black">www.ukdeled.com</span> पर डी०एल०एड० प्रवेश परीक्षा 2026 के लिए ऑनलाइन आवेदन कर सकते हैं।</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">2.</span>
-                    <p>परिषद् वेबसाइट पर अपलोड उत्तराखण्ड डी०एल०एड० प्रवेश परीक्षा 2025 सूचना विवरणिका में उत्तराखण्ड डी०एल०एड० प्रवेश परीक्षा 2025 हेतु निर्धारित अर्हताओं का अध्ययन कर निर्धारित अर्हताएं पूर्ण होने पर ही परीक्षा में सम्मिलित होने हेतु आवेदन करें।</p>
+                    <p>परिषद् वेबसाइट पर अपलोड उत्तराखण्ड डी०एल०एड० प्रवेश परीक्षा 2026 सूचना विवरणिका में उत्तराखण्ड डी०एल०एड० प्रवेश परीक्षा 2026 हेतु निर्धारित अर्हताओं का अध्ययन कर निर्धारित अर्हताएं पूर्ण होने पर ही परीक्षा में सम्मिलित होने हेतु आवेदन करें।</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">3.</span>
@@ -67,11 +67,11 @@ export default function InstructionsPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">4.</span>
-                    <p>ऑनलाइन आवेदन पत्र भरने से पहले कृपया दिशानिर्देशों एवं विवरण को सावधानीपूर्वक पढ़ें। उम्मीदवारों को बोर्ड की वेबसाइट पर उपलब्ध D.El.Ed प्रवेश परीक्षा 2025 सूचना विवरणिका में दिए गए निर्देशों का कड़ाई से पालन अवश्य करना चाहिए।</p>
+                    <p>ऑनलाइन आवेदन पत्र भरने से पहले कृपया दिशानिर्देशों एवं विवरण को सावधानीपूर्वक पढ़ें। उम्मीदवारों को बोर्ड की वेबसाइट पर उपलब्ध D.El.Ed प्रवेश परीक्षा 2026 सूचना विवरणिका में दिए गए निर्देशों का कड़ाई से पालन अवश्य करना चाहिए।</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">5.</span>
-                    <p>डी०एल०एड० प्रवेश परीक्षा 2025 हेतु परीक्षा शुल्क विवरण निम्नवत् है-</p>
+                    <p>डी०एल०एड० प्रवेश परीक्षा 2026 हेतु परीक्षा शुल्क विवरण निम्नवत् है-</p>
                   </div>
                   
                   {/* Table */}
@@ -106,7 +106,7 @@ export default function InstructionsPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">7.</span>
-                    <p>अभ्यर्थी के द्वारा शुल्क सहित आवेदन संबंधी सूचना परिषद् वेबसाइट पर अपलोड की जायेगी। अभ्यर्थी अपने अभ्यर्थन एवं सूचनाओं की जाँच वेबसाइट पर कर सकता है। ऐसे अभ्यर्थी जिनकी फीस बोर्ड द्वारा प्राप्त नहीं की गयी हो, के डी० एल० एड० प्रवेश परीक्षा 2025 के अभ्यर्थन पर विचार नहीं किया जाएगा।</p>
+                    <p>अभ्यर्थी के द्वारा शुल्क सहित आवेदन संबंधी सूचना परिषद् वेबसाइट पर अपलोड की जायेगी। अभ्यर्थी अपने अभ्यर्थन एवं सूचनाओं की जाँच वेबसाइट पर कर सकता है। ऐसे अभ्यर्थी जिनकी फीस बोर्ड द्वारा प्राप्त नहीं की गयी हो, के डी० एल० एड० प्रवेश परीक्षा 2026 के अभ्यर्थन पर विचार नहीं किया जाएगा।</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">8.</span>
@@ -133,11 +133,11 @@ export default function InstructionsPage() {
             ) : (
               <>
                 <div className="text-center space-y-2 mb-10">
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#1e40af] tracking-wide uppercase">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-blue-700 tracking-wide uppercase">
                     ONLINE APPLICATION FORM
                   </h2>
                   <h3 className="text-2xl sm:text-3xl md:text-4xl font-black text-black">
-                    UTTARAKHAND D.El.Ed. Entrance Test 2025
+                    UTTARAKHAND D.El.Ed. Entrance Test 2026
                   </h3>
                   <h4 className="text-xl sm:text-2xl md:text-3xl font-black text-red-600 uppercase">
                     IMPORTANT INSTRUCTIONS/GUIDELINES TO THE CANDIDATE
@@ -147,11 +147,11 @@ export default function InstructionsPage() {
                 <div className="space-y-4 sm:space-y-5">
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">1.</span>
-                    <p>Candidates can apply online for Uttarakhand D.El.Ed. Entrance Test 2025 on the Board website <span className="font-bold text-black">www.ukdeled.com</span></p>
+                    <p>Candidates can apply online for Uttarakhand D.El.Ed. Entrance Test 2026 on the Board website <span className="font-bold text-black">www.ukdeled.com</span></p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">2.</span>
-                    <p>Please ensure your eligibility as per the criteria laid down for Uttarakhand D.El.Ed. Entrance Test 2025 in the D.El.Ed. Entrance Test 2025 : INFORMATION BROCHURE uploaded on the Board Website.</p>
+                    <p>Please ensure your eligibility as per the criteria laid down for Uttarakhand D.El.Ed. Entrance Test 2026 in the D.El.Ed. Entrance Test 2026 : INFORMATION BROCHURE uploaded on the Board Website.</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">3.</span>
@@ -159,11 +159,11 @@ export default function InstructionsPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">4.</span>
-                    <p>Please read the instructions and proceed carefully before you start filling the online application form. Candidate must follow the instructions strictly as given in the INFORMATION BROCHURE : D.El.Ed. Entrance Examination 2025 on the Board Website.</p>
+                    <p>Please read the instructions and proceed carefully before you start filling the online application form. Candidate must follow the instructions strictly as given in the INFORMATION BROCHURE : D.El.Ed. Entrance Examination 2026 on the Board Website.</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">5.</span>
-                    <p>Examination Fee Details for D.El.Ed. Entrance Test 2025 are as follows:</p>
+                    <p>Examination Fee Details for D.El.Ed. Entrance Test 2026 are as follows:</p>
                   </div>
                   
                   {/* Table */}
@@ -198,7 +198,7 @@ export default function InstructionsPage() {
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">7.</span>
-                    <p>Information regarding the applications of candidates received with fees will be uploaded on the Board's website. The candidates can check their Application for candidature and candidate's particulars on the website. The candidature of the candidate, who's fees has not been received by this Board, will not be considered for the D.El.Ed. Entrance Examination 2025.</p>
+                    <p>Information regarding the applications of candidates received with fees will be uploaded on the Board's website. The candidates can check their Application for candidature and candidate's particulars on the website. The candidature of the candidate, who's fees has not been received by this Board, will not be considered for the D.El.Ed. Entrance Examination 2026.</p>
                   </div>
                   <div className="flex items-start gap-3">
                     <span className="shrink-0 font-bold">8.</span>
@@ -240,7 +240,7 @@ export default function InstructionsPage() {
                     position: "relative",
                     top: "3px",
                     cursor: "pointer",
-                    accentColor: "#1e40af",
+                    accentColor: "#074b7c",
                     flexShrink: 0
                   }}
                 />
@@ -266,8 +266,8 @@ export default function InstructionsPage() {
               disabled={!agreed}
               className={`px-8 sm:px-10 py-2.5 sm:py-3 font-bold text-sm sm:text-base rounded transition ${
                 agreed
-                  ? "bg-[#1e40af] hover:bg-[#1e3a8a] text-white shadow-md cursor-pointer"
-                  : "bg-[#1e40af]/40 text-white/80 cursor-not-allowed"
+                  ? "bg-blue-700 hover:bg-blue-800 text-white shadow-md cursor-pointer"
+                  : "bg-blue-700/40 text-white/80 cursor-not-allowed"
               }`}
             >
               Proceed to Registration

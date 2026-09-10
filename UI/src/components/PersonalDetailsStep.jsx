@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Select } from "antd";
 
 export default function PersonalDetailsStep({
   formData,
@@ -36,7 +37,7 @@ export default function PersonalDetailsStep({
   ];
 
   // Graduation Course Options based on Applied Category (प्रशिक्षण हेतु आवेदित वर्ग)
-  const isScienceGroup = (formData.appliedCategory || "").includes("1") || 
+  const isScienceGroup = (formData.appliedCategory || "").includes("1") ||
     ((formData.appliedCategory || "").includes("विज्ञान वर्ग") && !(formData.appliedCategory || "").includes("विज्ञानेत्तर"));
 
   const scienceGraduationCourses = [
@@ -56,34 +57,35 @@ export default function PersonalDetailsStep({
   const graduationCourses = isScienceGroup ? scienceGraduationCourses : nonScienceGraduationCourses;
 
   const catUpper = (formData.category || "").toUpperCase();
-  const isScStObc = catUpper.includes("SC") || 
-                    catUpper.includes("ST") || 
-                    catUpper.includes("OBC") || 
-                    catUpper.includes("SCHEDULED CASTE") || 
-                    catUpper.includes("SCHEDULED TRIBE") || 
-                    catUpper.includes("OTHER BACKWARD CLASS");
+  const isScStObc = catUpper.includes("SC") ||
+    catUpper.includes("ST") ||
+    catUpper.includes("OBC") ||
+    catUpper.includes("SCHEDULED CASTE") ||
+    catUpper.includes("SCHEDULED TRIBE") ||
+    catUpper.includes("OTHER BACKWARD CLASS");
   const isPH = formData.phyHandicapped === "YES";
 
   const subCatUpper = (formData.subCategory || "").toUpperCase();
-  const isExServiceman = subCatUpper.includes("EX-SERVICEMAN") || 
-                        subCatUpper.includes("EX SERVICEMAN") || 
-                        subCatUpper.includes("पूर्व सैनिक");
+  const isExServiceman = subCatUpper.includes("EX-SERVICEMAN") ||
+    subCatUpper.includes("EX SERVICEMAN") ||
+    subCatUpper.includes("पूर्व सैनिक");
   const isDFF = subCatUpper.includes("DFF") || subCatUpper.includes("स्वतंत्रता");
+  const isSports = subCatUpper.includes("SPORTS");
 
   let maxAllowedAge = 30;
   let relaxationText = "";
   if (isPH && (isScStObc || isDFF)) {
     maxAllowedAge = 45;
-    relaxationText = isScStObc && isDFF 
-      ? " (including 10 years for PH and 5 years for SC/ST/OBC/DFF)" 
+    relaxationText = isScStObc && isDFF
+      ? " (including 10 years for PH and 5 years for SC/ST/OBC/DFF)"
       : (isScStObc ? " (including 10 years for PH and 5 years for SC/ST/OBC)" : " (including 10 years for PH and 5 years for DFF)");
   } else if (isPH) {
     maxAllowedAge = 40;
     relaxationText = " (including 10 years relaxation for PH)";
   } else if (isScStObc || isDFF) {
     maxAllowedAge = 35;
-    relaxationText = isScStObc && isDFF 
-      ? " (including 5 years relaxation for SC/ST/OBC/DFF)" 
+    relaxationText = isScStObc && isDFF
+      ? " (including 5 years relaxation for SC/ST/OBC/DFF)"
       : (isScStObc ? " (including 5 years relaxation for SC/ST/OBC)" : " (including 5 years relaxation for DFF)");
   }
 
@@ -198,8 +200,14 @@ export default function PersonalDetailsStep({
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
-      if (formData.retirementDate > "2026-09-14") {
-        setErrorMsg("Date of retirement cannot be later than 14/09/2026 (सेना से सेवा-निवृत्ति की तिथि 14/09/2026 से अधिक नहीं हो सकती).");
+      const todayStr = getTodayStr();
+      if (formData.retirementDate >= todayStr) {
+        setErrorMsg("Date of retirement cannot be today's date or a future date. It must be less than today's date (सेना से सेवा-निवृत्ति की तिथि आज की तिथि से पूर्व की होनी चाहिए).");
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      if (formData.dateOfBirth && formData.retirementDate <= formData.dateOfBirth) {
+        setErrorMsg("Date of retirement must be after Date of Birth (सेना से सेवा-निवृत्ति की तिथि जन्म तिथि के बाद की होनी चाहिए).");
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
@@ -260,16 +268,72 @@ export default function PersonalDetailsStep({
       return;
     }
 
+    const idType = formData.idProofType;
+    const idNo = formData.idProofNo.trim();
+    if (idType === "Aadhar Card" && !/^\d{12}$/.test(idNo)) {
+      setErrorMsg("Aadhar Card Number must be exactly 12 digits.");
+      return;
+    } else if (idType === "PAN Card" && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(idNo)) {
+      setErrorMsg("Invalid PAN Card Number format (e.g. ABCDE1234F).");
+      return;
+    } else if (idType === "Voter ID Card" && !/^[A-Za-z0-9]+$/.test(idNo)) {
+      setErrorMsg("Voter ID must contain only alphanumeric characters.");
+      return;
+    } else if (idType === "Passport" && !/^[A-Z][0-9]{7}$/.test(idNo)) {
+      setErrorMsg("Invalid Passport Number format (e.g. A1234567).");
+      return;
+    } else if (idType === "Driving License" && !/^[A-Za-z0-9]+$/.test(idNo)) {
+      setErrorMsg("Driving License must contain only alphanumeric characters.");
+      return;
+    }
+
     handleNext();
   };
 
+  const getTodayStr = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getYesterdayStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
   const isPHYes = formData.phyHandicapped === "YES";
-  const isMale = (formData.gender || "").toUpperCase() === "MALE";
+  const isFemale = (formData.gender || "").toUpperCase() === "FEMALE";
+
+  const selectedPhTypes = useMemo(() => {
+    if (!formData.phyType || formData.phyType === "Select" || formData.phyType === "--Not Applicable--") {
+      return [];
+    }
+    if (Array.isArray(formData.phyType)) {
+      return formData.phyType;
+    }
+    return String(formData.phyType)
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }, [formData.phyType]);
+
+  const handlePhTypeChange = (values) => {
+    const combined = values && values.length > 0 ? values.join(", ") : "Select";
+    handleInputChange({
+      target: { name: "phyType", value: combined },
+    });
+  };
 
   return (
     <div className="w-full font-sans">
-      <form onSubmit={validateAndProceed} className="space-y-3 sm:space-y-3.5">
-        
+      <form autoComplete="off" onSubmit={validateAndProceed} className="space-y-3 sm:space-y-3.5">
+
         {errorMsg && (
           <div className="bg-red-50 text-red-700 p-2.5 sm:p-3 rounded-xs text-xs sm:text-[13px] font-semibold border border-red-200 flex items-center gap-2">
             <span>⚠️</span> {errorMsg}
@@ -283,11 +347,12 @@ export default function PersonalDetailsStep({
           </label>
           <select
             name="appliedCategory"
-            value={formData.appliedCategory || "2-विज्ञानेत्तर वर्ग"}
+            value={formData.appliedCategory || "Select"}
             onChange={handleInputChange}
             disabled={isLocked}
             className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
           >
+            <option value="Select">--Select--</option>
             <option value="1-विज्ञान वर्ग">1-विज्ञान वर्ग</option>
             <option value="2-विज्ञानेत्तर वर्ग">2-विज्ञानेत्तर वर्ग</option>
           </select>
@@ -320,7 +385,7 @@ export default function PersonalDetailsStep({
             </label>
             <select
               name="graduationUniversity"
-              value={formData.graduationUniversity || "DEV BHOOMI UTTARAKHAND UNIVERSITY"}
+              value={formData.graduationUniversity || "Select"}
               onChange={handleInputChange}
               disabled={isLocked}
               className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
@@ -397,9 +462,8 @@ export default function PersonalDetailsStep({
             />
           </div>
         </div>
-
-        {/* Row 5: Gender | Date of Birth | Age */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          {/* Row 5: Gender */}
           <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
               Gender (लिंग) <span className="text-red-600 font-bold">*</span>
@@ -417,40 +481,6 @@ export default function PersonalDetailsStep({
               <option value="Transgender">Transgender</option>
             </select>
           </div>
-
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
-              Date of Birth (dd/mm/yyyy) <span className="text-red-600 font-bold">*</span>
-            </label>
-            <input
-              type="date"
-              name="dateOfBirth"
-              min={minAllowedDob}
-              max="2008-07-01"
-              value={formData.dateOfBirth ? formData.dateOfBirth.split("T")[0] : ""}
-              onChange={handleInputChange}
-              disabled={isLocked}
-              required
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
-              Age (Year,Month,Days)
-            </label>
-            <input
-              type="text"
-              readOnly
-              value={calculatedAge || ""}
-              placeholder="Age will auto-calculate"
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-50 text-gray-700 font-semibold"
-            />
-          </div>
-        </div>
-
-        {/* Row 6: Father's Name | Mother's Name */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
               Father's Name (पिता का नाम) <span className="text-red-600 font-bold">*</span>
@@ -460,12 +490,14 @@ export default function PersonalDetailsStep({
               name="fatherName"
               value={formData.fatherName || ""}
               onChange={handleInputChange}
-              disabled={isLocked}
+              disabled={true}
               required
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase font-medium text-gray-800"
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-100 uppercase text-gray-700 font-bold cursor-not-allowed"
             />
           </div>
-
+        </div>
+        {/* Row 6: Father's Name | Mother's Name */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
               Mother's Name (माता का नाम) <span className="text-red-600 font-bold">*</span>
@@ -480,33 +512,25 @@ export default function PersonalDetailsStep({
               className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white uppercase font-medium text-gray-800"
             />
           </div>
-        </div>
-
-        {/* Row 7: Husband Name (विवाहित महिला के पति का नाम) */}
-        <div className="w-full">
-          <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
-            Husband Name (विवाहित महिला के पति का नाम)
-            {isMale && (
-              <span className="text-xs font-semibold text-gray-500 ml-2">
-                (Not Applicable for Male / पुरुष हेतु लागू नहीं)
-              </span>
-            )}
-          </label>
-          <input
-            type="text"
-            name="husbandName"
-            value={isMale ? "" : (formData.husbandName || "")}
-            onChange={handleInputChange}
-            disabled={isLocked || isMale}
-            placeholder={isMale ? "Not applicable for Male Candidates (पुरुष हेतु लागू नहीं)" : "यदि लागू हो तो पति का नाम दर्ज करें"}
-            className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded uppercase font-medium ${
-              isMale || isLocked
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Husband Name (विवाहित महिला के पति का नाम)
+              
+            </label>
+            <input
+              type="text"
+              name="husbandName"
+              value={isFemale ? (formData.husbandName || "") : ""}
+              onChange={handleInputChange}
+              disabled={isLocked || !isFemale}
+              placeholder="यदि लागू हो तो पति का नाम दर्ज करें"
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded uppercase font-medium ${!isFemale || isLocked
                 ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "border-sky-400 bg-white text-gray-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-            }`}
-          />
+                }`}
+            />
+          </div>
         </div>
-
         {/* Row 8: Category | Sub Category | सेना से सेवा-निवृत्ति की तिथि | खेल का प्रकार */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
           <div>
@@ -542,8 +566,9 @@ export default function PersonalDetailsStep({
             >
               <option value="लागू/कोई नहीं">लागू/कोई नहीं</option>
               <option value="DFF (स्वतंत्रता संग्राम सेनानी आश्रित)">DFF (स्वतंत्रता संग्राम सेनानी आश्रित)</option>
-              <option value="EX-SERVICEMAN (पूर्व सैनिक)">EX-SERVICEMAN (पूर्व सैनिक)</option>
-              <option value="Women (महिला)">Women (महिला)</option>
+              <option value="EX-SERVICEMAN (भूतपूर्व सैनिक(स्वयं))">EX-SERVICEMAN (भूतपूर्व सैनिक(स्वयं))</option>
+              <option value="SPORTS (खेलकूद)">SPORTS (खेलकूद)</option>
+              <option value="राज्य आंदोलनकारी और उनके आश्रित">राज्य आंदोलनकारी और उनके आश्रित</option>
               <option value="Orphan (अनाथ)">Orphan (अनाथ)</option>
             </select>
           </div>
@@ -555,13 +580,12 @@ export default function PersonalDetailsStep({
             <input
               type="date"
               name="retirementDate"
-              max="2026-09-14"
+              max={getYesterdayStr()}
               value={formData.retirementDate ? formData.retirementDate.split("T")[0] : ""}
               onChange={handleInputChange}
               disabled={!isExServiceman || isLocked}
-              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${
-                isExServiceman ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
-              }`}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${isExServiceman ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
+                }`}
             />
           </div>
 
@@ -573,15 +597,15 @@ export default function PersonalDetailsStep({
               name="sportsType"
               value={formData.sportsType || "Select"}
               onChange={handleInputChange}
-              disabled={isLocked}
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+              disabled={!isSports || isLocked}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${isSports ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
+                }`}
             >
               <option value="Select">--Select--</option>
-              <option value="None / कोई नहीं">None / कोई नहीं</option>
-              <option value="National Level (राष्ट्रीय स्तर)">National Level (राष्ट्रीय स्तर)</option>
-              <option value="State Level (राज्य स्तर)">State Level (राज्य स्तर)</option>
-              <option value="University / College Level (विश्वविद्यालय स्तर)">University / College Level (विश्वविद्यालय स्तर)</option>
-              <option value="District Level (जनपद स्तर)">District Level (जनपद स्तर)</option>
+              <option value="Olympic">ओलंपिक खेल - पदक विजेता/प्रतिभाग</option>
+              <option value="Commonwealth/Asian">कामनवेल्थ खेल/एशियन चैंपियनशिप - पदक विजेता/प्रतिभाग</option>
+              <option value="World Cup">विश्वकप/विश्व चैंपियनशिप/एशियन खेल - पदक विजेता/प्रतिभाग</option>
+              <option value="Commonwealth Championship">कामनवेल्थ चैंपियनशिप/अंतरराष्ट्रीय विश्वविद्यालय खेल - पदक विजेता/प्रतिभाग</option>
             </select>
           </div>
         </div>
@@ -597,11 +621,12 @@ export default function PersonalDetailsStep({
             </p>
             <select
               name="phyHandicapped"
-              value={formData.phyHandicapped || "NO"}
+              value={formData.phyHandicapped || "Select"}
               onChange={handleInputChange}
               disabled={isLocked}
               className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
             >
+              <option value="Select">--Select--</option>
               <option value="NO">NO</option>
               <option value="YES">YES</option>
             </select>
@@ -614,21 +639,20 @@ export default function PersonalDetailsStep({
             <p className="text-[11px] text-gray-600 font-medium mb-1">
               यदि हाँ तो निःशक्तता (दिव्यांगता) का प्रकार
             </p>
-            <select
-              name="phyType"
-              value={formData.phyType || (isPHYes ? "Select" : "--Not Applicable--")}
-              onChange={handleInputChange}
+            <Select
+              mode="multiple"
+              allowClear
+              placeholder={isPHYes ? "--Select PH Type(s)--" : "--Not Applicable--"}
+              value={isPHYes ? selectedPhTypes : []}
+              onChange={handlePhTypeChange}
               disabled={!isPHYes || isLocked}
-              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${
-                isPHYes ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
-              }`}
-            >
-              <option value="--Not Applicable--">--Not Applicable--</option>
-              <option value="VI (Visually Impaired)">VI (Visually Impaired)</option>
-              <option value="HI (Hearing Impaired)">HI (Hearing Impaired)</option>
-              <option value="OH (Orthopedically Handicapped)">OH (Orthopedically Handicapped)</option>
-              <option value="Other">Other</option>
-            </select>
+              className="w-full min-h-[38px] text-xs sm:text-sm"
+              options={[
+                { label: "VI (Visually Impaired)", value: "VI (Visually Impaired)" },
+                { label: "HI (Hearing Impaired)", value: "HI (Hearing Impaired)" },
+                { label: "ORTHO/LOCOMOTOR", value: "ORTHO/LOCOMOTOR" },
+              ]}
+            />
           </div>
 
           <div>
@@ -643,14 +667,46 @@ export default function PersonalDetailsStep({
               value={formData.scribeRequired || "--Select--"}
               onChange={handleInputChange}
               disabled={!isPHYes || isLocked}
-              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${
-                isPHYes ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
-              }`}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded ${isPHYes ? "border-sky-400 bg-white font-medium text-gray-800" : "border-gray-300 bg-gray-100 cursor-not-allowed text-gray-400"
+                }`}
             >
               <option value="--Select--">--Select--</option>
               <option value="NO">NO</option>
               <option value="YES">YES</option>
             </select>
+          </div>
+        </div>
+
+        {/* Date of Birth | Age (placed after Scribe Box) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Date of Birth (dd/mm/yyyy) <span className="text-red-600 font-bold">*</span>
+            </label>
+            <input
+              type="date"
+              name="dateOfBirth"
+              min={minAllowedDob}
+              max="2008-07-01"
+              value={formData.dateOfBirth ? formData.dateOfBirth.split("T")[0] : ""}
+              onChange={handleInputChange}
+              disabled={isLocked}
+              required
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
+              Age (Year,Month,Days)
+            </label>
+            <input
+              type="text"
+              readOnly
+              value={calculatedAge || ""}
+              placeholder="Age will auto-calculate"
+              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-50 text-gray-700 font-semibold"
+            />
           </div>
         </div>
 
@@ -786,17 +842,17 @@ export default function PersonalDetailsStep({
             </label>
             <select
               name="idProofType"
-              value={formData.idProofType || "Aadhar Card"}
+              value={formData.idProofType || "Select"}
               onChange={handleInputChange}
               disabled={isLocked}
               className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
             >
+              <option value="Select">--Select--</option>
               <option value="Aadhar Card">Aadhar Card</option>
               <option value="Voter ID Card">Voter ID Card</option>
               <option value="PAN Card">PAN Card</option>
               <option value="Passport">Passport</option>
               <option value="Driving License">Driving License</option>
-              <option value="Govt ID Card">Govt ID Card</option>
             </select>
           </div>
         </div>

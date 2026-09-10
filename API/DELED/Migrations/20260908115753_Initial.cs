@@ -4,10 +4,12 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace DELED.Migrations
 {
     /// <inheritdoc />
-    public partial class DELED2026 : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -24,6 +26,8 @@ namespace DELED.Migrations
                     Username = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Password = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SessionId = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -123,23 +127,6 @@ namespace DELED.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DbEventLogs", x => x.Id);
-                })
-                .Annotation("MySql:CharSet", "utf8mb4");
-
-            migrationBuilder.CreateTable(
-                name: "EligibilityCodes",
-                columns: table => new
-                {
-                    EligibilityCodeId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    Name = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    path = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_EligibilityCodes", x => x.EligibilityCodeId);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -386,6 +373,8 @@ namespace DELED.Migrations
                     Password = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ClearPass = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SessionId = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -402,6 +391,14 @@ namespace DELED.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     UserId = table.Column<int>(type: "int", nullable: false),
                     ExamTypeId = table.Column<int>(type: "int", nullable: false),
+                    AppliedCategory = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    GraduationCourse = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    GraduationUniversity = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    GraduationDate = table.Column<string>(type: "longtext", nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     Gender = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     DOB = table.Column<DateTime>(type: "datetime(6)", nullable: true),
@@ -409,37 +406,17 @@ namespace DELED.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     HusbandName = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    HomeDistrict = table.Column<int>(type: "int", nullable: false),
                     Category = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     SubCategory = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    RetirementDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    SportsType = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsPhysicallyHandicapped = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     DisabilityType = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ScribeRequired = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    FirstLanguage = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    SecondLanguage = table.Column<string>(type: "longtext", nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    SubjectCode = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    DELED1TrainingQualification = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    DELED1TrainingStatus = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    DELED1TrainingYear = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    DELED2TrainingQualification = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    DELED2TrainingStatus = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    DELED2TrainingYear = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    EligibilityCodeDELED1 = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    EligibilityCodeDELED2 = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
                     ExamCity1 = table.Column<int>(type: "int", nullable: false),
                     ExamCity2 = table.Column<int>(type: "int", nullable: false),
                     MailingAddress = table.Column<string>(type: "longtext", nullable: false)
@@ -454,24 +431,7 @@ namespace DELED.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedOn = table.Column<DateTime>(type: "datetime(6)", nullable: false),
                     UpdatedOn = table.Column<DateTime>(type: "datetime(6)", nullable: true),
-                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Deled1UdiseCode = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Deled2UdiseCode = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Deled1InServiceTraining = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Deled1InServiceTrainingOthers = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Deled2InServiceTraining = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Deled2InServiceTrainingOthers = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Deled1SchoolType = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    Deled2SchoolType = table.Column<string>(type: "longtext", nullable: true)
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    RetirementDate = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -529,8 +489,21 @@ namespace DELED.Migrations
 
             migrationBuilder.InsertData(
                 table: "Admins",
-                columns: new[] { "Id", "Password", "Username" },
-                values: new object[] { 1, "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9", "admin" });
+                columns: new[] { "Id", "Password", "SessionId", "Username" },
+                values: new object[] { 1, "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9", null, "admin" });
+
+            migrationBuilder.InsertData(
+                table: "ExamTypes",
+                columns: new[] { "Id", "Category", "Name", "Payment" },
+                values: new object[,]
+                {
+                    { 1, "GENERAL/OBC/EWS", "1-विज्ञान वर्ग", 600.0 },
+                    { 2, "SC/ST", "1-विज्ञान वर्ग", 300.0 },
+                    { 3, "PH", "1-विज्ञान वर्ग", 150.0 },
+                    { 4, "GENERAL/OBC/EWS", "2-विज्ञानेत्तर वर्ग", 600.0 },
+                    { 5, "SC/ST", "2-विज्ञानेत्तर वर्ग", 300.0 },
+                    { 6, "PH", "2-विज्ञानेत्तर वर्ग", 150.0 }
+                });
 
             migrationBuilder.InsertData(
                 table: "SystemAlerts",
@@ -567,9 +540,6 @@ namespace DELED.Migrations
 
             migrationBuilder.DropTable(
                 name: "DbEventLogs");
-
-            migrationBuilder.DropTable(
-                name: "EligibilityCodes");
 
             migrationBuilder.DropTable(
                 name: "EmailLogs");

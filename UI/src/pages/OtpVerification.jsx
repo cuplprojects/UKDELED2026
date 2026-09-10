@@ -106,6 +106,8 @@ export default function OtpVerification() {
 
     if (result.success) {
       setSuccess("New OTPs have been sent separately to your Mobile and Email.");
+      setMobileOtp("");
+      setEmailOtp("");
       const newExpiry = Date.now() + 120 * 1000;
       sessionStorage.setItem("otp_timer_expiry", newExpiry.toString());
       setTimer(120);
@@ -121,11 +123,11 @@ export default function OtpVerification() {
       <main className="flex-1 flex items-center justify-center px-2 sm:px-4 py-6 sm:py-8 md:py-10">
         <div className="w-full max-w-lg bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden">
           {/* Card Title */}
-          <div className="bg-[#2563eb] text-white px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 font-bold text-sm sm:text-base md:text-lg">
+          <div className="bg-blue-600 text-white px-3 sm:px-4 py-2.5 sm:py-3 flex items-center gap-2 font-bold text-sm sm:text-base md:text-lg">
             <span>🛡️</span> Dual OTP Verification / ओटीपी सत्यापन
           </div>
 
-          <form onSubmit={handleVerify} className="p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
+          <form autoComplete="off" onSubmit={handleVerify} className="p-4 sm:p-5 md:p-6 space-y-4 sm:space-y-5">
             <div className="text-center bg-blue-50/60 p-3 rounded-lg border border-blue-100">
               <p className="font-semibold text-gray-800 text-xs sm:text-sm">
                 Distinct OTPs have been sent to your registered Mobile Number and Email Address.
@@ -229,7 +231,7 @@ export default function OtpVerification() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:flex-1 px-3 sm:px-5 py-2 sm:py-2.5 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded-md font-semibold text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full sm:flex-1 px-3 sm:px-5 py-2 sm:py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-md font-semibold text-xs sm:text-sm transition shadow-md flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading ? "Verifying..." : "Verify & Proceed / सत्यापित करें"}
               </button>

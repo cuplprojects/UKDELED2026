@@ -17,11 +17,11 @@ console.log('[API Store] Initialized with baseURL:', API_BASE_URL);
 // Function to handle logout and redirect
 let isAlertingSessionExpired = false;
 const handleAuthFailure = (message) => {
-  const hadToken = !!localStorage.getItem("token");
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-  localStorage.removeItem("token");
-  localStorage.removeItem("isAdmin");
-  localStorage.removeItem("username");
+  const hadToken = !!sessionStorage.getItem("token");
+  const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("isAdmin");
+  sessionStorage.removeItem("username");
   
   if (hadToken && !isAlertingSessionExpired) {
     isAlertingSessionExpired = true;
@@ -69,7 +69,7 @@ api.interceptors.request.use(async (config) => {
     // Ignore IP fetch errors to avoid blocking the main request
   }
 
-  const token = localStorage.getItem("token");
+  const token = sessionStorage.getItem("token");
   if (token) {
     if (isTokenExpired(token)) {
       console.warn("[API] Token has expired. Logging out...");
@@ -152,9 +152,9 @@ export const useApiStore = create((set) => ({
         otp: typeof mobileOtp === "string" ? mobileOtp : "",
       });
       
-      // Save token to localStorage after successful OTP verification
+      // Save token to sessionStorage after successful OTP verification
       if (response.data && response.data.token) {
-        localStorage.setItem("token", response.data.token);
+        sessionStorage.setItem("token", response.data.token);
       }
       
       set({ loading: false, success: response.data.message || "OTP verified successfully." });

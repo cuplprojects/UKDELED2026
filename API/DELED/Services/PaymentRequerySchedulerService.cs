@@ -130,21 +130,6 @@ namespace DELED.Services
                                 context.Users.Update(user);
                             }
 
-                            // Only add payment record if one doesn't already exist for this txn
-                            bool paymentExists = await context.Payments
-                                .AnyAsync(p => p.UserId == txn.UserId && p.TransactionId == (txn.AtomTxnId ?? "REQUERY_AUTO"), stoppingToken);
-                            if (!paymentExists)
-                            {
-                                var payment = new Payment
-                                {
-                                    UserId = txn.UserId,
-                                    Amount = amountToQuery,
-                                    PaymentDate = DELED.Helpers.TimeHelper.GetIST(),
-                                    Status = "SUCCESS",
-                                    TransactionId = txn.AtomTxnId ?? "REQUERY_AUTO"
-                                };
-                                context.Payments.Add(payment);
-                            }
 
                             bool stepExists = await context.UserStepProgresses
                                 .AnyAsync(s => s.UserId == txn.UserId && s.StepNumber == 4, stoppingToken);

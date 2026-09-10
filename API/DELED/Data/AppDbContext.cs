@@ -17,6 +17,23 @@ namespace DELED.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // Add unique constraints
+            modelBuilder.Entity<UserPersonalDetails>()
+                .HasIndex(u => u.UserId)
+                .IsUnique();
+
+            modelBuilder.Entity<Uploads>()
+                .HasIndex(u => u.UserId)
+                .IsUnique();
+
+            modelBuilder.Entity<UserAuth>()
+                .HasIndex(u => u.UserId)
+                .IsUnique();
+
+            modelBuilder.Entity<UserStepProgress>()
+                .HasIndex(u => new { u.UserId, u.StepNumber })
+                .IsUnique();
+
             // Seed default Admin user
             modelBuilder.Entity<Admin>().HasData(
                 new Admin
@@ -67,7 +84,6 @@ namespace DELED.Data
 
         public DbSet<EmailSchedule> EmailSchedules { get; set; }
         public DbSet<EmailLog> EmailLogs { get; set; }
-        public DbSet<Payment> Payments { get; set; }
         public DbSet<Notice> Notices { get; set; }
         public DbSet<ImpDocument> ImpDocuments { get; set; }
        

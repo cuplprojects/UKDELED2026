@@ -17,7 +17,7 @@ import './App.css'
 
 function App() {
   return (
-    <Router basename="/">
+    <Router basename="/dbtest26/">
       <ScrollToTop />
       <Routes>
         {/* <Route path="/under-maintenance" element={<Maintenance />} /> */}

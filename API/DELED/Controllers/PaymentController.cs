@@ -1,15 +1,11 @@
-using System;
-using System.Threading.Tasks;
+using DELED.Data;
+using DELED.Models.NonDbModels;
+using DELED.Models;
+using DELED.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
-using DELED.Data;
-using DELED.Models;
-using DELED.Models.NonDbModels;
-using DELED.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 
 namespace DELED.Controllers
 {
@@ -40,93 +36,6 @@ namespace DELED.Controllers
             _databaseLogger = databaseLogger;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetExamTypes()
-        {
-            var exams = await _context.ExamTypes.ToListAsync();
-            return Ok(exams);
-        }
-
-        [Authorize]
-        [HttpGet("fee")]
-        public async Task<IActionResult> GetFee()
-        {
-            try
-            {
-                int userId = GetUserIdFromToken();
-                if (userId <= 0)
-                {
-                    return BadRequest(new { success = false, message = "Valid Registration ID is required." });
-                }
-
-                var user = await _context.Users.FindAsync(userId);
-                if (user == null)
-                {
-                    return NotFound(new { success = false, message = "User not found." });
-                }
-
-                var personal = await _context.UserPersonalDetails.FirstOrDefaultAsync(p => p.UserId == userId);
-
-                int examTypeId = 1;
-                if (personal != null)
-                {
-                    bool isScience = !string.IsNullOrEmpty(personal.AppliedCategory) && 
-                                     (personal.AppliedCategory.Contains("1") || 
-                                      (personal.AppliedCategory.Contains("विज्ञान") && !personal.AppliedCategory.Contains("विज्ञानेत्तर")));
-
-                    bool isScSt = !string.IsNullOrEmpty(personal.Category) && 
-                                  (personal.Category.ToUpper().Contains("SC") || 
-                                   personal.Category.ToUpper().Contains("ST") || 
-                                   personal.Category.ToUpper().Contains("SCHEDULED CASTE") || 
-                                   personal.Category.ToUpper().Contains("SCHEDULED TRIBE"));
-
-                    if (isScience)
-                    {
-                        if (personal.IsPhysicallyHandicapped) examTypeId = 3; // 1-विज्ञान वर्ग PH (150)
-                        else if (isScSt) examTypeId = 2;                     // 1-विज्ञान वर्ग SC/ST (300)
-                        else examTypeId = 1;                                 // 1-विज्ञान वर्ग GENERAL/OBC/EWS (600)
-                    }
-                    else
-                    {
-                        if (personal.IsPhysicallyHandicapped) examTypeId = 6; // 2-विज्ञानेत्तर वर्ग PH (150)
-                        else if (isScSt) examTypeId = 5;                     // 2-विज्ञानेत्तर वर्ग SC/ST (300)
-                        else examTypeId = 4;                                 // 2-विज्ञानेत्तर वर्ग GENERAL/OBC/EWS (600)
-                    }
-
-                    if (personal.ExamTypeId != examTypeId)
-                    {
-                        personal.ExamTypeId = examTypeId;
-                        _context.UserPersonalDetails.Update(personal);
-                        await _context.SaveChangesAsync();
-                    }
-                }
-
-                var examType = await _context.ExamTypes.FindAsync(examTypeId);
-                double feeAmount = examType != null && examType.Payment > 0
-                    ? examType.Payment
-                    : (examTypeId == 3 ? 150 : (examTypeId == 2 ? 300 : 600));
-
-                return Ok(new
-                {
-                    success = true,
-                    applicantId = user.RegistrationNo ?? user.UserId.ToString(),
-                    applicantName = user.FullName ?? personal?.ApplicantName ?? "Applicant",
-                    category = personal?.Category ?? "GENERAL",
-                    isPhysicallyHandicapped = personal?.IsPhysicallyHandicapped ?? false,
-                    examTypeId = examTypeId,
-                    examName = examType?.Name ?? "DELED",
-                    categoryName = examType?.Category ?? (examTypeId == 3 ? "PH" : (examTypeId == 2 ? "SC/ST" : "GENERAL/OBC/EWS")),
-                    applicationFee = feeAmount,
-                    processingFee = 0,
-                    totalAmount = feeAmount,
-                    isPaymentCompleted = user.IsPaymentCompleted
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
-        }
 
         [Authorize]
         [HttpPost("initiate")]
@@ -159,7 +68,95 @@ namespace DELED.Controllers
                 // ✅ PREVENT DUPLICATE PAYMENT: Check if payment already completed
                 if (user.IsPaymentCompleted)
                 {
-                    return BadRequest(new { success = false, message = "Your payment has already been completed. Multiple payments are not allowed. You can proceed to submit your application.", alreadyPaid = true });
+                    return BadRequest(new { success = false, message = "Your payment has already been completed. Multiple payments are not allowed. You can proceed to submit your application.", alreadyPaid = true, isPaymentCompleted = true });
+                }
+
+                // Check if any transaction for this user is already SUCCESS
+                var successTxn = await _context.PaymentTransactions
+                    .FirstOrDefaultAsync(t => t.UserId == regId && t.Status == "SUCCESS");
+                if (successTxn != null)
+                {
+                    if (!user.IsPaymentCompleted)
+                    {
+                        user.IsPaymentCompleted = true;
+                        user.PaymentDate = successTxn.UpdatedOn ?? DELED.Helpers.TimeHelper.GetIST();
+                        _context.Users.Update(user);
+
+                        bool stepExists = await _context.UserStepProgresses
+                            .AnyAsync(s => s.UserId == regId && s.StepNumber == 4);
+                        if (!stepExists)
+                        {
+                            _context.UserStepProgresses.Add(new UserStepProgress
+                            {
+                                UserId = regId,
+                                StepNumber = 4,
+                                CompletedOn = DELED.Helpers.TimeHelper.GetIST()
+                            });
+                        }
+
+                        await _context.SaveChangesAsync();
+                    }
+
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Your payment transaction is successful. Multiple payments are not allowed. You can proceed to submit your application.",
+                        alreadyPaid = true,
+                        isPaymentCompleted = true
+                    });
+                }
+
+                // Check any pending transactions via Requery to ensure user didn't just complete payment
+                var pendingTxns = await _context.PaymentTransactions
+                    .Where(t => t.UserId == regId && t.Status == "PENDING")
+                    .ToListAsync();
+                foreach (var pTxn in pendingTxns)
+                {
+                    try
+                    {
+                        string dateStr = pTxn.CreatedOn.ToString("yyyy-MM-dd");
+                        var requeryResult = await _paymentService.RequeryPayment(pTxn.MerchantTxnId, dateStr, pTxn.Amount);
+                        if (requeryResult.isPaid)
+                        {
+                            pTxn.Status = "SUCCESS";
+                            if (!string.IsNullOrEmpty(requeryResult.atomTxnId))
+                            {
+                                pTxn.AtomTxnId = requeryResult.atomTxnId;
+                            }
+                            pTxn.UpdatedOn = DELED.Helpers.TimeHelper.GetIST();
+                            _context.PaymentTransactions.Update(pTxn);
+
+                            user.IsPaymentCompleted = true;
+                            user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
+                            _context.Users.Update(user);
+
+                            bool stepExists = await _context.UserStepProgresses
+                                .AnyAsync(s => s.UserId == regId && s.StepNumber == 4);
+                            if (!stepExists)
+                            {
+                                _context.UserStepProgresses.Add(new UserStepProgress
+                                {
+                                    UserId = regId,
+                                    StepNumber = 4,
+                                    CompletedOn = DELED.Helpers.TimeHelper.GetIST()
+                                });
+                            }
+
+                            await _context.SaveChangesAsync();
+
+                            return BadRequest(new
+                            {
+                                success = false,
+                                message = "Your payment transaction is successful. Multiple payments are not allowed. You can proceed to submit your application.",
+                                alreadyPaid = true,
+                                isPaymentCompleted = true
+                            });
+                        }
+                    }
+                    catch (Exception reqEx)
+                    {
+                        _logger.LogWarning("Initiate: Requery check on pending txn failed: {Message}", reqEx.Message);
+                    }
                 }
 
                 // Validate email and phone
@@ -168,50 +165,22 @@ namespace DELED.Controllers
                     return BadRequest(new { success = false, message = "User email and phone number are required." });
                 }
 
-                // Query personal details
+                // Query personal details to get ExamTypeId
                 var personal = await _context.UserPersonalDetails.FirstOrDefaultAsync(p => p.UserId == regId);
                 if (personal == null)
                 {
                     return BadRequest(new { success = false, message = "Personal details not found for this candidate." });
                 }
 
-                // Resolve ExamTypeId based on appliedCategory (1-विज्ञान वर्ग / 2-विज्ञानेत्तर वर्ग) and category & PH status
-                int examTypeId = personal.ExamTypeId;
-                bool isScienceCandidate = !string.IsNullOrEmpty(personal.AppliedCategory) && 
-                                          (personal.AppliedCategory.Contains("1") || 
-                                           (personal.AppliedCategory.Contains("विज्ञान") && !personal.AppliedCategory.Contains("विज्ञानेत्तर")));
-
-                bool isScStCandidate = !string.IsNullOrEmpty(personal.Category) && 
-                                       (personal.Category.ToUpper().Contains("SC") || 
-                                        personal.Category.ToUpper().Contains("ST") || 
-                                        personal.Category.ToUpper().Contains("SCHEDULED CASTE") || 
-                                        personal.Category.ToUpper().Contains("SCHEDULED TRIBE"));
-
-                if (isScienceCandidate)
-                {
-                    if (personal.IsPhysicallyHandicapped) examTypeId = 3;
-                    else if (isScStCandidate) examTypeId = 2;
-                    else examTypeId = 1;
-                }
-                else
-                {
-                    if (personal.IsPhysicallyHandicapped) examTypeId = 6;
-                    else if (isScStCandidate) examTypeId = 5;
-                    else examTypeId = 4;
-                }
-
-                if (personal.ExamTypeId != examTypeId)
-                {
-                    personal.ExamTypeId = examTypeId;
-                    _context.UserPersonalDetails.Update(personal);
-                    await _context.SaveChangesAsync();
-                }
-
                 // Get exam type fee
-                var examType = await _context.ExamTypes.FindAsync(examTypeId);
-                decimal totalAmount = examType != null && examType.Payment > 0 
-                    ? (decimal)examType.Payment 
-                    : (personal.IsPhysicallyHandicapped ? 150m : (examTypeId == 2 ? 300m : 600m));
+                var examType = await _context.ExamTypes.FindAsync(personal.ExamTypeId);
+                if (examType == null)
+                {
+                    return BadRequest(new { success = false, message = "Exam type fee details not found." });
+                }
+
+                // Calculate total amount = examType fee
+                decimal totalAmount = (decimal)examType.Payment;
 
                 var token = await _paymentService.GenerateToken(
                     regId,
@@ -258,7 +227,7 @@ namespace DELED.Controllers
                 string bankTxnId = responseObj?.payInstrument?.payDetails?.bankTxnId?.ToString() ?? "";
                 string amountStr = responseObj?.payInstrument?.payDetails?.amount?.ToString() ?? "0";
                 decimal.TryParse(amountStr, out decimal amount);
-                
+
                 string merchantTxnId = responseObj?.payInstrument?.merchDetails?.merchTxnId?.ToString() ?? "";
                 string merchTxnDate = responseObj?.payInstrument?.merchDetails?.merchTxnDate?.ToString() ?? "";
 
@@ -295,7 +264,7 @@ namespace DELED.Controllers
 
                         // Check if payment was successful from NTT response
                         bool paymentSuccessful = statusCode == "OTS0000";
-                        
+
                         // If payment successful from callback, verify with requery
                         if (paymentSuccessful)
                         {
@@ -304,7 +273,7 @@ namespace DELED.Controllers
                             // NOTE: If requery fails/pending, keep isPaymentValid = false.
                             // The background PaymentRequerySchedulerService will retry this automatically.
                         }
-                        
+
                         // Update transaction status based on validation result
                         transaction.Status = isPaymentValid ? "SUCCESS" : "FAILED";
                         _context.PaymentTransactions.Update(transaction);
@@ -321,18 +290,7 @@ namespace DELED.Controllers
                                 user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
                                 _context.Users.Update(user);
                             }
-
-                            // Log Success Payment Record
-                            var payment = new Payment
-                            {
-                                UserId = transaction.UserId,
-                                Amount = amount,
-                                PaymentDate = DELED.Helpers.TimeHelper.GetIST(),
-                                Status = "SUCCESS",
-                                TransactionId = atomTxnId
-                            };
-                            _context.Payments.Add(payment);
-
+                          
                             // Save progress step
                             bool stepExists = await _context.UserStepProgresses
                                 .AnyAsync(s => s.UserId == transaction.UserId && s.StepNumber == 4);
@@ -462,17 +420,6 @@ namespace DELED.Controllers
                             _context.Users.Update(user);
                         }
 
-                        // Log Success Payment Record
-                        var payment = new Payment
-                        {
-                            UserId = transaction.UserId,
-                            Amount = amount,
-                            PaymentDate = DELED.Helpers.TimeHelper.GetIST(),
-                            Status = "SUCCESS",
-                            TransactionId = atomTxnId
-                        };
-                        _context.Payments.Add(payment);
-
                         // Save progress step
                         bool stepExists = await _context.UserStepProgresses
                             .AnyAsync(s => s.UserId == transaction.UserId && s.StepNumber == 4);
@@ -513,7 +460,7 @@ namespace DELED.Controllers
             {
                 int userId = GetUserIdFromToken();
                 parsedUserId = userId;
-                
+
                 var user = await _context.Users.FindAsync(userId);
                 if (user == null)
                 {
@@ -549,16 +496,16 @@ namespace DELED.Controllers
                     // Check local transaction status first
                     if (latestTxn.Status == "SUCCESS")
                     {
-                        _logger.LogInformation("CheckPaymentStatus: Transaction already marked SUCCESS for user {UserId}, TxnId: {MerchantTxnId}", 
+                        _logger.LogInformation("CheckPaymentStatus: Transaction already marked SUCCESS for user {UserId}, TxnId: {MerchantTxnId}",
                             userId, latestTxn.MerchantTxnId);
-                        
+
                         await _databaseLogger.LogPaymentEventAsync(
                             "CheckPaymentStatus",
                             "Transaction already marked SUCCESS",
                             userId.ToString(),
                             latestTxn.MerchantTxnId,
                             $"Amount: {latestTxn.Amount}, Status: SUCCESS");
-                        
+
                         user.IsPaymentCompleted = true;
                         user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
                         _context.Users.Update(user);
@@ -576,7 +523,7 @@ namespace DELED.Controllers
 
                             if (requeryResult.isPaid)
                             {
-                                _logger.LogInformation("CheckPaymentStatus: Payment verified via requery for user {UserId}, TxnId: {MerchantTxnId}", 
+                                _logger.LogInformation("CheckPaymentStatus: Payment verified via requery for user {UserId}, TxnId: {MerchantTxnId}",
                                     userId, latestTxn.MerchantTxnId);
 
                                 await _databaseLogger.LogPaymentEventAsync(
@@ -585,7 +532,7 @@ namespace DELED.Controllers
                                     userId.ToString(),
                                     latestTxn.MerchantTxnId,
                                     $"Amount: {latestTxn.Amount}, AtomTxnId: {latestTxn.AtomTxnId}");
-                                
+
                                 if (!string.IsNullOrEmpty(requeryResult.atomTxnId))
                                 {
                                     latestTxn.AtomTxnId = requeryResult.atomTxnId;
@@ -598,16 +545,6 @@ namespace DELED.Controllers
                                 user.IsPaymentCompleted = true;
                                 user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
                                 _context.Users.Update(user);
-
-                                var payment = new Payment
-                                {
-                                    UserId = userId,
-                                    Amount = latestTxn.Amount,
-                                    PaymentDate = DELED.Helpers.TimeHelper.GetIST(),
-                                    Status = "SUCCESS",
-                                    TransactionId = latestTxn.AtomTxnId ?? "REQUERY_CHECK"
-                                };
-                                _context.Payments.Add(payment);
 
                                 bool stepExists = await _context.UserStepProgresses
                                     .AnyAsync(s => s.UserId == userId && s.StepNumber == 4);
@@ -627,9 +564,9 @@ namespace DELED.Controllers
                             }
                             else
                             {
-                                _logger.LogWarning("CheckPaymentStatus: Requery returned false for user {UserId}, TxnId: {MerchantTxnId}", 
+                                _logger.LogWarning("CheckPaymentStatus: Requery returned false for user {UserId}, TxnId: {MerchantTxnId}",
                                     userId, latestTxn.MerchantTxnId);
-                                
+
                                 await _databaseLogger.LogPaymentEventAsync(
                                     "CheckPaymentStatus",
                                     "Payment still PENDING - requery failed or returned pending",
@@ -640,9 +577,9 @@ namespace DELED.Controllers
                         }
                         catch (Exception requeryEx)
                         {
-                            _logger.LogError(requeryEx, "CheckPaymentStatus: Requery failed for user {UserId}, TxnId: {MerchantTxnId}", 
+                            _logger.LogError(requeryEx, "CheckPaymentStatus: Requery failed for user {UserId}, TxnId: {MerchantTxnId}",
                                 userId, latestTxn.MerchantTxnId);
-                                
+
                             await _databaseLogger.LogPaymentErrorAsync(
                                 "CheckPaymentStatus",
                                 $"Requery failed: {requeryEx.Message}",
@@ -679,7 +616,7 @@ namespace DELED.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "CheckPaymentStatus: Error occurred. Message: {Message}", ex.Message);
-                
+
                 await _databaseLogger.LogPaymentErrorAsync(
                     "CheckPaymentStatus",
                     $"Unexpected error occurred: {ex.Message}",
@@ -687,12 +624,12 @@ namespace DELED.Controllers
                     null,
                     ex.StackTrace,
                     500);
-                    
+
                 return StatusCode(500, new { success = false, message = $"Status check failed: {ex.Message}" });
             }
         }
 
-       
+
         [Authorize]
         [HttpGet("check-status-advanced")]
         [HttpPost("check-status-advanced")]
@@ -703,7 +640,7 @@ namespace DELED.Controllers
             {
                 int userId = GetUserIdFromToken();
                 parsedUserId = userId;
-                
+
                 var user = await _context.Users.FindAsync(userId);
                 if (user == null)
                 {
@@ -750,19 +687,41 @@ namespace DELED.Controllers
                 var successfulTxn = transactions.FirstOrDefault(t => t.Status == "SUCCESS");
                 if (successfulTxn != null)
                 {
-                    _logger.LogInformation("CheckPaymentStatusAdvanced: Transaction already SUCCESS for user {UserId}, TxnId: {MerchantTxnId}", 
+                    _logger.LogInformation("CheckPaymentStatusAdvanced: Transaction already SUCCESS for user {UserId}, TxnId: {MerchantTxnId}",
                         userId, successfulTxn.MerchantTxnId);
-                    
+
+                    if (!user.IsPaymentCompleted)
+                    {
+                        user.IsPaymentCompleted = true;
+                        user.PaymentDate = successfulTxn.UpdatedOn ?? DELED.Helpers.TimeHelper.GetIST();
+                        _context.Users.Update(user);
+
+                        bool stepExists = await _context.UserStepProgresses
+                            .AnyAsync(s => s.UserId == userId && s.StepNumber == 4);
+                        if (!stepExists)
+                        {
+                            _context.UserStepProgresses.Add(new UserStepProgress
+                            {
+                                UserId = userId,
+                                StepNumber = 4,
+                                CompletedOn = DELED.Helpers.TimeHelper.GetIST()
+                            });
+                        }
+
+                        await _context.SaveChangesAsync();
+                    }
+
                     await _databaseLogger.LogPaymentEventAsync(
                         "CheckPaymentStatusAdvanced",
                         "Transaction already marked SUCCESS",
                         userId.ToString(),
                         successfulTxn.MerchantTxnId,
                         $"Amount: {successfulTxn.Amount}, Status: SUCCESS");
-                    
-                    return Ok(new { 
-                        success = true, 
-                        isPaid = true, 
+
+                    return Ok(new
+                    {
+                        success = true,
+                        isPaid = true,
                         message = "Payment verified successfully",
                         transactionId = successfulTxn.AtomTxnId,
                         amount = successfulTxn.Amount
@@ -778,7 +737,7 @@ namespace DELED.Controllers
                 foreach (var pendingTxn in pendingTxns)
                 {
                     string dateStr = pendingTxn.CreatedOn.ToString("yyyy-MM-dd");
-                    _logger.LogInformation("CheckPaymentStatusAdvanced: Attempting requery for user {UserId}, TxnId: {MerchantTxnId}, Date: {Date}", 
+                    _logger.LogInformation("CheckPaymentStatusAdvanced: Attempting requery for user {UserId}, TxnId: {MerchantTxnId}, Date: {Date}",
                         userId, pendingTxn.MerchantTxnId, dateStr);
 
                     try
@@ -786,8 +745,9 @@ namespace DELED.Controllers
                         var requeryResult = await _paymentService.RequeryPayment(pendingTxn.MerchantTxnId, dateStr, pendingTxn.Amount);
                         debugAtomCode = requeryResult.statusCode;
                         debugAtomMessage = requeryResult.message;
-                        
-                        debugDetails.Add(new {
+
+                        debugDetails.Add(new
+                        {
                             txnId = pendingTxn.MerchantTxnId,
                             date = dateStr,
                             code = requeryResult.statusCode,
@@ -796,7 +756,7 @@ namespace DELED.Controllers
 
                         if (requeryResult.isPaid)
                         {
-                            _logger.LogInformation("CheckPaymentStatusAdvanced: Requery successful for user {UserId}, TxnId: {MerchantTxnId}", 
+                            _logger.LogInformation("CheckPaymentStatusAdvanced: Requery successful for user {UserId}, TxnId: {MerchantTxnId}",
                                 userId, pendingTxn.MerchantTxnId);
 
                             await _databaseLogger.LogPaymentEventAsync(
@@ -819,16 +779,6 @@ namespace DELED.Controllers
                             user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
                             _context.Users.Update(user);
 
-                            var payment = new Payment
-                            {
-                                UserId = userId,
-                                Amount = pendingTxn.Amount,
-                                PaymentDate = DELED.Helpers.TimeHelper.GetIST(),
-                                Status = "SUCCESS",
-                                TransactionId = pendingTxn.AtomTxnId ?? "REQUERY_CHECK"
-                            };
-                            _context.Payments.Add(payment);
-
                             bool stepExists = await _context.UserStepProgresses
                                 .AnyAsync(s => s.UserId == userId && s.StepNumber == 4);
                             if (!stepExists)
@@ -843,12 +793,13 @@ namespace DELED.Controllers
                             }
 
                             await _context.SaveChangesAsync();
-                            
+
                             _logger.LogInformation("CheckPaymentStatusAdvanced: Payment verified and updated for user {UserId}", userId);
 
-                            return Ok(new { 
-                                success = true, 
-                                isPaid = true, 
+                            return Ok(new
+                            {
+                                success = true,
+                                isPaid = true,
                                 message = "Payment verified successfully",
                                 transactionId = pendingTxn.AtomTxnId,
                                 amount = pendingTxn.Amount
@@ -856,30 +807,31 @@ namespace DELED.Controllers
                         }
                         else
                         {
-                            _logger.LogWarning("CheckPaymentStatusAdvanced: Requery returned false for user {UserId}, TxnId: {MerchantTxnId}", 
+                            _logger.LogWarning("CheckPaymentStatusAdvanced: Requery returned false for user {UserId}, TxnId: {MerchantTxnId}",
                                 userId, pendingTxn.MerchantTxnId);
                         }
                     }
                     catch (Exception requeryEx)
                     {
-                        _logger.LogError(requeryEx, "CheckPaymentStatusAdvanced: Requery failed for user {UserId}, TxnId: {MerchantTxnId}, Error: {Message}", 
+                        _logger.LogError(requeryEx, "CheckPaymentStatusAdvanced: Requery failed for user {UserId}, TxnId: {MerchantTxnId}, Error: {Message}",
                             userId, pendingTxn.MerchantTxnId, requeryEx.Message);
                     }
                 }
 
                 // If we reach here, ALL pending transactions failed the requery
                 _logger.LogInformation("CheckPaymentStatusAdvanced: Returning PENDING status for user {UserId}", userId);
-                
+
                 await _databaseLogger.LogPaymentEventAsync(
                     "CheckPaymentStatusAdvanced",
                     "Payment still PENDING - requery failed for all pending transactions",
                     userId.ToString(),
                     null,
                     "Checked all pending transactions");
-                
-                return Ok(new { 
-                    success = true, 
-                    isPaid = false, 
+
+                return Ok(new
+                {
+                    success = true,
+                    isPaid = false,
                     message = "Payment is still being verified. Please try again in a few moments.",
                     status = "PENDING",
                     debugAtomCode = debugAtomCode,
@@ -890,7 +842,7 @@ namespace DELED.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "CheckPaymentStatusAdvanced: Unexpected error for user. Error: {Message}", ex.Message);
-                
+
                 await _databaseLogger.LogPaymentErrorAsync(
                     "CheckPaymentStatusAdvanced",
                     $"Unexpected error occurred: {ex.Message}",
@@ -898,7 +850,7 @@ namespace DELED.Controllers
                     null,
                     ex.StackTrace,
                     500);
-                
+
                 return StatusCode(500, new { success = false, message = $"Advanced status check failed: {ex.Message}" });
             }
         }
@@ -990,22 +942,22 @@ namespace DELED.Controllers
                             }
                         }
 
-                        var payment = await _context.Payments
-                            .FirstOrDefaultAsync(p => p.UserId == txn.UserId && p.TransactionId == (txn.AtomTxnId ?? "REQUERY_AUTO"));
-                        
+                        var payment = await _context.PaymentTransactions
+                            .FirstOrDefaultAsync(p => p.UserId == txn.UserId && p.AtomTxnId == (txn.AtomTxnId ?? "REQUERY_AUTO"));
+
                         if (payment != null)
                         {
                             payment.Status = "FAILED";
-                            _context.Payments.Update(payment);
+                            _context.PaymentTransactions.Update(payment);
                         }
                         else
                         {
-                            var fallbackPayment = await _context.Payments
+                            var fallbackPayment = await _context.PaymentTransactions
                                 .FirstOrDefaultAsync(p => p.UserId == txn.UserId && p.Status == "SUCCESS");
                             if (fallbackPayment != null)
                             {
                                 fallbackPayment.Status = "FAILED";
-                                _context.Payments.Update(fallbackPayment);
+                                _context.PaymentTransactions.Update(fallbackPayment);
                             }
                         }
 
@@ -1016,9 +968,10 @@ namespace DELED.Controllers
 
                 await _context.SaveChangesAsync();
 
-                return Ok(new { 
-                    success = true, 
-                    message = "Verification completed.", 
+                return Ok(new
+                {
+                    success = true,
+                    message = "Verification completed.",
                     totalChecked = successTxns.Count,
                     verifiedCount = verifiedCount,
                     revertedCount = revertedCount,
@@ -1049,7 +1002,7 @@ namespace DELED.Controllers
                 string registrationNo = user.RegistrationNo ?? userId.ToString();
                 var applicationUrl = _configuration["AppSettings:FrontendUrl"];
                 // Build email subject
-                string subject = "🎉 Payment Successful - DELED 2026 Application";
+                string subject = "🎉 Payment Successful - UTET 2026 Application";
 
                 // Build email body with professional HTML template
                 string body = $@"
@@ -1080,11 +1033,11 @@ namespace DELED.Controllers
             <table style='width: 100%; border-collapse: collapse;'>
                 <tr>
                     <td style='width: 70px; vertical-align: middle; text-align: left;'>
-                        <img src='https://ukdeled.com/API/Logo/ubse_white.jpg' alt='Logo' style='width: 60px; height: 60px; border-radius: 50%; display: block;'>
+                        <img src='https://ukutet.com/API/Logo/ubse_white.jpg' alt='Logo' style='width: 60px; height: 60px; border-radius: 50%; display: block;'>
                     </td>
                     <td style='vertical-align: middle; text-align: left; padding-left: 15px;'>
                         <h1 style='margin: 0; font-size: 24px; font-weight: bold;'>Payment Successful!</h1>
-                        <p style='margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;'>DELED 2026 Application</p>
+                        <p style='margin: 5px 0 0 0; opacity: 0.9; font-size: 14px;'>UTET 2026 Application</p>
                     </td>
                 </tr>
             </table>
@@ -1094,7 +1047,7 @@ namespace DELED.Controllers
             
             <div class='success-badge'>✓ Payment Confirmed</div>
             
-            <p>We are pleased to confirm that your payment for DELED 2026 application has been successfully processed. Your application is now complete and locked for submission.</p>
+            <p>We are pleased to confirm that your payment for UTET 2026 application has been successfully processed. Your application is now complete and locked for submission.</p>
             
             <div class='details'>
                 <div class='detail-row'>
@@ -1124,12 +1077,12 @@ namespace DELED.Controllers
                 • Your application has been successfully submitted.<br/>
                 • Keep this email for your records as proof of payment.<br/>
                 • You will receive further updates regarding exam dates and admit card via email.<br/>
-                • For any queries, contact: <a href='mailto:helpdesk@ukdeled.com' style='color: #1565c0;'>helpdesk@ukdeled.com</a>
+                • For any queries, contact: <a href='mailto:helpdesk@ukutet.com' style='color: #1565c0;'>helpdesk@ukutet.com</a>
             </div>
             
             <a href='{applicationUrl}' class='button'>View Your Application</a>
             
-            <p>Thank you for registering with Uttarakhand Teacher Eligibility Test (DELED) 2026.<br/>
+            <p>Thank you for registering with Uttarakhand Teacher Eligibility Test (UTET) 2026.<br/>
             We wish you all the best for the examination!</p>
             
             <p style='color: #999; font-size: 12px; margin-top: 20px;'>
@@ -1139,8 +1092,8 @@ namespace DELED.Controllers
             </p>
         </div>
         <div class='footer'>
-            <p>This is an automated email. Please do not reply to this email. For support, visit helpdesk@ukdeled.com</p>
-            <p>&copy; 2026 DELED. All rights reserved.</p>
+            <p>This is an automated email. Please do not reply to this email. For support, visit helpdesk@ukutet.com</p>
+            <p>&copy; 2026 UTET. All rights reserved.</p>
         </div>
     </div>
 </body>

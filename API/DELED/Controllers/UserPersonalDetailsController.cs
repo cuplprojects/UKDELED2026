@@ -316,9 +316,24 @@ namespace DELED.Controllers
                     .Select(s => s.StepNumber)
                     .FirstOrDefaultAsync();
 
-                completeDetails.CompletedStep = maxStep;
+                var uploads = await _context.Uploads.FirstOrDefaultAsync(u => u.UserId == userId);
+                var userObj = await _context.Users.FindAsync(userId);
+                string encryptedToken = userObj != null ? _securityService.EncryptUrlSafe(userObj.RegistrationNo) : "";
 
-                return Ok(new { success = true, data = completeDetails });
+                return Ok(new
+                {
+                    success = true,
+                    data = completeDetails,
+                    uploads = uploads != null ? new
+                    {
+                        photoFile = uploads.PhotoFile,
+                        signatureFile = uploads.SignatureFile,
+                        thumbImp = uploads.ThumbImp
+                    } : null,
+                    encryptedToken = encryptedToken,
+                    verificationUrl = $"https://ukdeled.com/verify?token={encryptedToken}",
+                    registrationNo = userObj?.RegistrationNo
+                });
             }
             catch (Exception ex)
             {
@@ -654,7 +669,13 @@ namespace DELED.Controllers
                     return BadRequest(new { success = false, message = "Mother's Name cannot exceed 50 characters." });
                 }
 
-                if (dto.HusbandName != null && dto.HusbandName.Trim().Length > 50)
+                bool isFemale = string.Equals(dto.Gender?.Trim(), "Female", StringComparison.OrdinalIgnoreCase);
+                if (!isFemale && !string.IsNullOrWhiteSpace(dto.HusbandName))
+                {
+                    return BadRequest(new { success = false, message = "Husband's Name is only allowed for Female candidates (पति का नाम केवल महिला अभ्यर्थियों हेतु मान्य है)." });
+                }
+
+                if (isFemale && dto.HusbandName != null && dto.HusbandName.Trim().Length > 50)
                 {
                     return BadRequest(new { success = false, message = "Husband's Name cannot exceed 50 characters." });
                 }
@@ -675,10 +696,14 @@ namespace DELED.Controllers
                     {
                         return BadRequest(new { success = false, message = "Retirement Date from Armed Forces (सेना से सेवा-निवृत्ति की तिथि) is required for Ex-Serviceman." });
                     }
-                    DateTime maxAllowedRetirementDate = new DateTime(2026, 9, 14);
-                    if (dto.RetirementDate.Value.Date > maxAllowedRetirementDate)
+                    var todayIst = DELED.Helpers.TimeHelper.GetIST().Date;
+                    if (dto.RetirementDate.Value.Date >= todayIst)
                     {
-                        return BadRequest(new { success = false, message = "Date of retirement cannot be later than 14/09/2026 (सेना से सेवा-निवृत्ति की तिथि 14/09/2026 से अधिक नहीं हो सकती)." });
+                        return BadRequest(new { success = false, message = "Date of retirement cannot be today's date or a future date. It must be less than today's date (सेना से सेवा-निवृत्ति की तिथि आज की तिथि से पूर्व की होनी चाहिए)." });
+                    }
+                    if (dto.DOB != null && dto.RetirementDate.Value.Date <= dto.DOB.Value.Date)
+                    {
+                        return BadRequest(new { success = false, message = "Date of retirement must be after Date of Birth (सेना से सेवा-निवृत्ति की तिथि जन्म तिथि के बाद की होनी चाहिए)." });
                     }
                 }
 
@@ -840,11 +865,14 @@ namespace DELED.Controllers
                 personal.Gender = dto.Gender;
                 personal.DOB = dto.DOB;
                 personal.MotherName = dto.MotherName;
-                personal.HusbandName = string.Equals(dto.Gender?.Trim(), "Male", StringComparison.OrdinalIgnoreCase) ? null : dto.HusbandName;
+                personal.HusbandName = isFemale ? (string.IsNullOrWhiteSpace(dto.HusbandName) ? null : dto.HusbandName.Trim()) : null;
                 personal.Category = dto.Category;
                 personal.SubCategory = dto.SubCategory;
                 personal.RetirementDate = dto.RetirementDate;
-                personal.SportsType = dto.SportsType;
+                
+                bool isSportsCat = dto.SubCategory != null && dto.SubCategory.ToUpper().Contains("SPORTS");
+                personal.SportsType = isSportsCat ? dto.SportsType : null;
+
                 personal.IsPhysicallyHandicapped = dto.IsPhysicallyHandicapped;
                 personal.DisabilityType = dto.DisabilityType;
                 personal.ScribeRequired = dto.ScribeRequired;

@@ -340,7 +340,7 @@ export default function Home() {
           
           {/* Welcome & Timelines Card (Stretches across columns 1-8 on large screens) */}
           <div className="lg:col-span-2 xl:col-span-8 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-150 overflow-hidden flex flex-col">
-            <div className="bg-gradient-to-r from-[#1e40af] to-[#2563eb] text-white p-4 sm:p-5 md:p-6">
+            <div className="bg-gradient-to-r from-blue-700 to-blue-600 text-white p-4 sm:p-5 md:p-6">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-black mb-1.5 leading-tight">द्विवर्षीय डी० एल० एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
               <p className="text-blue-100 text-sm sm:text-base md:text-[17px] font-semibold">
                 Welcome to the Online Registration & Application Portal of Uttarakhand Board of School Education.
@@ -365,7 +365,7 @@ export default function Home() {
                   <span className="block text-lg sm:text-xl md:text-2xl font-black text-emerald-800 mt-1">
                     {getTimelineValue("starts", "dateValue")}
                   </span>
-                  <span className="block text-xs sm:text-sm font-bold text-[#1e40af] mt-0.5">
+                  <span className="block text-xs sm:text-sm font-bold text-blue-700 mt-0.5">
                     {getTimelineValue("starts", "subLabel")}
                   </span>
                   <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
@@ -417,7 +417,7 @@ export default function Home() {
 
           {/* Login Container (Stretches across columns 9-12 on large screens) */}
           <div className="lg:col-span-1 xl:col-span-4 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col justify-between">
-            <div className="bg-[#2563eb] text-white px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between font-bold text-base sm:text-lg md:text-xl border-b border-[#1d4ed8]">
+            <div className="bg-blue-600 text-white px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between font-bold text-base sm:text-lg md:text-xl border-b border-blue-700">
               <span className="flex items-center gap-2.5 min-w-0">
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white inline-block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-3.418 4.818l-2.828 2.828m0 0A2 2 0 0110 17H8v2H6v2H3v-3l2.828-2.828m0 0A2 2 0 018 12h2m4-2a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -426,7 +426,7 @@ export default function Home() {
               </span>
             </div>
 
-            <form onSubmit={handleLoginSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 flex-1">
+            <form autoComplete="off" onSubmit={handleLoginSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 flex-1">
               {error && (
                 <div className="bg-red-50 text-red-700 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm font-semibold border border-red-200 animate-shake">
                   ⚠️ {error}
@@ -496,7 +496,7 @@ export default function Home() {
                     disabled={loading}
                     className="flex-1 min-w-0 px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
                   />
-                  <div className="bg-[#bce0ff] border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-base sm:text-xl tracking-wider font-black text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
+                  <div className="bg-blue-200 border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-base sm:text-xl tracking-wider font-black text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
                     {captchaVal}
                   </div>
                   <button
@@ -515,7 +515,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => navigate("/register")}
-                  className="flex-1 py-2.5 sm:py-3 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  className="flex-1 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
                 >
                   <FaUserPlus className="w-4 h-4 text-[#93c5fd] shrink-0" />
                   <span>NEW REGISTRATION</span>
@@ -523,7 +523,7 @@ export default function Home() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 py-2.5 sm:py-3 bg-[#1e40af] hover:bg-[#1e3a8a] text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase whitespace-nowrap cursor-pointer"
+                  className="flex-1 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase whitespace-nowrap cursor-pointer"
                 >
                   {loading ? "Logging in..." : "Login (लॉगिन करें)"}
                 </button>
@@ -551,7 +551,7 @@ export default function Home() {
               onClick={() => setActiveTab("circulars")}
               className={`px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm md:text-base font-extrabold transition flex items-center justify-center sm:justify-start gap-2 ${
                 activeTab === "circulars"
-                  ? "bg-[#1e40af] text-white"
+                  ? "bg-blue-700 text-white"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -564,7 +564,7 @@ export default function Home() {
               onClick={() => setActiveTab("documents")}
               className={`px-4 sm:px-5 py-2.5 rounded-lg text-xs sm:text-sm md:text-base font-extrabold transition flex items-center justify-center sm:justify-start gap-2 ${
                 activeTab === "documents"
-                  ? "bg-[#1e40af] text-white"
+                  ? "bg-blue-700 text-white"
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -596,10 +596,10 @@ export default function Home() {
                       className="flex justify-between items-center p-2.5 sm:p-3 md:p-4 bg-gray-50 rounded-lg sm:rounded-xl hover:bg-blue-50/50 border border-gray-100 hover:border-emerald-200 transition group"
                     >
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-[#1e40af] transition shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-blue-700 transition shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
-                        <span className="text-xs sm:text-sm text-gray-700 font-bold group-hover:text-[#1e40af] truncate">
+                        <span className="text-xs sm:text-sm text-gray-700 font-bold group-hover:text-blue-700 truncate">
                           {item.label}
                         </span>
                       </div>
@@ -609,7 +609,7 @@ export default function Home() {
                             New
                           </span>
                         )}
-                        <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-[#1e40af] transition group-hover:translate-x-1 duration-200">
+                        <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-blue-700 transition group-hover:translate-x-1 duration-200">
                           →
                         </span>
                       </div>
@@ -636,14 +636,14 @@ export default function Home() {
                       className="flex justify-between items-center p-2.5 sm:p-3 md:p-4 bg-gray-50 rounded-lg sm:rounded-xl hover:bg-blue-50/50 border border-gray-100 hover:border-emerald-200 transition group"
                     >
                       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-[#1e40af] transition shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 group-hover:text-blue-700 transition shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6m-6 4h3" />
                         </svg>
-                        <span className="text-xs sm:text-sm text-gray-700 font-bold group-hover:text-[#1e40af] truncate">
+                        <span className="text-xs sm:text-sm text-gray-700 font-bold group-hover:text-blue-700 truncate">
                           {item.label}
                         </span>
                       </div>
-                      <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-[#1e40af] transition group-hover:translate-x-1 duration-200 shrink-0">
+                      <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-blue-700 transition group-hover:translate-x-1 duration-200 shrink-0">
                         →
                       </span>
                     </a>

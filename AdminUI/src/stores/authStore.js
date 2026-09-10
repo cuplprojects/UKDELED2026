@@ -3,13 +3,13 @@ import { api } from "./apiStore";
 import { isTokenExpired } from "../utils/jwt";
 
 // Verify initial token validity
-const initialToken = localStorage.getItem("token") || null;
+const initialToken = sessionStorage.getItem("token") || null;
 const isExpired = initialToken ? isTokenExpired(initialToken) : true;
 
 if (initialToken && isExpired) {
-  localStorage.removeItem("token");
-  localStorage.removeItem("isAdmin");
-  localStorage.removeItem("username");
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("isAdmin");
+  sessionStorage.removeItem("username");
 }
 
 export const useAuthStore = create((set, get) => ({
@@ -29,7 +29,7 @@ export const useAuthStore = create((set, get) => ({
 
       const { token } = response.data;
       
-      localStorage.setItem("token", token);
+      sessionStorage.setItem("token", token);
 
       set({
         token,
@@ -55,10 +55,10 @@ export const useAuthStore = create((set, get) => ({
 
       const { token, username: returnedUsername } = response.data;
       
-      localStorage.setItem("token", token);
-      localStorage.setItem("isAdmin", "true");
+      sessionStorage.setItem("token", token);
+      sessionStorage.setItem("isAdmin", "true");
       if (returnedUsername) {
-        localStorage.setItem("username", returnedUsername);
+        sessionStorage.setItem("username", returnedUsername);
       }
 
       set({
@@ -76,9 +76,9 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("username");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("isAdmin");
+    sessionStorage.removeItem("username");
     set({
       token: null,
       isAuthenticated: false,

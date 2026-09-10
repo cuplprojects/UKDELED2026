@@ -2,7 +2,7 @@ import React from "react";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[#0f172a] text-[#93c5fd] text-center py-8 px-6 text-xs font-semibold border-t border-blue-950 mt-auto space-y-2">
+    <footer className="w-full bg-[#0f172a] text-blue-300 text-center py-8 px-6 text-xs font-semibold border-t border-blue-950 mt-auto space-y-2">
       <p>
         © 2026 Uttarakhand Board of School Education, Government of Uttarakhand.
       </p>

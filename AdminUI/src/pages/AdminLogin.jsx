@@ -14,8 +14,8 @@ const AdminLogin = () => {
 
   // Redirect if already logged in as admin
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const isAdmin = localStorage.getItem("isAdmin");
+    const token = sessionStorage.getItem("token");
+    const isAdmin = sessionStorage.getItem("isAdmin");
     if (token && isAdmin === "true") {
       navigate("/admin");
     }
