@@ -1214,7 +1214,7 @@ export default function RegistrationPage() {
                 )}
               </div>
               <div className="text-[#d9381e] font-black text-lg md:text-xl tracking-wide mb-1 break-words">
-                {formData.registrationNo || "26100001"}
+                {formData.registrationNo || "26200001"}
               </div>
               <div className="text-gray-900 font-extrabold text-sm md:text-base uppercase tracking-wide break-words line-clamp-2">
                 {formData.applicantName || "SARVAGYA SINGH"}

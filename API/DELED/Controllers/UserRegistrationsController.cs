@@ -102,7 +102,7 @@ namespace DELED.Controllers
         /// </summary>
         private string GenerateRegistrationNumber()
         {
-            string prefix = DELED.Helpers.TimeHelper.GetIST().Year.ToString().Substring(2) + "1"; // 261
+            string prefix = DELED.Helpers.TimeHelper.GetIST().Year.ToString().Substring(2) + "2"; // 262
 
             var lastUser = _context.Users
                 .Where(u => u.RegistrationNo.StartsWith(prefix))
