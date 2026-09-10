@@ -1965,7 +1965,7 @@ export default function AdminDashboard() {
       const retirement = new Date(editRetirementDate);
       retirement.setHours(0, 0, 0, 0);
       if (retirement >= today) {
-        setSaveMessage({ text: "Retirement Date must be in the past.", type: "error" });
+        setSaveMessage({ text: "Date of retirement cannot be today's date or a future date. It must be less than today's date.", type: "error" });
         setIsSavingApplicant(false);
         return;
       }

@@ -113,6 +113,14 @@ export default function PaymentStep({ formData = {}, onProceedPayment, onBackToP
       return
     }
 
+    if (isAlreadyPaid) {
+      notification.warning({
+        message: "Payment Already Completed",
+        description: "Your payment has already been completed. Multiple payments are not allowed."
+      });
+      return;
+    }
+
     console.log('[Payment] Checking AtomPaynetz...');
     if (!window.AtomPaynetz) {
       const errorMsg = 'Payment gateway script not loaded. The external payment service may be temporarily unavailable. Please try again in a moment or check your internet connection.';
@@ -124,19 +132,58 @@ export default function PaymentStep({ formData = {}, onProceedPayment, onBackToP
 
     // Validate required fields
     if (!formData.emailId || !formData.mobileNo) {
-      setError('Email and mobile number are required for payment.')
-      return
+      setError('Email and mobile number are required for payment.');
+      return;
     }
 
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
 
     try {
-      console.log('[Payment] Calling /api/payment/initiate');
+      // Step 1: Call check-status-advanced API first
+      console.log('[Payment] Step 1: Checking status advanced before initiating...');
+      try {
+        const checkRes = await api.get('/api/Payment/check-status-advanced');
+        console.log('[Payment] check-status-advanced response:', checkRes.data);
+        if (checkRes.data && (checkRes.data.isPaid || (checkRes.data.success && checkRes.data.isPaid))) {
+          setIsAlreadyPaid(true);
+          setIsLoading(false);
+          setIsPaymentInProgress(false);
+          notification.success({
+            message: "Payment Already Completed",
+            description: checkRes.data.message || `Your payment is already verified. Transaction ID: ${checkRes.data.transactionId || 'N/A'}. You cannot make another payment.`,
+            duration: 5
+          });
+          if (onProceedPayment) {
+            onProceedPayment();
+          }
+          return;
+        }
+      } catch (checkErr) {
+        console.log('[Payment] check-status-advanced response/error:', checkErr?.response?.status, checkErr?.response?.data);
+        if (checkErr.response?.data?.isPaid || checkErr.response?.data?.alreadyPaid) {
+          setIsAlreadyPaid(true);
+          setIsLoading(false);
+          setIsPaymentInProgress(false);
+          notification.success({
+            message: "Payment Already Completed",
+            description: checkErr.response?.data?.message || "Your payment has already been verified. You cannot make another payment.",
+            duration: 5
+          });
+          if (onProceedPayment) {
+            onProceedPayment();
+          }
+          return;
+        }
+        // 404 or other status is normal when no transactions exist yet; continue to initiate
+      }
+
+      // Step 2: Call payment initiate API
+      console.log('[Payment] Step 2: Calling /api/payment/initiate');
       console.log('[Payment] API Base URL:', api.defaults.baseURL);
       
       // Set payment in progress BEFORE sending request to gateway
-      setIsPaymentInProgress(true)
+      setIsPaymentInProgress(true);
       
       const response = await api.post(
         "/api/payment/initiate",
@@ -144,6 +191,22 @@ export default function PaymentStep({ formData = {}, onProceedPayment, onBackToP
       );
       
       console.log('[Payment] API Response:', response.data);
+
+      // If initiate API returns that user transaction is already success or already paid, don't allow to pay
+      if (response.data?.alreadyPaid || response.data?.isPaymentCompleted || response.data?.isPaid) {
+        setIsAlreadyPaid(true);
+        setIsLoading(false);
+        setIsPaymentInProgress(false);
+        notification.warning({
+          message: "Payment Already Completed",
+          description: response.data.message || "Your payment transaction is successful. Multiple payments are not allowed.",
+          duration: 5
+        });
+        if (onProceedPayment) {
+          onProceedPayment();
+        }
+        return;
+      }
       
       if (response.data && response.data.atomTokenId) {
         const token = response.data.atomTokenId;
@@ -169,9 +232,9 @@ export default function PaymentStep({ formData = {}, onProceedPayment, onBackToP
         new window.AtomPaynetz(options, "prod");
         // Note: isPaymentInProgress stays true until user returns from payment gateway
       } else {
-        setError('Failed to initiate payment. Please try again.')
+        setError('Failed to initiate payment. Please try again.');
         setIsLoading(false);
-        setIsPaymentInProgress(false) // Allow navigation again if payment initiation fails
+        setIsPaymentInProgress(false); // Allow navigation again if payment initiation fails
       }
     } catch (err) {
       console.error('[Payment] Full error object:', err);
@@ -180,25 +243,35 @@ export default function PaymentStep({ formData = {}, onProceedPayment, onBackToP
       console.error('[Payment] Error status:', err.response?.status);
       console.error('[Payment] Error data:', err.response?.data);
       
-      // ✅ NEW: Handle duplicate payment attempt
-      if (err.response?.data?.alreadyPaid) {
+      const errorMsg = err.response?.data?.message || err.message || '';
+      const isDuplicateOrSuccess = 
+        err.response?.data?.alreadyPaid ||
+        err.response?.data?.isPaymentCompleted ||
+        err.response?.data?.isPaid ||
+        (typeof errorMsg === 'string' && (
+          errorMsg.toLowerCase().includes('already completed') ||
+          errorMsg.toLowerCase().includes('already been completed') ||
+          errorMsg.toLowerCase().includes('transaction is successful') ||
+          errorMsg.toLowerCase().includes('multiple payments are not allowed')
+        ));
+
+      if (isDuplicateOrSuccess) {
         setIsAlreadyPaid(true);
-        notification.error({
+        notification.warning({
           message: "Payment Already Completed",
-          description: "Your payment has already been processed. You cannot make another payment. Please proceed to submit your application.",
+          description: errorMsg || "Your payment has already been processed. You cannot make another payment.",
           duration: 5
         });
         setError(null);
       } else {
         setError(
-          err.response?.data?.message ||
-          err.message ||
+          errorMsg ||
           'Failed to initiate payment. Please try again.'
-        )
+        );
       }
       
       setIsLoading(false);
-      setIsPaymentInProgress(false) // Allow navigation again if payment initiation fails
+      setIsPaymentInProgress(false); // Allow navigation again if payment initiation fails
     }
   }
 

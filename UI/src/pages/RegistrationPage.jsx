@@ -236,7 +236,7 @@ export default function RegistrationPage() {
                   gender: d.gender || prev.gender || "Select",
                   dateOfBirth: d.dob ? d.dob.split("T")[0] : prev.dateOfBirth || "",
                   motherName: d.motherName || prev.motherName || "",
-                  husbandName: (d.gender || prev.gender || "").toUpperCase() === "MALE" ? "" : (d.husbandName || prev.husbandName || ""),
+                  husbandName: (d.gender || prev.gender || "").toUpperCase() === "FEMALE" ? (d.husbandName || prev.husbandName || "") : "",
                   category: d.category || prev.category || "Select",
                   subCategory: d.subCategory || prev.subCategory || "Select",
                   retirementDate: d.retirementDate ? d.retirementDate.split("T")[0] : prev.retirementDate || "",
@@ -504,8 +504,8 @@ export default function RegistrationPage() {
     }
 
     if (e.target.name === "gender") {
-      const isMale = value?.toUpperCase() === "MALE";
-      setFormData((prev) => ({ ...prev, gender: value, husbandName: isMale ? "" : prev.husbandName }));
+      const isFemale = value?.toUpperCase() === "FEMALE";
+      setFormData((prev) => ({ ...prev, gender: value, husbandName: isFemale ? prev.husbandName : "" }));
       return;
     }
 
@@ -539,6 +539,10 @@ export default function RegistrationPage() {
 
     setFormData((prev) => {
       const updated = { ...prev, [e.target.name]: value };
+      if (["category", "subCategory", "phyHandicapped"].includes(e.target.name)) {
+        updated.dateOfBirth = "";
+        updated.age = "";
+      }
       if (e.target.name === "phyHandicapped" && value !== "YES") {
         updated.phyType = "Select";
         updated.scribeRequired = value === "NO" ? "NO" : "Select";
@@ -816,7 +820,7 @@ export default function RegistrationPage() {
     if (formData.motherName && formData.motherName.trim().length > 50) {
       return { isValid: false, message: "Mother's Name cannot exceed 50 characters." };
     }
-    if (formData.husbandName && formData.gender?.toUpperCase() !== "MALE" && formData.husbandName.trim().length > 50) {
+    if (formData.husbandName && formData.gender?.toUpperCase() === "FEMALE" && formData.husbandName.trim().length > 50) {
       return { isValid: false, message: "Husband's Name cannot exceed 50 characters." };
     }
     if (formData.address && formData.address.trim().length > 200) {
@@ -902,8 +906,13 @@ export default function RegistrationPage() {
       if (!formData.retirementDate) {
         return { isValid: false, message: "Please enter Retirement Date from Armed Forces (सेना से सेवा-निवृत्ति की तिथि)." };
       }
-      if (formData.retirementDate > "2026-09-14") {
-        return { isValid: false, message: "Date of retirement cannot be later than 14/09/2026 (सेना से सेवा-निवृत्ति की तिथि 14/09/2026 से अधिक नहीं हो सकती)." };
+      const d = new Date();
+      const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      if (formData.retirementDate >= todayStr) {
+        return { isValid: false, message: "Date of retirement cannot be today's date or a future date. It must be less than today's date (सेना से सेवा-निवृत्ति की तिथि आज की तिथि से पूर्व की होनी चाहिए)." };
+      }
+      if (formData.dateOfBirth && formData.retirementDate <= formData.dateOfBirth) {
+        return { isValid: false, message: "Date of retirement must be after Date of Birth (सेना से सेवा-निवृत्ति की तिथि जन्म तिथि के बाद की होनी चाहिए)." };
       }
     }
     if (!formData.phyHandicapped || formData.phyHandicapped === "Select") {
@@ -1039,7 +1048,7 @@ export default function RegistrationPage() {
       gender: formData.gender || "",
       dob: formData.dateOfBirth || null,
       motherName: formData.motherName || "",
-      husbandName: formData.gender?.toUpperCase() === "MALE" ? null : (formData.husbandName?.trim() || null),
+      husbandName: formData.gender?.toUpperCase() === "FEMALE" ? (formData.husbandName?.trim() || null) : null,
       category: formData.category || "",
       subCategory: formData.subCategory || "लागू/कोई नहीं",
       retirementDate: (formData.subCategory === "EX-SERVICEMAN (पूर्व सैनिक)" || formData.subCategory === "EX-SERVICEMAN (Self)") && formData.retirementDate ? formData.retirementDate : null,
