@@ -31,6 +31,7 @@ namespace DELED.Models.NonDbModels
         public string? SportsType { get; set; }
         public bool IsPhysicallyHandicapped { get; set; }
         public string? DisabilityType { get; set; }
+        public string? MultiDisabilityType { get; set; }
         public bool ScribeRequired { get; set; }
         public string ExamCity1 { get; set; } = "";
         public string ExamCity2 { get; set; } = "";

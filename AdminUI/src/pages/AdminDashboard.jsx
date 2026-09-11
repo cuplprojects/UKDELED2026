@@ -1308,7 +1308,7 @@ export default function AdminDashboard() {
     </tr>
     <tr>
       <th>Sub Category</th><td>${profile.subCategory || "N/A"}${profile.subCategory === 'EX-SERVICEMAN (Self)' && profile.retirementDate ? ` (Retirement Date: ${formatDob(profile.retirementDate)})` : ''}</td>
-      <th>Physically Handicapped</th><td>${profile.isPhysicallyHandicapped ? `YES (${profile.disabilityType || "N/A"})` : "NO"}</td>
+      <th>Physically Handicapped</th><td>${profile.isPhysicallyHandicapped ? `YES (${profile.disabilityType || "N/A"}${profile.disabilityType === 'Multi' && profile.multiDisabilityType ? ` - ${profile.multiDisabilityType}` : ''})` : "NO"}</td>
     </tr>
     <tr>
       <th>Scribe Required</th><td>${profile.scribeRequired ? "YES" : "NO"}</td>
@@ -1607,6 +1607,7 @@ export default function AdminDashboard() {
       retirementDate: pd.retirementDate || null,
       isPhysicallyHandicapped: pd.isPhysicallyHandicapped || false,
       disabilityType: pd.disabilityType || "N/A",
+      multiDisabilityType: pd.multiDisabilityType || "",
       scribeRequired: pd.scribeRequired || false,
       mailingAddress: pd.mailingAddress || "N/A",
       state: stateName || "N/A",
@@ -1727,7 +1728,7 @@ export default function AdminDashboard() {
         </tr>
         <tr>
           <th>Sub Category</th><td>${displayProfile.subCategory}${displayProfile.subCategory === 'EX-SERVICEMAN (Self)' && displayProfile.retirementDate ? ` (RetDate: ${formatDob(displayProfile.retirementDate)})` : ''}</td>
-          <th>Physically Handicapped</th><td>${displayProfile.isPhysicallyHandicapped ? `YES (${displayProfile.disabilityType})` : "NO"}</td>
+          <th>Physically Handicapped</th><td>${displayProfile.isPhysicallyHandicapped ? `YES (${displayProfile.disabilityType}${displayProfile.disabilityType === 'Multi' && displayProfile.multiDisabilityType ? ` - ${displayProfile.multiDisabilityType}` : ''})` : "NO"}</td>
         </tr>
         <tr>
           <th>Scribe Required</th><td>${displayProfile.scribeRequired ? "YES" : "NO"}</td>

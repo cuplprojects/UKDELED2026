@@ -51,10 +51,12 @@ namespace DELED.Models
 
         public string? SportsType { get; set; }
 
-        // Row 9: PH YES/No | If YES select PH Type | Scribe Required
+        // Row 9: PH YES/No | If YES select PH Type | Multi PH Type | Scribe Required
         public bool IsPhysicallyHandicapped { get; set; }
 
         public string? DisabilityType { get; set; }
+
+        public string? MultiDisabilityType { get; set; }
 
         public bool ScribeRequired { get; set; }
 

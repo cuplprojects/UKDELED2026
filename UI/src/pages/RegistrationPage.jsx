@@ -38,10 +38,11 @@ export default function RegistrationPage() {
       sportsType: "Select",
       husbandName: "",
       category: "Select",
-      subCategory: "Select",
+      subCategory: "लागू/कोई नहीं",
       retirementDate: "",
       phyHandicapped: "Select",
       phyType: "Select",
+      multiPhType: [],
       scribeRequired: "--Select--",
       state: "Select",
       district: "Select",
@@ -238,14 +239,21 @@ export default function RegistrationPage() {
                   motherName: d.motherName || prev.motherName || "",
                   husbandName: (d.gender || prev.gender || "").toUpperCase() === "FEMALE" ? (d.husbandName || prev.husbandName || "") : "",
                   category: d.category || prev.category || "Select",
-                  subCategory: d.subCategory || prev.subCategory || "Select",
+                  subCategory: d.subCategory || prev.subCategory || "लागू/कोई नहीं",
                   retirementDate: d.retirementDate ? d.retirementDate.split("T")[0] : prev.retirementDate || "",
                   phyHandicapped: d.personalDetailId
                     ? d.isPhysicallyHandicapped
                       ? "YES"
                       : "NO"
                     : "Select",
-                  phyType: d.disabilityType || prev.phyType || "Select",
+                  phyType: d.disabilityType
+                    ? (d.disabilityType.startsWith("Multi") || d.disabilityType.includes(",") ? "Multi" : d.disabilityType)
+                    : prev.phyType || "Select",
+                  multiPhType: d.multiDisabilityType
+                    ? (Array.isArray(d.multiDisabilityType) ? d.multiDisabilityType : d.multiDisabilityType.split(",").map((s) => s.trim()).filter(Boolean))
+                    : (d.disabilityType?.startsWith("Multi")
+                        ? (d.disabilityType.match(/Multi\s*\((.*?)\)/i)?.[1]?.split(",")?.map((s) => s.trim())?.filter(Boolean) || [])
+                        : (prev.multiPhType || [])),
                   scribeRequired: d.personalDetailId
                     ? d.scribeRequired
                       ? "YES"
@@ -545,7 +553,11 @@ export default function RegistrationPage() {
       }
       if (e.target.name === "phyHandicapped" && value !== "YES") {
         updated.phyType = "Select";
+        updated.multiPhType = [];
         updated.scribeRequired = value === "NO" ? "NO" : "Select";
+      }
+      if (e.target.name === "phyType" && value !== "Multi") {
+        updated.multiPhType = [];
       }
       if (e.target.name === "subCategory") {
         if (value !== "EX-SERVICEMAN (पूर्व सैनिक)" && value !== "EX-SERVICEMAN (Self)" && value !== "EX-SERVICEMAN (भूतपूर्व सैनिक(स्वयं))") {
@@ -899,7 +911,8 @@ export default function RegistrationPage() {
     if (!formData.category || formData.category === "Select") {
       return { isValid: false, message: "Please select Category." };
     }
-    if (!formData.subCategory || formData.subCategory === "Select") {
+    const subCat = formData.subCategory && formData.subCategory !== "Select" ? formData.subCategory : "लागू/कोई नहीं";
+    if (!subCat) {
       return { isValid: false, message: "Please select Sub Category." };
     }
     if (isExServiceman) {
@@ -924,6 +937,14 @@ export default function RegistrationPage() {
     if (formData.phyHandicapped === "YES") {
       if (!formData.phyType || formData.phyType === "Select" || formData.phyType === "--Not Applicable--") {
         return { isValid: false, message: "Please select disability type." };
+      }
+      if (formData.phyType === "Multi") {
+        const multiList = Array.isArray(formData.multiPhType)
+          ? formData.multiPhType
+          : (formData.multiPhType ? String(formData.multiPhType).split(",").map((s) => s.trim()).filter(Boolean) : []);
+        if (multiList.length < 2) {
+          return { isValid: false, message: "Please select two or more PH Types for Multi (Add two or more mentioned above)." };
+        }
       }
     }
 
@@ -1056,6 +1077,10 @@ export default function RegistrationPage() {
       disabilityType:
         formData.phyHandicapped === "YES" && formData.phyType !== "Select" && formData.phyType !== "--Not Applicable--"
           ? formData.phyType
+          : null,
+      multiDisabilityType:
+        formData.phyHandicapped === "YES" && formData.phyType === "Multi" && formData.multiPhType && (Array.isArray(formData.multiPhType) ? formData.multiPhType.length > 0 : String(formData.multiPhType).trim())
+          ? (Array.isArray(formData.multiPhType) ? formData.multiPhType.join(", ") : formData.multiPhType)
           : null,
       scribeRequired: formData.phyHandicapped === "YES" && formData.scribeRequired === "YES",
       examCity1: getExamCity1Id(formData.examCity1),

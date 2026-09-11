@@ -123,6 +123,7 @@ namespace DELED.Controllers
                                                   SportsType = personal != null ? personal.SportsType : null,
                                                   IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
                                                   DisabilityType = personal != null ? personal.DisabilityType : null,
+                                                   MultiDisabilityType = personal != null ? personal.MultiDisabilityType : null,
                                                   ScribeRequired = personal != null && personal.ScribeRequired,
                                                   ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
                                                   ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
@@ -269,6 +270,7 @@ namespace DELED.Controllers
                                                   SportsType = personal != null ? personal.SportsType : null,
                                                   IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
                                                   DisabilityType = personal != null ? personal.DisabilityType : null,
+                                                   MultiDisabilityType = personal != null ? personal.MultiDisabilityType : null,
                                                   ScribeRequired = personal != null && personal.ScribeRequired,
                                                   ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
                                                   ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
@@ -415,6 +417,7 @@ namespace DELED.Controllers
                                                   SportsType = personal != null ? personal.SportsType : null,
                                                   IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
                                                   DisabilityType = personal != null ? personal.DisabilityType : null,
+                                                   MultiDisabilityType = personal != null ? personal.MultiDisabilityType : null,
                                                   ScribeRequired = personal != null && personal.ScribeRequired,
                                                   ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
                                                   ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
@@ -754,9 +757,16 @@ namespace DELED.Controllers
                     {
                         return BadRequest(new { success = false, message = "Disability Type (दिव्यांगता का प्रकार) is required when PH is YES." });
                     }
-                    if (string.IsNullOrWhiteSpace(dto.ScribeRequired.ToString()) || dto.DisabilityType == "Select")
+                    if (dto.DisabilityType == "Multi")
                     {
-                        // Scribe is optional/boolean
+                        var multiItems = string.IsNullOrWhiteSpace(dto.MultiDisabilityType)
+                            ? Array.Empty<string>()
+                            : dto.MultiDisabilityType.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+                        if (multiItems.Length < 2)
+                        {
+                            return BadRequest(new { success = false, message = "Please select two or more PH Types for Multi (Add two or more mentioned above)." });
+                        }
                     }
                 }
 
@@ -874,8 +884,9 @@ namespace DELED.Controllers
                 personal.SportsType = isSportsCat ? dto.SportsType : null;
 
                 personal.IsPhysicallyHandicapped = dto.IsPhysicallyHandicapped;
-                personal.DisabilityType = dto.DisabilityType;
-                personal.ScribeRequired = dto.ScribeRequired;
+                personal.DisabilityType = dto.IsPhysicallyHandicapped ? dto.DisabilityType : null;
+                personal.MultiDisabilityType = (dto.IsPhysicallyHandicapped && dto.DisabilityType == "Multi") ? dto.MultiDisabilityType : null;
+                personal.ScribeRequired = dto.IsPhysicallyHandicapped && dto.ScribeRequired;
                 personal.ExamCity1 = dto.ExamCity1;
                 personal.ExamCity2 = dto.ExamCity2;
                 personal.MailingAddress = dto.MailingAddress;

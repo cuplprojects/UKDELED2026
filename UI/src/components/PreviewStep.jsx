@@ -145,6 +145,8 @@ export default function PreviewStep({
                   ? "NO"
                   : formData.phyHandicapped,
               phyType: resultData.disabilityType || formData.phyType,
+              multiDisabilityType: resultData.multiDisabilityType || formData.multiDisabilityType || formData.multiPhType,
+              multiPhType: resultData.multiDisabilityType || formData.multiPhType,
               scribeRequired:
                 resultData.scribeRequired
                   ? "YES"
@@ -411,7 +413,13 @@ export default function PreviewStep({
                 </th>
                 <td className="border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm sm:text-base font-semibold">
                   {data.phyHandicapped === "YES" || data.isPhysicallyHandicapped
-                    ? `YES (${data.phyType || data.disabilityType || "N/A"})`
+                    ? `YES (${
+                        data.phyType === "Multi" && data.multiPhType
+                          ? (Array.isArray(data.multiPhType)
+                              ? (data.multiPhType.length > 0 ? `Multi (${data.multiPhType.join(", ")})` : "Multi")
+                              : data.multiPhType)
+                          : data.phyType || data.disabilityType || "N/A"
+                      })`
                     : "NO"}
                 </td>
               </tr>

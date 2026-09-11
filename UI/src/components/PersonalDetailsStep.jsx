@@ -189,7 +189,8 @@ export default function PersonalDetailsStep({
       return;
     }
 
-    if (!formData.subCategory || formData.subCategory === "Select") {
+    const subCat = formData.subCategory && formData.subCategory !== "Select" ? formData.subCategory : "लागू/कोई नहीं";
+    if (!subCat) {
       setErrorMsg("Please select Sub Category (उपवर्ग).");
       return;
     }
@@ -221,6 +222,16 @@ export default function PersonalDetailsStep({
     if (formData.phyHandicapped === "YES" && (!formData.phyType || formData.phyType === "Select" || formData.phyType === "--Not Applicable--")) {
       setErrorMsg("Please select PH Type (नि:शक्तता का प्रकार).");
       return;
+    }
+
+    if (formData.phyHandicapped === "YES" && formData.phyType === "Multi") {
+      const multiList = Array.isArray(formData.multiPhType)
+        ? formData.multiPhType
+        : (formData.multiPhType ? String(formData.multiPhType).split(",").map((s) => s.trim()).filter(Boolean) : []);
+      if (multiList.length < 2) {
+        setErrorMsg("Please select two or more PH Types for Multi (Add two or more mentioned above).");
+        return;
+      }
     }
 
     if (!formData.examCity1 || formData.examCity1 === "Select") {
@@ -310,23 +321,49 @@ export default function PersonalDetailsStep({
   const isPHYes = formData.phyHandicapped === "YES";
   const isFemale = (formData.gender || "").toUpperCase() === "FEMALE";
 
-  const selectedPhTypes = useMemo(() => {
-    if (!formData.phyType || formData.phyType === "Select" || formData.phyType === "--Not Applicable--") {
-      return [];
-    }
-    if (Array.isArray(formData.phyType)) {
-      return formData.phyType;
-    }
-    return String(formData.phyType)
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean);
-  }, [formData.phyType]);
+  const parseMultiDisabilities = (raw) => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) return raw;
+    const str = String(raw).trim();
+    if (!str || str === "Select") return [];
 
-  const handlePhTypeChange = (values) => {
-    const combined = values && values.length > 0 ? values.join(", ") : "Select";
+    const options = [
+      "VI (Visually Impaired)",
+      "HI (Hearing Impaired)",
+      "ORTHO/LOCOMOTOR",
+    ];
+
+    const matched = [];
+    const parts = str.split(",").map((s) => s.trim()).filter(Boolean);
+
+    for (const opt of options) {
+      if (parts.includes(opt)) {
+        matched.push(opt);
+      } else if (
+        (opt.startsWith("VI") && (str.includes("VI (Visually Impaired") || str.includes("VI (Visually Impaired)"))) ||
+        (opt.startsWith("HI") && (str.includes("HI (Hearing Impaired") || str.includes("HI (Hearing Impaired)"))) ||
+        (opt.startsWith("ORTHO") && str.toUpperCase().includes("ORTHO"))
+      ) {
+        if (!matched.includes(opt)) {
+          matched.push(opt);
+        }
+      }
+    }
+
+    return matched.length > 0 ? matched : parts;
+  };
+
+  const selectedMultiPhTypes = useMemo(() => {
+    const raw = formData.multiDisabilityType || formData.multiPhType;
+    return parseMultiDisabilities(raw);
+  }, [formData.multiDisabilityType, formData.multiPhType]);
+
+  const handleMultiPhTypeChange = (values) => {
     handleInputChange({
-      target: { name: "phyType", value: combined },
+      target: { name: "multiPhType", value: values || [] },
+    });
+    handleInputChange({
+      target: { name: "multiDisabilityType", value: values && values.length > 0 ? values.join(", ") : null },
     });
   };
 
@@ -610,8 +647,8 @@ export default function PersonalDetailsStep({
           </div>
         </div>
 
-        {/* Row 9: PH YES/No | PH Type | Scribe Required */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+        {/* Row 9: PH YES/No | PH Type | Multi PH Type (if Multi) | Scribe Required */}
+        <div className={`grid grid-cols-1 ${isPHYes && formData.phyType === "Multi" ? "sm:grid-cols-2 md:grid-cols-4" : "md:grid-cols-3"} gap-3 sm:gap-4`}>
           <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-0.5">
               PH YES or No <span className="text-red-600 font-bold">*</span>
@@ -640,20 +677,54 @@ export default function PersonalDetailsStep({
               यदि हाँ तो निःशक्तता (दिव्यांगता) का प्रकार
             </p>
             <Select
-              mode="multiple"
               allowClear
-              placeholder={isPHYes ? "--Select PH Type(s)--" : "--Not Applicable--"}
-              value={isPHYes ? selectedPhTypes : []}
-              onChange={handlePhTypeChange}
+              placeholder={isPHYes ? "--Select PH Type--" : "--Not Applicable--"}
+              value={isPHYes && formData.phyType && formData.phyType !== "Select" && formData.phyType !== "--Not Applicable--" ? formData.phyType : undefined}
+              onChange={(val) => {
+                handleInputChange({
+                  target: { name: "phyType", value: val || "Select" },
+                });
+                if (val !== "Multi") {
+                  handleInputChange({
+                    target: { name: "multiPhType", value: [] },
+                  });
+                }
+              }}
               disabled={!isPHYes || isLocked}
               className="w-full min-h-[38px] text-xs sm:text-sm"
               options={[
                 { label: "VI (Visually Impaired)", value: "VI (Visually Impaired)" },
                 { label: "HI (Hearing Impaired)", value: "HI (Hearing Impaired)" },
                 { label: "ORTHO/LOCOMOTOR", value: "ORTHO/LOCOMOTOR" },
+                { label: "Multi", value: "Multi" }
               ]}
             />
           </div>
+
+          {isPHYes && formData.phyType === "Multi" && (
+            <div>
+              <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-0.5">
+                Select Multi PH Type <span className="text-red-600 font-bold">*</span>
+              </label>
+              <p className="text-[11px] text-red-600 font-semibold mb-1">
+                (Add two or more mentioned above)
+              </p>
+              <Select
+                mode="multiple"
+                allowClear
+                placeholder="--Select PH Type(s)--"
+                value={selectedMultiPhTypes}
+                onChange={handleMultiPhTypeChange}
+                disabled={isLocked}
+                className="w-full min-h-[38px] text-xs sm:text-sm"
+                options={[
+                  { label: "VI (Visually Impaired)", value: "VI (Visually Impaired)" },
+                  { label: "HI (Hearing Impaired)", value: "HI (Hearing Impaired)" },
+                  { label: "ORTHO/LOCOMOTOR", value: "ORTHO/LOCOMOTOR" }
+                ]}
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-0.5">
