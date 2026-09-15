@@ -41,7 +41,10 @@ import {
   FaSpinner,
   FaSync,
   FaSchool,
-  FaArrowRight
+  FaArrowRight,
+  FaShieldAlt,
+  FaBuilding,
+  FaMapMarkerAlt
 } from "react-icons/fa";
 
 export default function AdminDashboard() {
@@ -101,6 +104,7 @@ export default function AdminDashboard() {
   // States for payment status search
   const [paymentRegNo, setPaymentRegNo] = useState("");
   const [paymentResultText, setPaymentResultText] = useState("");
+  const [isSearchingPayment, setIsSearchingPayment] = useState(false);
 
   // States for Review Paid Application tab (with sessionStorage persistence)
   const getSavedPaidFilters = () => {
@@ -742,26 +746,78 @@ export default function AdminDashboard() {
   const fetchDistrictCities = async (stateId) => {
     if (!stateId) {
       setDistrictCitiesList([]);
-      return;
+      return [];
     }
     try {
-      const response = await api.get(`/api/State_City/stateId?stateId=${stateId}`);
-      setDistrictCitiesList(response.data || []);
+      let cities = [];
+      try {
+        const response = await api.get(`/api/State_City/stateId?stateId=${stateId}`);
+        cities = response.data || [];
+      } catch (err) {
+        if (userApi.defaults.baseURL) {
+          const response = await userApi.get(`/api/State_City/stateId?stateId=${stateId}`);
+          cities = response.data || [];
+        }
+      }
+      setDistrictCitiesList(cities);
+      return cities;
     } catch (error) {
       console.error("Failed to fetch cities for state:", error);
       setDistrictCitiesList([]);
+      return [];
     }
   };
 
   useEffect(() => {
     const fetchMetadata = async () => {
       try {
-        const [statesRes, examCitiesRes] = await Promise.all([
-          api.get("/api/State_City/states").catch(() => ({ data: [] })),
-          api.get("/api/State_City/examCities").catch(() => ({ data: [] }))
-        ]);
-        if (statesRes.data) setStatesList(statesRes.data);
-        if (examCitiesRes.data) setExamCitiesList(examCitiesRes.data);
+        // Fetch States
+        let states = [];
+        try {
+          const statesRes = await api.get("/api/State_City");
+          states = statesRes.data || [];
+        } catch (err) {
+          if (userApi.defaults.baseURL) {
+            const statesRes = await userApi.get("/api/State_City");
+            states = statesRes.data || [];
+          }
+        }
+        if (states.length > 0) setStatesList(states);
+
+        // Fetch Exam Cities
+        let examCities = [];
+        try {
+          const examCitiesRes = await api.get("/api/State_City/examCities");
+          examCities = examCitiesRes.data || [];
+        } catch (err) {
+          if (userApi.defaults.baseURL) {
+            const examCitiesRes = await userApi.get("/api/State_City/examCities");
+            examCities = examCitiesRes.data || [];
+          }
+        }
+        if (examCities.length > 0) setExamCitiesList(examCities);
+
+        // Fetch Exam Types
+        try {
+          const examTypesRes = await api.get("/api/State_City/examTypes");
+          setExamTypesList(examTypesRes.data || []);
+        } catch (err) {
+          if (userApi.defaults.baseURL) {
+            const examTypesRes = await userApi.get("/api/State_City/examTypes");
+            setExamTypesList(examTypesRes.data || []);
+          }
+        }
+
+        // Fetch Uttarakhand cities
+        try {
+          const citiesRes = await api.get(`/api/State_City/stateId?stateId=35`);
+          setUkCitiesList(citiesRes.data || []);
+        } catch (err) {
+          if (userApi.defaults.baseURL) {
+            const citiesRes = await userApi.get(`/api/State_City/stateId?stateId=35`);
+            setUkCitiesList(citiesRes.data || []);
+          }
+        }
       } catch (err) {
         console.error("Failed to load metadata dropdowns:", err);
       }
@@ -831,38 +887,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchDashboardData(currentPage, pageSize, activeSearchQuery, activeFilterStatus);
   }, [currentPage, pageSize, activeSearchQuery, activeFilterStatus]);
-
-  useEffect(() => {
-    const fetchMetadata = async () => {
-      try {
-        // Fetch Exam Types
-        const examTypesRes = await api.get("/api/State_City/examTypes");
-        setExamTypesList(examTypesRes.data || []);
-
-        // Fetch States to find Uttarakhand and get cities
-        const statesRes = await api.get("/api/State_City");
-        const list = statesRes.data || [];
-        setStatesList(list);
-        const ukState = list.find(s => s.name.toLowerCase().includes("uttarakhand"));
-        const ukId = ukState ? ukState.id : (list[0]?.id || 35); // Default to 35 if not found
-
-        // Fetch Cities
-        const citiesRes = await api.get(`/api/State_City/stateId?stateId=35`);
-        setUkCitiesList(citiesRes.data || []);
-
-        // Fetch Exam Cities
-        try {
-          const examCitiesRes = await api.get("/api/State_City/examCities");
-          setExamCitiesList(examCitiesRes.data || []);
-        } catch (e) {
-          console.error("Failed to load exam cities", e);
-        }
-      } catch (error) {
-        console.error("Failed to fetch metadata:", error);
-      }
-    };
-    fetchMetadata();
-  }, []);
 
   const totalRegCount = stats.totalRegistration;
   const paidRegCount = stats.paidApplications;
@@ -1441,20 +1465,21 @@ export default function AdminDashboard() {
 
     const formatDob = (dobStr) => {
       if (!dobStr) return "N/A";
-      const cleanStr = dobStr.split("T")[0];
+      const str = String(dobStr);
+      const cleanStr = str.split("T")[0];
       const parts = cleanStr.split("-");
       if (parts.length === 3) {
         return `${parts[2]}-${parts[1]}-${parts[0]}`;
       }
-      return dobStr;
+      return str;
     };
 
-    const pd = profile.personalDetails || profile;
+    const pd = profile?.personalDetails || profile || {};
 
-    const districtName = isNaN(pd.district) ? pd.district : (districtCitiesList.find(c => Number(c.id) === Number(pd.district))?.name || ukCitiesList.find(c => Number(c.id) === Number(pd.district))?.name || pd.district || "N/A");
-    const stateName = isNaN(pd.stateId) ? pd.state : (statesList.find(s => Number(s.id) === Number(pd.stateId))?.name || pd.state || "N/A");
-    const examCity1Name = isNaN(pd.examCity1) ? pd.examCity1 : (examCitiesList.find(c => Number(c.cityId) === Number(pd.examCity1))?.cityName || pd.examCity1 || "N/A");
-    const examCity2Name = isNaN(pd.examCity2) ? pd.examCity2 : (examCitiesList.find(c => Number(c.cityId) === Number(pd.examCity2))?.cityName || pd.examCity2 || "N/A");
+    const districtName = isNaN(pd.district) ? (pd.district || "N/A") : (districtCitiesList.find(c => Number(c.id) === Number(pd.district))?.name || ukCitiesList.find(c => Number(c.id) === Number(pd.district))?.name || pd.district || "N/A");
+    const stateName = isNaN(pd.stateId) ? (pd.state || "N/A") : (statesList.find(s => Number(s.id) === Number(pd.stateId))?.name || pd.state || "N/A");
+    const examCity1Name = isNaN(pd.examCity1) ? (pd.examCity1 || "N/A") : (examCitiesList.find(c => Number(c.cityId) === Number(pd.examCity1))?.cityName || pd.examCity1 || "N/A");
+    const examCity2Name = isNaN(pd.examCity2) ? (pd.examCity2 || "N/A") : (examCitiesList.find(c => Number(c.cityId) === Number(pd.examCity2))?.cityName || pd.examCity2 || "N/A");
 
     const displayProfile = {
       registrationNo: profile.registrationNo || "N/A",
@@ -1689,84 +1714,80 @@ export default function AdminDashboard() {
 
     try {
       const response = await api.get(`/api/UserRegistrations/admin/applicant/${updateRegNo.trim()}`);
-      const previewResponse = await api.get(`/api/UserRegistrations/admin/applicant-complete/${updateRegNo.trim()}`);
+      const previewResponse = await api.get(`/api/UserRegistrations/admin/applicant-complete/${updateRegNo.trim()}`).catch(() => ({ data: null }));
 
       if (response.data && response.data.success) {
         const applicant = response.data.data;
+        const completeData = previewResponse.data && previewResponse.data.success ? previewResponse.data.data : null;
         setFoundApplicant(applicant);
         if (previewResponse.data && previewResponse.data.success) {
           setFoundApplicantUploads(previewResponse.data.uploads || null);
         }
 
-        setEditFullName((applicant.fullName || "").toUpperCase());
-        setEditFatherName((applicant.fatherName || "").toUpperCase());
-        setEditPhoneNumber(applicant.phoneNumber || "");
-        setEditEmail(applicant.email || "");
-        setEditIsPaymentCompleted(applicant.isPaymentCompleted || false);
+        setEditFullName((applicant.fullName || completeData?.fullName || "").toUpperCase());
+        setEditFatherName((applicant.fatherName || completeData?.fatherName || "").toUpperCase());
+        setEditPhoneNumber(applicant.phoneNumber || completeData?.phoneNumber || "");
+        setEditEmail(applicant.email || completeData?.email || "");
+        setEditIsPaymentCompleted(applicant.isPaymentCompleted ?? completeData?.isPaymentCompleted ?? false);
 
-        // Populate personal details fields if available, else set defaults
-        const pd = applicant.personalDetails;
-        if (pd) {
-          setEditGender(pd.gender || "MALE");
-          setEditDOB(pd.dob ? pd.dob.split("T")[0] : "");
-          setEditMotherName((pd.motherName || "").toUpperCase());
-          setEditHusbandName((pd.husbandName || "").toUpperCase());
-          setEditAppliedCategory(pd.appliedCategory || "1-विज्ञान वर्ग");
-          setEditGraduationCourse(pd.graduationCourse || "");
-          setEditGraduationUniversity(pd.graduationUniversity || "Select");
-          setEditGraduationDate(pd.graduationDate ? pd.graduationDate.split("T")[0] : "");
+        // Extract personal details (from nested personalDetails or completeData fallback)
+        const pd = applicant.personalDetails || completeData || {};
 
-          setEditCategory(pd.category || "GENERAL");
-          setEditSubCategory(pd.subCategory || "NONE");
-          setEditRetirementDate(pd.retirementDate ? pd.retirementDate.split("T")[0] : "");
-          setEditSportsType(pd.sportsType || "");
-          setEditIsPhysicallyHandicapped(Boolean(pd.isPhysicallyHandicapped));
-          setEditDisabilityType(pd.disabilityType || "");
-          setEditMultiDisabilityType(pd.multiDisabilityType || "");
-          setEditScribeRequired(Boolean(pd.scribeRequired));
+        setEditGender(pd.gender || "MALE");
+        setEditDOB(pd.dob ? String(pd.dob).split("T")[0] : "");
+        setEditMotherName((pd.motherName || "").toUpperCase());
+        setEditHusbandName((pd.husbandName || "").toUpperCase());
+        setEditAppliedCategory(pd.appliedCategory || "1-विज्ञान वर्ग");
+        setEditGraduationCourse(pd.graduationCourse || "");
+        setEditGraduationUniversity(pd.graduationUniversity || "Select");
+        setEditGraduationDate(pd.graduationDate ? String(pd.graduationDate).split("T")[0] : "");
 
-          setEditExamCity1(Number(pd.examCity1) || 0);
-          setEditExamCity2(Number(pd.examCity2) || 0);
-          setEditMailingAddress(pd.mailingAddress || "");
-          setEditStateId(Number(pd.stateId) || 0);
-          setEditDistrict(Number(pd.district) || 0);
-          setEditPinCode(pd.pinCode || "");
-          setEditIdentityProof(pd.identityProof || "Aadhar Card");
-          setEditIdentityProofNo(pd.identityProofNo || "");
+        setEditCategory(pd.category || "GENERAL");
+        setEditSubCategory(pd.subCategory || "NONE");
+        setEditRetirementDate(pd.retirementDate ? String(pd.retirementDate).split("T")[0] : "");
+        setEditSportsType(pd.sportsType || "");
+        setEditIsPhysicallyHandicapped(Boolean(pd.isPhysicallyHandicapped));
+        setEditDisabilityType(pd.disabilityType || "");
+        setEditMultiDisabilityType(pd.multiDisabilityType || "");
+        setEditScribeRequired(Boolean(pd.scribeRequired));
 
-          if (pd.stateId) {
-            fetchDistrictCities(pd.stateId);
-          } else {
-            setDistrictCitiesList([]);
+        // Resolve exam cities (handling numbers, cityCodes, or strings like "201/DEHRADUN")
+        const parseCityNum = (val) => {
+          if (!val) return 0;
+          if (typeof val === "number") return val;
+          const match = String(val).match(/^\d+/);
+          return match ? parseInt(match[0], 10) : 0;
+        };
+        const rawCity1 = parseCityNum(pd.examCity1);
+        const rawCity2 = parseCityNum(pd.examCity2);
+        setEditExamCity1(rawCity1);
+        setEditExamCity2(rawCity2);
+
+        setEditMailingAddress(pd.mailingAddress || "");
+
+        // Resolve state and district
+        let stateIdVal = Number(pd.stateId) || 0;
+        if (!stateIdVal && pd.state && statesList.length > 0) {
+          const matchedState = statesList.find(s => (s.name || s.Name || "").toUpperCase() === String(pd.state).toUpperCase());
+          if (matchedState) stateIdVal = Number(matchedState.id || matchedState.Id);
+        }
+        setEditStateId(stateIdVal);
+
+        let distVal = Number(pd.district || pd.districtId) || 0;
+        if (stateIdVal) {
+          const cities = await fetchDistrictCities(stateIdVal);
+          if (!distVal && pd.district && cities.length > 0) {
+            const matchedCity = cities.find(c => (c.name || c.Name || "").toUpperCase() === String(pd.district).toUpperCase());
+            if (matchedCity) distVal = Number(matchedCity.id || matchedCity.Id);
           }
         } else {
-          // Defaults if no personal details record exists yet
-          setEditGender("MALE");
-          setEditDOB("");
-          setEditMotherName("");
-          setEditHusbandName("");
-          setEditAppliedCategory("1-विज्ञान वर्ग");
-          setEditGraduationCourse("");
-          setEditGraduationUniversity("Select");
-          setEditGraduationDate("");
-          setEditCategory("GENERAL");
-          setEditSubCategory("NONE");
-          setEditRetirementDate("");
-          setEditSportsType("");
-          setEditIsPhysicallyHandicapped(false);
-          setEditDisabilityType("");
-          setEditMultiDisabilityType("");
-          setEditScribeRequired(false);
-          setEditExamCity1(0);
-          setEditExamCity2(0);
-          setEditMailingAddress("");
-          setEditStateId(0);
-          setEditDistrict(0);
-          setEditPinCode("");
-          setEditIdentityProof("Aadhar Card");
-          setEditIdentityProofNo("");
           setDistrictCitiesList([]);
         }
+        setEditDistrict(distVal);
+
+        setEditPinCode(pd.pinCode || "");
+        setEditIdentityProof(pd.identityProof || "Aadhar Card");
+        setEditIdentityProofNo(pd.identityProofNo || "");
       } else {
         setSearchError("Applicant not found.");
       }
@@ -2819,7 +2840,7 @@ export default function AdminDashboard() {
             {activeTab === "update" && (
               <div className="p-8 space-y-6">
                 <div className="border-b border-slate-200 pb-4">
-                  <h3 className="text-2xl font-black text-slate-850">Full Application Form Correction & Review</h3>
+                  <h3 className="text-2xl font-black text-slate-900">Full Application Form Correction & Review</h3>
                   <p className="text-sm text-slate-500 font-medium mt-1">Search candidate by registration number, correct complete form entries across all 5 sections, and preview the final application live.</p>
                 </div>
 
@@ -3274,11 +3295,14 @@ export default function AdminDashboard() {
                                     className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:border-slate-800 outline-none"
                                   >
                                     <option value={0}>Select 1st Choice</option>
-                                    {examCitiesList.map((c) => (
-                                      <option key={c.cityId || c.cityCode} value={c.cityId || c.cityCode}>
-                                        {c.cityCode} - {c.cityName}
-                                      </option>
-                                    ))}
+                                    {examCitiesList.map((c) => {
+                                      const val = Number(c.cityId || c.CityId || c.cityCode || c.CityCode);
+                                      return (
+                                        <option key={val} value={val}>
+                                          {c.cityCode || c.CityCode ? `${c.cityCode || c.CityCode} - ` : ""}{c.cityName || c.CityName}
+                                        </option>
+                                      );
+                                    })}
                                   </select>
                                 </div>
 
@@ -3290,11 +3314,14 @@ export default function AdminDashboard() {
                                     className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:border-slate-800 outline-none"
                                   >
                                     <option value={0}>Select 2nd Choice</option>
-                                    {examCitiesList.map((c) => (
-                                      <option key={c.cityId || c.cityCode} value={c.cityId || c.cityCode}>
-                                        {c.cityCode} - {c.cityName}
-                                      </option>
-                                    ))}
+                                    {examCitiesList.map((c) => {
+                                      const val = Number(c.cityId || c.CityId || c.cityCode || c.CityCode);
+                                      return (
+                                        <option key={val} value={val}>
+                                          {c.cityCode || c.CityCode ? `${c.cityCode || c.CityCode} - ` : ""}{c.cityName || c.CityName}
+                                        </option>
+                                      );
+                                    })}
                                   </select>
                                 </div>
                               </div>
@@ -3326,14 +3353,18 @@ export default function AdminDashboard() {
                                     onChange={(e) => {
                                       const sId = Number(e.target.value);
                                       setEditStateId(sId);
+                                      setEditDistrict(0);
                                       fetchDistrictCities(sId);
                                     }}
                                     className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:border-slate-800 outline-none"
                                   >
                                     <option value={0}>Select State</option>
-                                    {statesList.map((s) => (
-                                      <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
+                                    {statesList.map((s) => {
+                                      const sId = Number(s.id || s.Id);
+                                      return (
+                                        <option key={sId} value={sId}>{s.name || s.Name}</option>
+                                      );
+                                    })}
                                   </select>
                                 </div>
 
@@ -3346,9 +3377,12 @@ export default function AdminDashboard() {
                                       className="w-full bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:border-slate-800 outline-none"
                                     >
                                       <option value={0}>Select District</option>
-                                      {districtCitiesList.map((d) => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                      ))}
+                                      {districtCitiesList.map((d) => {
+                                        const dId = Number(d.id || d.Id);
+                                        return (
+                                          <option key={dId} value={dId}>{d.name || d.Name}</option>
+                                        );
+                                      })}
                                     </select>
                                   ) : (
                                     <input
@@ -3407,9 +3441,10 @@ export default function AdminDashboard() {
                               <button
                                 type="submit"
                                 disabled={isSavingApplicant}
-                                className="px-10 py-4 bg-slate-850 hover:bg-slate-950 disabled:bg-slate-400 text-white rounded-xl text-base font-black uppercase tracking-wider shadow-lg transition duration-200 cursor-pointer flex items-center justify-center min-w-[200px] border-none"
+                                className="px-10 py-4 bg-blue-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white rounded-xl text-base font-black uppercase tracking-wider shadow-lg hover:shadow-xl transition duration-200 cursor-pointer flex items-center justify-center gap-2.5 min-w-[220px] border-none"
                               >
-                                {isSavingApplicant ? "Saving Changes..." : "💾 Save All Corrections"}
+                                <FaSave className="text-lg" />
+                                <span>{isSavingApplicant ? "Saving Changes..." : "Save All Corrections"}</span>
                               </button>
                             </div>
                           </form>
@@ -3418,7 +3453,7 @@ export default function AdminDashboard() {
                         {/* Right Column: HTML Live Preview */}
                         <div className="xl:col-span-5 xl:sticky xl:top-6 space-y-4">
                           <div className="bg-white border border-slate-200 shadow-md rounded-2xl overflow-hidden flex flex-col h-[780px] transition duration-300">
-                            <div className="bg-slate-850 px-6 py-4 flex items-center justify-between border-b border-slate-900">
+                            <div className="bg-slate-900 px-6 py-4 flex items-center justify-between border-b border-slate-950">
                               <div className="flex items-center gap-2">
                                 <span className="text-white text-xs font-black uppercase tracking-wider">Application Live Preview</span>
                               </div>
