@@ -89,20 +89,6 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
-// Ensure SessionId column exists in Admins table
-using (var scope = app.Services.CreateScope())
-{
-    try
-    {
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        db.Database.ExecuteSqlRaw("ALTER TABLE `Admins` ADD COLUMN `SessionId` VARCHAR(100) NULL;");
-    }
-    catch (Exception)
-    {
-        // Column already exists
-    }
-}
-
 // Configure the HTTP request pipeline.
 app.UseSwagger();
 app.UseSwaggerUI();
