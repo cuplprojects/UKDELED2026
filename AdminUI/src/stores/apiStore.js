@@ -60,17 +60,8 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
-// Request interceptor for userApi
+// Request interceptor for userApi (logs requests without attaching admin token to external domain)
 userApi.interceptors.request.use((config) => {
-  const token = sessionStorage.getItem("token");
-  if (token) {
-    if (isTokenExpired(token)) {
-      console.warn("[User API] Token has expired. Logging out...");
-      handleAuthFailure();
-      return Promise.reject(new Error("Token expired"));
-    }
-    config.headers.Authorization = `Bearer ${token}`;
-  }
   console.log(`[User API] ${config.method?.toUpperCase()} ${config.url}`);
   return config;
 }, (error) => {

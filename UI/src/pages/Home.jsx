@@ -49,6 +49,7 @@ export default function Home() {
         if (response.data && response.data.success && Array.isArray(response.data.data)) {
           // Define the mapping from DB name (lowercase) to UI display attributes
           const mapping = {
+            "vigyapti": { label: "विज्ञप्ति-06/10/2026", isNew: true },
             "deledsyllabus": { label: "DELED-Syllabus (पाठ्यक्रम)", isNew: true },
             "deled_i_2025": { label: "DELED-I 2025 Question Booklet", isNew: true },
             "deled_ii_2025": { label: "DELED-II 2025 Question Booklet", isNew: true },
@@ -71,6 +72,7 @@ export default function Home() {
 
           // Order key sequence to preserve UI visual order
           const orderKeys = [
+            "vigyapti",
             "deled26notice",
             "deledsyllabus",
             "deled_i_2025",

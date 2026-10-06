@@ -508,7 +508,7 @@ export default function AdminDashboard() {
   const fetchEmailReportPdf = async () => {
     setLoadingPdf(true);
     try {
-      const response = await userApi.get("/api/UserRegistrations/admin/daily-report-pdf", {
+      const response = await api.get("/api/UserRegistrations/admin/daily-report-pdf", {
         responseType: "blob"
       });
       const blob = new Blob([response.data], { type: "application/pdf" });
@@ -1191,7 +1191,7 @@ export default function AdminDashboard() {
     if (printingRegNo) return;
     setPrintingRegNo(regNo);
     try {
-      const response = await userApi.get(`/api/UserRegistrations/admin/applicant-complete/${regNo}`);
+      const response = await api.get(`/api/UserRegistrations/admin/applicant-complete/${regNo}`);
       if (response.data && response.data.success) {
         const applicantData = response.data.data;
         const uploadsData = response.data.uploads;
