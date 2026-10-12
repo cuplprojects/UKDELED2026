@@ -110,7 +110,7 @@ namespace DELED.Controllers
                 var pendingTxns = await _context.PaymentTransactions
                     .Where(t => t.UserId == regId && t.Status == "PENDING")
                     .ToListAsync();
-                foreach (var pTxn in pendingTxns)
+               foreach (var pTxn in pendingTxns)
                 {
                     try
                     {
@@ -118,6 +118,7 @@ namespace DELED.Controllers
                         var requeryResult = await _paymentService.RequeryPayment(pTxn.MerchantTxnId, dateStr, pTxn.Amount);
                         if (requeryResult.isPaid)
                         {
+                            using var dbTxn = await _context.Database.BeginTransactionAsync();
                             pTxn.Status = "SUCCESS";
                             if (!string.IsNullOrEmpty(requeryResult.atomTxnId))
                             {
@@ -143,6 +144,7 @@ namespace DELED.Controllers
                             }
 
                             await _context.SaveChangesAsync();
+                            await dbTxn.CommitAsync();
 
                             return BadRequest(new
                             {
@@ -287,38 +289,52 @@ namespace DELED.Controllers
                             transaction.Status = "FAILED";
                         }
 
-                        // Update transaction status based on validation result
-                        _context.PaymentTransactions.Update(transaction);
-                        await _context.SaveChangesAsync();
-
-                        // If payment is valid, update user registration and create payment record
-                        if (isPaymentValid)
+                        using var dbTxn = await _context.Database.BeginTransactionAsync();
+                        try
                         {
-                            // Mark Registration Paid
-                            var user = await _context.Users.FindAsync(transaction.UserId);
-                            if (user != null)
+                            // Update transaction status based on validation result
+                            _context.PaymentTransactions.Update(transaction);
+
+                            // If payment is valid, update user registration and create payment record
+                            if (isPaymentValid)
                             {
-                                user.IsPaymentCompleted = true;
-                                user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
-                                _context.Users.Update(user);
-                            }
-                          
-                            // Save progress step
-                            bool stepExists = await _context.UserStepProgresses
-                                .AnyAsync(s => s.UserId == transaction.UserId && s.StepNumber == 4);
-                            if (!stepExists)
-                            {
-                                var progress = new UserStepProgress
+                                // Mark Registration Paid
+                                var user = await _context.Users.FindAsync(transaction.UserId);
+                                if (user != null)
                                 {
-                                    UserId = transaction.UserId,
-                                    StepNumber = 4,
-                                    CompletedOn = DELED.Helpers.TimeHelper.GetIST()
-                                };
-                                _context.UserStepProgresses.Add(progress);
+                                    user.IsPaymentCompleted = true;
+                                    user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
+                                    _context.Users.Update(user);
+                                }
+                              
+                                // Save progress step
+                                bool stepExists = await _context.UserStepProgresses
+                                    .AnyAsync(s => s.UserId == transaction.UserId && s.StepNumber == 4);
+                                if (!stepExists)
+                                {
+                                    var progress = new UserStepProgress
+                                    {
+                                        UserId = transaction.UserId,
+                                        StepNumber = 4,
+                                        CompletedOn = DELED.Helpers.TimeHelper.GetIST()
+                                    };
+                                    _context.UserStepProgresses.Add(progress);
+                                }
                             }
 
                             await _context.SaveChangesAsync();
-                            SendPaymentSuccessEmail(transaction.UserId, amount, merchantTxnId, atomTxnId);
+                            await dbTxn.CommitAsync();
+
+                            if (isPaymentValid)
+                            {
+                                SendPaymentSuccessEmail(transaction.UserId, amount, merchantTxnId, atomTxnId);
+                            }
+                        }
+                        catch (Exception dbEx)
+                        {
+                            await dbTxn.RollbackAsync();
+                            _logger.LogError(dbEx, "Callback: Database transaction failed and rolled back for MerchantTxnId: {MerchantTxnId}", merchantTxnId);
+                            throw;
                         }
                     }
                 }
@@ -424,38 +440,52 @@ namespace DELED.Controllers
                     {
                         transaction.Status = "FAILED";
                     }
-                    // Update transaction status based on validation result
-                    _context.PaymentTransactions.Update(transaction);
-                    await _context.SaveChangesAsync();
-
-                    // If payment is valid, update user registration and create payment record
-                    if (isPaymentValid)
+                    using var dbTxn = await _context.Database.BeginTransactionAsync();
+                    try
                     {
-                        // Mark Registration Paid
-                        var user = await _context.Users.FindAsync(transaction.UserId);
-                        if (user != null)
-                        {
-                            user.IsPaymentCompleted = true;
-                            user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
-                            _context.Users.Update(user);
-                        }
+                        // Update transaction status based on validation result
+                        _context.PaymentTransactions.Update(transaction);
 
-                        // Save progress step
-                        bool stepExists = await _context.UserStepProgresses
-                            .AnyAsync(s => s.UserId == transaction.UserId && s.StepNumber == 4);
-                        if (!stepExists)
+                        // If payment is valid, update user registration and create payment record
+                        if (isPaymentValid)
                         {
-                            var progress = new UserStepProgress
+                            // Mark Registration Paid
+                            var user = await _context.Users.FindAsync(transaction.UserId);
+                            if (user != null)
                             {
-                                UserId = transaction.UserId,
-                                StepNumber = 4,
-                                CompletedOn = DELED.Helpers.TimeHelper.GetIST()
-                            };
-                            _context.UserStepProgresses.Add(progress);
+                                user.IsPaymentCompleted = true;
+                                user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
+                                _context.Users.Update(user);
+                            }
+
+                            // Save progress step
+                            bool stepExists = await _context.UserStepProgresses
+                                .AnyAsync(s => s.UserId == transaction.UserId && s.StepNumber == 4);
+                            if (!stepExists)
+                            {
+                                var progress = new UserStepProgress
+                                {
+                                    UserId = transaction.UserId,
+                                    StepNumber = 4,
+                                    CompletedOn = DELED.Helpers.TimeHelper.GetIST()
+                                };
+                                _context.UserStepProgresses.Add(progress);
+                            }
                         }
 
                         await _context.SaveChangesAsync();
-                        SendPaymentSuccessEmail(transaction.UserId, amount, merchantTxnId, atomTxnId);
+                        await dbTxn.CommitAsync();
+
+                        if (isPaymentValid)
+                        {
+                            SendPaymentSuccessEmail(transaction.UserId, amount, merchantTxnId, atomTxnId);
+                        }
+                    }
+                    catch (Exception dbEx)
+                    {
+                        await dbTxn.RollbackAsync();
+                        _logger.LogError(dbEx, "PaymentResponse: Database transaction failed and rolled back for MerchantTxnId: {MerchantTxnId}", merchantTxnId);
+                        throw;
                     }
                 }
 
@@ -558,28 +588,39 @@ namespace DELED.Controllers
                                     latestTxn.AtomTxnId = requeryResult.atomTxnId;
                                 }
 
-                                latestTxn.Status = "SUCCESS";
-                                latestTxn.UpdatedOn = DELED.Helpers.TimeHelper.GetIST();
-                                _context.PaymentTransactions.Update(latestTxn);
-
-                                user.IsPaymentCompleted = true;
-                                user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
-                                _context.Users.Update(user);
-
-                                bool stepExists = await _context.UserStepProgresses
-                                    .AnyAsync(s => s.UserId == userId && s.StepNumber == 4);
-                                if (!stepExists)
+                                using var dbTxn = await _context.Database.BeginTransactionAsync();
+                                try
                                 {
-                                    var progress = new UserStepProgress
-                                    {
-                                        UserId = userId,
-                                        StepNumber = 4,
-                                        CompletedOn = DELED.Helpers.TimeHelper.GetIST()
-                                    };
-                                    _context.UserStepProgresses.Add(progress);
-                                }
+                                    latestTxn.Status = "SUCCESS";
+                                    latestTxn.UpdatedOn = DELED.Helpers.TimeHelper.GetIST();
+                                    _context.PaymentTransactions.Update(latestTxn);
 
-                                await _context.SaveChangesAsync();
+                                    user.IsPaymentCompleted = true;
+                                    user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
+                                    _context.Users.Update(user);
+
+                                    bool stepExists = await _context.UserStepProgresses
+                                        .AnyAsync(s => s.UserId == userId && s.StepNumber == 4);
+                                    if (!stepExists)
+                                    {
+                                        var progress = new UserStepProgress
+                                        {
+                                            UserId = userId,
+                                            StepNumber = 4,
+                                            CompletedOn = DELED.Helpers.TimeHelper.GetIST()
+                                        };
+                                        _context.UserStepProgresses.Add(progress);
+                                    }
+
+                                    await _context.SaveChangesAsync();
+                                    await dbTxn.CommitAsync();
+                                }
+                                catch (Exception dbEx)
+                                {
+                                    await dbTxn.RollbackAsync();
+                                    _logger.LogError(dbEx, "CheckPaymentStatus: Database transaction failed for user {UserId}", userId);
+                                    throw;
+                                }
                                 return Ok(new { success = true, isPaid = true, message = "Payment verified and updated successfully." });
                             }
                             else
@@ -791,28 +832,39 @@ namespace DELED.Controllers
                                 pendingTxn.AtomTxnId = requeryResult.atomTxnId;
                             }
 
-                            pendingTxn.Status = "SUCCESS";
-                            pendingTxn.UpdatedOn = DELED.Helpers.TimeHelper.GetIST();
-                            _context.PaymentTransactions.Update(pendingTxn);
-
-                            user.IsPaymentCompleted = true;
-                            user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
-                            _context.Users.Update(user);
-
-                            bool stepExists = await _context.UserStepProgresses
-                                .AnyAsync(s => s.UserId == userId && s.StepNumber == 4);
-                            if (!stepExists)
+                            using var dbTxn = await _context.Database.BeginTransactionAsync();
+                            try
                             {
-                                var progress = new UserStepProgress
-                                {
-                                    UserId = userId,
-                                    StepNumber = 4,
-                                    CompletedOn = DELED.Helpers.TimeHelper.GetIST()
-                                };
-                                _context.UserStepProgresses.Add(progress);
-                            }
+                                pendingTxn.Status = "SUCCESS";
+                                pendingTxn.UpdatedOn = DELED.Helpers.TimeHelper.GetIST();
+                                _context.PaymentTransactions.Update(pendingTxn);
 
-                            await _context.SaveChangesAsync();
+                                user.IsPaymentCompleted = true;
+                                user.PaymentDate = DELED.Helpers.TimeHelper.GetIST();
+                                _context.Users.Update(user);
+
+                                bool stepExists = await _context.UserStepProgresses
+                                    .AnyAsync(s => s.UserId == userId && s.StepNumber == 4);
+                                if (!stepExists)
+                                {
+                                    var progress = new UserStepProgress
+                                    {
+                                        UserId = userId,
+                                        StepNumber = 4,
+                                        CompletedOn = DELED.Helpers.TimeHelper.GetIST()
+                                    };
+                                    _context.UserStepProgresses.Add(progress);
+                                }
+
+                                await _context.SaveChangesAsync();
+                                await dbTxn.CommitAsync();
+                            }
+                            catch (Exception dbEx)
+                            {
+                                await dbTxn.RollbackAsync();
+                                _logger.LogError(dbEx, "CheckPaymentStatusAdvanced: Database transaction failed for user {UserId}", userId);
+                                throw;
+                            }
 
                             _logger.LogInformation("CheckPaymentStatusAdvanced: Payment verified and updated for user {UserId}", userId);
 

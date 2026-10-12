@@ -240,7 +240,7 @@ namespace DELED.Controllers
 
         private bool IsRegistrationClosed()
         {
-            var timeline = _context.RegistrationTimelines.FirstOrDefault(t => t.Key == "closes");
+            var timeline = _context.RegistrationTimelines.FirstOrDefault(t => t.Key == "closes" && t.Label.Contains("REGISTRATION"));
             if (timeline != null && DateTime.TryParse($"{timeline.DateValue} 23:59:59", out DateTime parsedDate))
             {
                 return DELED.Helpers.TimeHelper.GetIST() >= parsedDate;
