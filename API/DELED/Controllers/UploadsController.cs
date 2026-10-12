@@ -271,7 +271,7 @@ namespace DELED.Controllers
                 
             if (isLocked || isPaymentCompleted)
             {
-                return BadRequest("Application is confirmed and locked. Uploads cannot be modified.");
+                return BadRequest("Application is confirmed and payment completed. Photograph, signature, and thumb impression cannot be modified.");
             }
 
             // Fetch existing uploads for the user
@@ -283,6 +283,10 @@ namespace DELED.Controllers
             {
                 return NotFound("No uploads found for the specified user.");
             }
+
+            string oldPhoto = existingUploads.PhotoFile;
+            string oldSig = existingUploads.SignatureFile;
+            string oldThumb = existingUploads.ThumbImp;
 
             if (uploadsDto.Photo != null)
             {
@@ -392,6 +396,8 @@ namespace DELED.Controllers
                     };
                     _context.UserStepProgresses.Add(progress);
                 }
+
+
 
                 // Save changes to the database
                 await _context.SaveChangesAsync();

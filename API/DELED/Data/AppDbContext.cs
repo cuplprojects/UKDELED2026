@@ -93,5 +93,6 @@ namespace DELED.Data
         public DbSet<DbEventLog> DbEventLogs { get; set; }
         public DbSet<DbErrorLog> DbErrorLogs { get; set; }
         public DbSet<BulkEmailRecipient> BulkEmailRecipients { get; set; }
+        public DbSet<CandidateCorrectionLog> CandidateCorrectionLogs { get; set; }
     }
 }
