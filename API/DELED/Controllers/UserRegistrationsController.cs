@@ -177,6 +177,11 @@ namespace DELED.Controllers
         [HttpPost("SentEMAILOTP")]
         public async Task<ActionResult<string>> sendEMAILOtp(OTPEmailRequest otprequest)
         {
+            if (IsRegistrationClosed())
+            {
+                return BadRequest(new { success = false, message = "Registration period has closed." });
+            }
+
             var (emailotp, emailotpexpiryTime) = _otpService.GenerateOtp();
 
             string emailBody = $@"
@@ -204,6 +209,11 @@ namespace DELED.Controllers
         [HttpPost("SentPhoneOTP")]
         public async Task<ActionResult<string>> sendPhoneOtp(OTPPhoneRequest otprequest)
         {
+            if (IsRegistrationClosed())
+            {
+                return BadRequest(new { success = false, message = "Registration period has closed." });
+            }
+
             var (phoneotp, emailotpexpiryTime) = _otpService.GenerateOtp();
 
             var smsService = new SmsService(

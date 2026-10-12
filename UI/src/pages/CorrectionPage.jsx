@@ -138,15 +138,23 @@ export default function CorrectionPage() {
             return now >= s && now <= c;
           };
 
-          const cwStarts = timelines.find((t) => t.label === "CORRECTION WINDOW" && t.key === "starts");
-          const cwCloses = timelines.find((t) => t.label === "CORRECTION WINDOW" && t.key === "closes");
-          const set1Open = checkDates(cwStarts?.dateValue, cwCloses?.dateValue);
+          const cwStarts = timelines.find(
+            (t) =>
+              (t.label?.includes("CORRECTION") ||
+                t.key === "corr_starts" ||
+                t.key === "correction_starts") &&
+              (t.key === "starts" || t.label?.includes("STARTS")),
+          );
+          const cwCloses = timelines.find(
+            (t) =>
+              (t.label?.includes("CORRECTION") ||
+                t.key === "corr_closes" ||
+                t.key === "correction_closes") &&
+              (t.key === "closes" || t.label?.includes("CLOSES")),
+          );
+          const isOpen = checkDates(cwStarts?.dateValue, cwCloses?.dateValue);
 
-          const kStarts = timelines.find((t) => t.key === "corr_starts" || t.key === "correction_starts");
-          const kCloses = timelines.find((t) => t.key === "corr_closes" || t.key === "correction_closes");
-          const set2Open = checkDates(kStarts?.dateValue, kCloses?.dateValue);
-
-          if (!set1Open && !set2Open) {
+          if (!isOpen) {
             notification.error({
               message: "Correction Window Closed",
               description: "The application correction window is currently not active.",
@@ -177,21 +185,19 @@ export default function CorrectionPage() {
         1: true,
         2: true,
         3: true,
-        4: true,
       }));
-      setStep(4);
+      setStep(1);
       navigate("/application", { replace: true });
     } else if (status === "FAILED") {
       notification.error({
         message: "Payment Failed",
         description: `Transaction ID: ${txnId}`,
       });
-      setStep(4);
       navigate("/application", { replace: true });
     }
   }, [location, navigate]);
 
-  // Fetch last completed step from UserStepProgress and set current step
+  // Fetch last completed step from UserStepProgress and mark steps completed
   useEffect(() => {
     const fetchUserStepProgress = async () => {
       const token = sessionStorage.getItem("token");
@@ -199,22 +205,18 @@ export default function CorrectionPage() {
         try {
           const res = await api.get(`/api/UserStepProgresses`);
           if (res.data && res.data.length > 0) {
-            // Get the last (highest) step number
-            const lastStep = Math.max(...res.data.map((s) => s.stepNumber));
-            const nextStep = lastStep + 1;
-
-            // Mark all steps up to lastStep as completed
+            // Mark all steps up to step 3 as completed for navigation
             const completed = {};
-            for (let i = 1; i <= lastStep; i++) {
-              completed[i] = true;
-            }
+            res.data.forEach((s) => {
+              completed[s.stepNumber] = true;
+            });
+            completed[1] = true;
+            completed[2] = true;
+            completed[3] = true;
             setCompletedSteps(completed);
 
-            // In correction mode, we DO NOT lock the form if they completed step 4
-            // But we can check if they have paid in the user profile fetch
-
-            // Set to next step (but cap at step 4)
-            setStep(Math.min(nextStep, 4));
+            // In correction mode, always begin editing at Step 1 (Application Form)
+            setStep(1);
           }
         } catch (err) {
           console.error("Error fetching step progress:", err);

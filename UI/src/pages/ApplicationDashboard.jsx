@@ -94,17 +94,21 @@ export default function ApplicationDashboard() {
       return now >= s && now <= c;
     };
 
-    // Check Set 1: Label "CORRECTION WINDOW"
-    const cwStarts = timelines.find((t) => t.label === "CORRECTION WINDOW" && t.key === "starts");
-    const cwCloses = timelines.find((t) => t.label === "CORRECTION WINDOW" && t.key === "closes");
-    if (checkDates(cwStarts?.dateValue, cwCloses?.dateValue)) return true;
-
-    // Check Set 2: Keys corr_starts & corr_closes
-    const kStarts = timelines.find((t) => t.key === "corr_starts" || t.key === "correction_starts");
-    const kCloses = timelines.find((t) => t.key === "corr_closes" || t.key === "correction_closes");
-    if (checkDates(kStarts?.dateValue, kCloses?.dateValue)) return true;
-
-    return false;
+    const cwStarts = timelines.find(
+      (t) =>
+        (t.label?.includes("CORRECTION") ||
+          t.key === "corr_starts" ||
+          t.key === "correction_starts") &&
+        (t.key === "starts" || t.label?.includes("STARTS")),
+    );
+    const cwCloses = timelines.find(
+      (t) =>
+        (t.label?.includes("CORRECTION") ||
+          t.key === "corr_closes" ||
+          t.key === "correction_closes") &&
+        (t.key === "closes" || t.label?.includes("CLOSES")),
+    );
+    return checkDates(cwStarts?.dateValue, cwCloses?.dateValue);
   };
 
   const formatDob = (dobStr) => {
