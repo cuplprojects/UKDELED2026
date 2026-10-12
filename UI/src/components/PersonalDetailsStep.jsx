@@ -418,15 +418,19 @@ export default function PersonalDetailsStep({
 
           <div>
             <label className="block text-xs sm:text-sm font-bold text-gray-800 mb-1">
-              Applicant's Name (अभ्यर्थी/अभ्यर्थिनी का नाम)
+              Applicant's Name (अभ्यर्थी/अभ्यर्थिनी का नाम) <span className="text-red-600 font-bold">*</span>
             </label>
             <input
               type="text"
               name="applicantName"
               value={formData.applicantName || ""}
               onChange={handleInputChange}
-              disabled={true}
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-100 text-gray-700 font-bold cursor-not-allowed uppercase"
+              disabled={isLocked || !isCorrectionMode}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded uppercase font-bold ${
+                isLocked || !isCorrectionMode
+                  ? "border-sky-300 bg-gray-100 text-gray-700 cursor-not-allowed"
+                  : "border-sky-400 bg-white text-gray-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             />
           </div>
         </div>
@@ -489,9 +493,13 @@ export default function PersonalDetailsStep({
               name="fatherName"
               value={formData.fatherName || ""}
               onChange={handleInputChange}
-              disabled={true}
+              disabled={isLocked || !isCorrectionMode}
               required
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-300 rounded bg-gray-100 uppercase text-gray-700 font-bold cursor-not-allowed"
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded uppercase font-bold ${
+                isLocked || !isCorrectionMode
+                  ? "border-sky-300 bg-gray-100 text-gray-700 cursor-not-allowed"
+                  : "border-sky-400 bg-white text-gray-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             />
           </div>
         </div>
@@ -540,8 +548,12 @@ export default function PersonalDetailsStep({
               name="category"
               value={formData.category || "Select"}
               onChange={handleInputChange}
-              disabled={isLocked}
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+              disabled={isLocked || isCorrectionMode}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded font-medium ${
+                isLocked || isCorrectionMode
+                  ? "border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed"
+                  : "border-sky-400 bg-white text-gray-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             >
               <option value="Select">--Select--</option>
               <option value="General (GEN)">General (GEN)</option>
@@ -550,6 +562,11 @@ export default function PersonalDetailsStep({
               <option value="Scheduled Tribe (ST)">Scheduled Tribe (ST)</option>
               <option value="Economically Weaker Section (EWS)">Economically Weaker Section (EWS)</option>
             </select>
+            {isCorrectionMode && (
+              <p className="text-[10px] text-red-600 font-semibold mt-0.5">
+                (शुल्क प्रभावित करने के कारण इसे बदला नहीं जा सकता)
+              </p>
+            )}
           </div>
 
           <div>
@@ -622,13 +639,22 @@ export default function PersonalDetailsStep({
               name="phyHandicapped"
               value={formData.phyHandicapped || "Select"}
               onChange={handleInputChange}
-              disabled={isLocked}
-              className="w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border border-sky-400 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white font-medium text-gray-800"
+              disabled={isLocked || isCorrectionMode}
+              className={`w-full px-3 py-1.5 sm:py-2 text-xs sm:text-sm border rounded font-medium ${
+                isLocked || isCorrectionMode
+                  ? "border-gray-300 bg-gray-100 text-gray-600 cursor-not-allowed"
+                  : "border-sky-400 bg-white text-gray-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              }`}
             >
               <option value="Select">--Select--</option>
               <option value="NO">NO</option>
               <option value="YES">YES</option>
             </select>
+            {isCorrectionMode && (
+              <p className="text-[10px] text-red-600 font-semibold mt-0.5">
+                (शुल्क प्रभावित करने के कारण इसे बदला नहीं जा सकता)
+              </p>
+            )}
           </div>
 
           <div>

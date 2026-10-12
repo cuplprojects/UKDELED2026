@@ -6,10 +6,20 @@ export default function UploadDocumentsStep({
   handleFileChange,
   handleNext,
   handlePrevious,
-  isLocked
+  isLocked,
+  isCorrectionMode = false
 }) {
+  const isDisabled = isLocked || isCorrectionMode;
+
   return (
     <div className="space-y-6 sm:space-y-8 md:space-y-10 py-2 sm:py-3 md:py-4 font-sans text-gray-800 px-2 sm:px-3 md:px-0">
+      {isCorrectionMode && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-3 sm:p-4 rounded-md text-amber-800 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xs">
+          <span className="text-base sm:text-lg">⚠️</span>
+          <span>Photograph, Signature, and Left Thumb Impression cannot be changed during the correction window (संशोधन अवधि में फोटो, हस्ताक्षर एवं बाएं अंगूठे का निशान बदलना अनुमन्य नहीं है).</span>
+        </div>
+      )}
+
       {/* Row 1: Colour Photograph */}
       <div className="flex flex-col md:flex-row justify-between items-start gap-4 md:gap-6 border-b border-gray-100 pb-6 sm:pb-8">
         <div className="flex-1 space-y-2">
@@ -39,7 +49,7 @@ export default function UploadDocumentsStep({
             {/* Live Camera Capture Button */}
             <ProfileVerificationCapture
               onFileSelect={(e) => handleFileChange(e, "photoFile")}
-              isLocked={isLocked}
+              isLocked={isDisabled}
               targetWidth={140}
               targetHeight={170}
               minSizeKB={5}
@@ -48,13 +58,13 @@ export default function UploadDocumentsStep({
 
             {/* Standard File Upload */}
             <div className="border border-sky-400 rounded-md bg-white overflow-hidden flex items-center w-full sm:w-auto">
-              <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-3.5 py-2 border-r border-gray-300 font-bold select-none shrink-0 ${isLocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+              <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-3.5 py-2 border-r border-gray-300 font-bold select-none shrink-0 ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
                 Choose File
                 <input
                   type="file"
                   accept="image/jpeg,.jpg,.jpeg"
                   onChange={(e) => handleFileChange(e, "photoFile")}
-                  disabled={isLocked}
+                  disabled={isDisabled}
                   className="hidden"
                 />
               </label>
@@ -88,13 +98,13 @@ export default function UploadDocumentsStep({
             )}
           </div>
           <div className="border border-sky-400 rounded-md bg-white overflow-hidden flex items-center w-full md:w-auto">
-            <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-4 py-2.5 border-r border-gray-300 font-bold select-none shrink-0 ${isLocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+            <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-4 py-2.5 border-r border-gray-300 font-bold select-none shrink-0 ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
               Choose File
               <input
                 type="file"
                 accept="image/jpeg,.jpg,.jpeg"
                 onChange={(e) => handleFileChange(e, "signatureFile")}
-                disabled={isLocked}
+                disabled={isDisabled}
                 className="hidden"
               />
             </label>
@@ -128,13 +138,13 @@ export default function UploadDocumentsStep({
             )}
           </div>
           <div className="border border-sky-400 rounded-md bg-white overflow-hidden flex items-center w-full md:w-auto">
-            <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-4 py-2.5 border-r border-gray-300 font-bold select-none shrink-0 ${isLocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
+            <label className={`bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm sm:text-base px-4 py-2.5 border-r border-gray-300 font-bold select-none shrink-0 ${isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}>
               Choose File
               <input
                 type="file"
                 accept="image/jpeg,.jpg,.jpeg"
                 onChange={(e) => handleFileChange(e, "thumbFile")}
-                disabled={isLocked}
+                disabled={isDisabled}
                 className="hidden"
               />
             </label>
@@ -148,9 +158,9 @@ export default function UploadDocumentsStep({
       <div className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 mt-8 pt-6 border-t border-gray-200">
         <button
           onClick={handlePrevious}
-          disabled={isLocked}
+          disabled={isLocked && !isCorrectionMode}
           className={`font-bold py-3 px-7 rounded-lg text-base sm:text-lg transition text-white w-full sm:w-auto ${
-            isLocked ? "bg-gray-300 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"
+            isLocked && !isCorrectionMode ? "bg-gray-300 cursor-not-allowed" : "bg-gray-500 hover:bg-gray-600"
           }`}
         >
           Previous
@@ -159,7 +169,7 @@ export default function UploadDocumentsStep({
           onClick={handleNext}
           className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg text-base sm:text-lg transition w-full sm:w-auto"
         >
-          {isLocked ? "Next" : "Save & Next"}
+          {isLocked || isCorrectionMode ? "Next" : "Save & Next"}
         </button>
       </div>
     </div>

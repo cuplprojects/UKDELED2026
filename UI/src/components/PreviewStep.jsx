@@ -655,7 +655,7 @@ export default function PreviewStep({
             onChange={(e) =>
               setFormData((prev) => ({ ...prev, agreedTerms: e.target.checked }))
             }
-            disabled={isLocked}
+            disabled={isLocked && !isCorrectionMode}
             className="w-5 h-5 text-blue-600 rounded cursor-pointer shrink-0"
           />
           <label
@@ -663,7 +663,7 @@ export default function PreviewStep({
             className="text-sm sm:text-base font-bold text-gray-900 cursor-pointer font-sans"
           >
             I accept all the terms and declare that the information provided is
-            true to the best of my knowledge.
+            true to the previewed details.
           </label>
         </div>
       </div>
@@ -673,8 +673,8 @@ export default function PreviewStep({
         <button
           type="button"
           onClick={handlePrevious}
-          disabled={isLocked}
-          className="px-6 py-3 border border-gray-300 hover:bg-gray-100 text-gray-800 font-bold text-base sm:text-lg rounded-lg transition cursor-pointer"
+          disabled={isLocked && !isCorrectionMode}
+          className={`px-6 py-3 border border-gray-300 ${isLocked && !isCorrectionMode ? "cursor-not-allowed opacity-50 bg-gray-100" : "hover:bg-gray-100"} text-gray-800 font-bold text-base sm:text-lg rounded-lg transition cursor-pointer`}
         >
           Previous
         </button>
@@ -685,7 +685,7 @@ export default function PreviewStep({
           disabled={!formData.agreedTerms}
           className="px-8 py-3 bg-blue-700 hover:bg-blue-800 disabled:bg-gray-400 text-white font-extrabold text-base sm:text-lg rounded-lg shadow-md transition cursor-pointer"
         >
-          {isLocked ? "Proceed to Payment" : "Confirm & Proceed to Payment"}
+          {isCorrectionMode ? "Confirm & Submit" : (isLocked ? "Proceed to Payment" : "Confirm & Proceed to Payment")}
         </button>
       </div>
     </div>

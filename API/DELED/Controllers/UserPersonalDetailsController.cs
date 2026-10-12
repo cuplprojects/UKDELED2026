@@ -497,22 +497,7 @@ namespace DELED.Controllers
                 bool isPaymentCompleted = await _context.PaymentTransactions
                     .AnyAsync(p => p.UserId == dto.UserId && p.Status == "SUCCESS");
 
-                bool isCorrectionWindowOpen = false;
-                var correctionStartTimeline = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Label == "CORRECTION WINDOW" && t.Key == "starts");
-                var correctionCloseTimeline = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Label == "CORRECTION WINDOW" && t.Key == "closes");
-
-                if (correctionStartTimeline != null && correctionCloseTimeline != null)
-                {
-                    if (DateTime.TryParse($"{correctionStartTimeline.DateValue} 00:00:00", out DateTime startDate) && 
-                        DateTime.TryParse($"{correctionCloseTimeline.DateValue} 23:59:59", out DateTime closeDate))
-                    {
-                        var now = DELED.Helpers.TimeHelper.GetIST();
-                        if (now >= startDate && now <= closeDate)
-                        {
-                            isCorrectionWindowOpen = true;
-                        }
-                    }
-                }
+                bool isCorrectionWindowOpen = await IsCorrectionWindowOpenAsync();
 
                 var feeTimeline = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Key == "fee");
                 if (feeTimeline != null && DateTime.TryParse($"{feeTimeline.DateValue} 23:59:59", out DateTime feeParsedDate))
@@ -543,6 +528,8 @@ namespace DELED.Controllers
                 }
 
                 bool userRegUpdated = false;
+                string? prevFullName = userReg.FullName;
+                string? prevFatherName = userReg.FatherName;
 
                 if (!string.IsNullOrEmpty(dto.EmailId) && dto.EmailId != userReg.Email)
                 {
@@ -579,15 +566,9 @@ namespace DELED.Controllers
 
                 if (!string.IsNullOrEmpty(dto.ApplicantName) && dto.ApplicantName.Trim().ToUpper() != userReg.FullName.Trim().ToUpper())
                 {
-                    if (isCorrectionWindowOpen && isPaymentCompleted)
+                    if (dto.ApplicantName.Trim().Length > 50)
                     {
-                        int distance = ComputeLevenshteinDistance(userReg.FullName, dto.ApplicantName);
-                        int maxLength = Math.Max(userReg.FullName.Length, dto.ApplicantName.Trim().Length);
-                        double changePercentage = (double)distance / maxLength * 100;
-                        if (changePercentage > 20)
-                        {
-                            return BadRequest(new { success = false, message = "Candidate name cannot be changed by more than 20%." });
-                        }
+                        return BadRequest(new { success = false, message = "Candidate's Full Name cannot exceed 50 characters." });
                     }
                     userReg.FullName = dto.ApplicantName.Trim().ToUpper();
                     userRegUpdated = true;
@@ -595,6 +576,10 @@ namespace DELED.Controllers
 
                 if (!string.IsNullOrEmpty(dto.FatherName) && dto.FatherName.Trim().ToUpper() != userReg.FatherName.Trim().ToUpper())
                 {
+                    if (dto.FatherName.Trim().Length > 50)
+                    {
+                        return BadRequest(new { success = false, message = "Father's Name cannot exceed 50 characters." });
+                    }
                     userReg.FatherName = dto.FatherName.Trim().ToUpper();
                     userRegUpdated = true;
                 }
@@ -818,23 +803,14 @@ namespace DELED.Controllers
 
                 if (isCorrectionWindowOpen && isPaymentCompleted && !isNew)
                 {
-                    if (personal.Category != dto.Category)
+                    if (!string.Equals((personal.Category ?? "").Trim(), (dto.Category ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
                     {
-                        return BadRequest(new { success = false, message = "Category cannot be changed from the backend during correction mode." });
-                    }
-                    if (personal.ExamTypeId != dto.ExamTypeId)
-                    {
-                        return BadRequest(new { success = false, message = "Apply For (Exam Type) cannot be changed from the backend during correction mode." });
+                        return BadRequest(new { success = false, message = "Category cannot be changed as it affects the examination fee." });
                     }
                     if (personal.IsPhysicallyHandicapped != dto.IsPhysicallyHandicapped)
                     {
-                        return BadRequest(new { success = false, message = "PH status cannot be changed from the backend during correction mode." });
+                        return BadRequest(new { success = false, message = "PH status cannot be changed as it affects the examination fee." });
                     }
-                    if (personal.SubCategory != dto.SubCategory)
-                    {
-                        return BadRequest(new { success = false, message = "Sub Category cannot be changed from the backend during correction mode." });
-                    }
-                    
                 }
 
                 // Log step progress in the tracking table
@@ -876,6 +852,49 @@ namespace DELED.Controllers
                     if (dto.IsPhysicallyHandicapped) resolvedExamTypeId = 6;
                     else if (isScStCat) resolvedExamTypeId = 5;
                     else resolvedExamTypeId = 4;
+                }
+
+                if (isCorrectionWindowOpen && isPaymentCompleted && !isNew)
+                {
+                    double oldExamTypeFee = await GetExamTypeFeeAsync(personal.ExamTypeId);
+                    double newExamTypeFee = await GetExamTypeFeeAsync(resolvedExamTypeId);
+                    if (oldExamTypeFee != newExamTypeFee)
+                    {
+                        return BadRequest(new { success = false, message = "Changes that affect the application fee are strictly not allowed during correction window." });
+                    }
+
+                    string clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "";
+                    string regNo = userReg.RegistrationNo;
+
+                    if (!string.IsNullOrEmpty(prevFullName) && prevFullName.Trim().ToUpper() != userReg.FullName.Trim().ToUpper())
+                    {
+                        LogCorrectionField(userId, regNo, "Candidate Name", prevFullName, userReg.FullName, clientIp);
+                    }
+                    if (!string.IsNullOrEmpty(prevFatherName) && prevFatherName.Trim().ToUpper() != userReg.FatherName.Trim().ToUpper())
+                    {
+                        LogCorrectionField(userId, regNo, "Father's Name", prevFatherName, userReg.FatherName, clientIp);
+                    }
+
+                    LogCorrectionField(userId, regNo, "Mother's Name", personal.MotherName, dto.MotherName?.Trim().ToUpper(), clientIp);
+                    LogCorrectionField(userId, regNo, "Husband's Name", personal.HusbandName, isFemale ? dto.HusbandName?.Trim().ToUpper() : null, clientIp);
+                    LogCorrectionField(userId, regNo, "Gender", personal.Gender, dto.Gender, clientIp);
+                    LogCorrectionField(userId, regNo, "Date of Birth", personal.DOB?.ToString("yyyy-MM-dd"), dto.DOB?.ToString("yyyy-MM-dd"), clientIp);
+                    LogCorrectionField(userId, regNo, "Applied Category", personal.AppliedCategory, dto.AppliedCategory, clientIp);
+                    LogCorrectionField(userId, regNo, "Sub Category", personal.SubCategory, dto.SubCategory, clientIp);
+                    LogCorrectionField(userId, regNo, "Retirement Date", personal.RetirementDate?.ToString("yyyy-MM-dd"), dto.RetirementDate?.ToString("yyyy-MM-dd"), clientIp);
+                    bool incomingSportsCat = dto.SubCategory != null && dto.SubCategory.ToUpper().Contains("SPORTS");
+                    LogCorrectionField(userId, regNo, "Sports Type", personal.SportsType, incomingSportsCat ? dto.SportsType : null, clientIp);
+                    LogCorrectionField(userId, regNo, "1st Exam City", personal.ExamCity1.ToString(), dto.ExamCity1.ToString(), clientIp);
+                    LogCorrectionField(userId, regNo, "2nd Exam City", personal.ExamCity2.ToString(), dto.ExamCity2.ToString(), clientIp);
+                    LogCorrectionField(userId, regNo, "Mailing Address", personal.MailingAddress, dto.MailingAddress?.Trim(), clientIp);
+                    LogCorrectionField(userId, regNo, "State", personal.StateId.ToString(), dto.StateId.ToString(), clientIp);
+                    LogCorrectionField(userId, regNo, "District", personal.District.ToString(), dto.District.ToString(), clientIp);
+                    LogCorrectionField(userId, regNo, "PIN Code", personal.PinCode, dto.PinCode?.Trim(), clientIp);
+                    LogCorrectionField(userId, regNo, "Identity Proof", personal.IdentityProof, dto.IdentityProof, clientIp);
+                    LogCorrectionField(userId, regNo, "Identity Proof No", personal.IdentityProofNo, dto.IdentityProofNo?.Trim(), clientIp);
+                    LogCorrectionField(userId, regNo, "Graduation Course", personal.GraduationCourse, dto.GraduationCourse, clientIp);
+                    LogCorrectionField(userId, regNo, "Graduation University", personal.GraduationUniversity, dto.GraduationUniversity, clientIp);
+                    LogCorrectionField(userId, regNo, "Graduation Date", personal.GraduationDate, dto.GraduationDate, clientIp);
                 }
 
                 personal.ExamTypeId = resolvedExamTypeId;
@@ -1014,11 +1033,82 @@ namespace DELED.Controllers
             return userId;
         }
 
+        private async Task<bool> IsCorrectionWindowOpenAsync()
+        {
+            var now = DELED.Helpers.TimeHelper.GetIST();
+
+            // Set 1: CORRECTION WINDOW (starts / closes)
+            var cwStarts = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Label == "CORRECTION WINDOW" && t.Key == "starts");
+            var cwCloses = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Label == "CORRECTION WINDOW" && t.Key == "closes");
+            if (cwStarts != null && cwCloses != null &&
+                DateTime.TryParse($"{cwStarts.DateValue} 00:00:00", out DateTime s1) &&
+                DateTime.TryParse($"{cwCloses.DateValue} 23:59:59", out DateTime c1))
+            {
+                if (now >= s1 && now <= c1) return true;
+            }
+
+            // Set 2: corr_starts / corr_closes
+            var kStarts = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Key == "corr_starts" || t.Key == "correction_starts");
+            var kCloses = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Key == "corr_closes" || t.Key == "correction_closes");
+            if (kStarts != null && kCloses != null &&
+                DateTime.TryParse($"{kStarts.DateValue} 00:00:00", out DateTime s2) &&
+                DateTime.TryParse($"{kCloses.DateValue} 23:59:59", out DateTime c2))
+            {
+                if (now >= s2 && now <= c2) return true;
+            }
+
+            return false;
+        }
+
+        private async Task<double> GetExamTypeFeeAsync(int examTypeId)
+        {
+            var examType = await _context.ExamTypes.FirstOrDefaultAsync(e => e.Id == examTypeId);
+            return examType?.Payment ?? 0;
+        }
+
+        private void LogCorrectionField(int userId, string regNo, string fieldName, string? oldValue, string? newValue, string? clientIp)
+        {
+            string oldVal = (oldValue ?? "").Trim();
+            string newVal = (newValue ?? "").Trim();
+            if (!string.Equals(oldVal, newVal, StringComparison.OrdinalIgnoreCase))
+            {
+                _context.CandidateCorrectionLogs.Add(new CandidateCorrectionLog
+                {
+                    UserId = userId,
+                    RegistrationNo = regNo,
+                    FieldName = fieldName,
+                    OldValue = string.IsNullOrWhiteSpace(oldVal) ? null : oldVal,
+                    NewValue = string.IsNullOrWhiteSpace(newVal) ? null : newVal,
+                    CorrectedAt = DELED.Helpers.TimeHelper.GetIST(),
+                    IpAddress = clientIp
+                });
+            }
+        }
+
+        // PATCH: api/UserPersonalDetails/correction
+        [HttpPatch("correction")]
+        public async Task<IActionResult> PatchCorrection([FromBody] UserPersonalDetails dto)
+        {
+            return await CreateOrUpdateUserPersonalDetails(dto, completedStep: 1);
+        }
+
         // PATCH: api/UserPersonalDetails/correction-window
         [HttpPatch("correction-window")]
-        public async Task<IActionResult> CorrectionWindow([FromBody] CorrectionWindowDto dto)
+        public async Task<IActionResult> CorrectionWindow([FromBody] UserPersonalDetails dto)
         {
-            return Ok(new { success = true, message = "Correction window details received successfully." });
+            return await CreateOrUpdateUserPersonalDetails(dto, completedStep: 1);
+        }
+
+        // GET: api/UserPersonalDetails/correction-logs
+        [HttpGet("correction-logs")]
+        public async Task<IActionResult> GetCorrectionLogs()
+        {
+            int userId = GetUserIdFromToken();
+            var logs = await _context.CandidateCorrectionLogs
+                .Where(c => c.UserId == userId)
+                .OrderByDescending(c => c.CorrectedAt)
+                .ToListAsync();
+            return Ok(new { success = true, data = logs });
         }
     }
 }

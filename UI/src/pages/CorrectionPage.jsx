@@ -122,30 +122,44 @@ export default function CorrectionPage() {
     }
   }, [navigate]);
 
-  // Route Guard: Redirect to Application Dashboard if fee deadline has passed
+  // Route Guard: Redirect to Application Dashboard if correction window is closed
   useEffect(() => {
-    const checkFeeDeadline = async () => {
+    const checkCorrectionWindow = async () => {
       try {
         const timelinesRes = await api.get("/api/RegistrationTimeline");
         const timelines = timelinesRes.data;
         if (timelines && timelines.length > 0) {
-          const feeTimeline = timelines.find(t => t.key === "fee");
-          if (feeTimeline && feeTimeline.dateValue) {
-            const feeDate = new Date(`${feeTimeline.dateValue} 23:59:59`);
-            if (new Date() >= feeDate) {
-              notification.error({
-                message: "Deadline Passed",
-                description: "The last date for fee payment and amendments has passed.",
-              });
-              navigate("/application");
-            }
+          const now = new Date();
+          const checkDates = (startDateStr, closeDateStr) => {
+            if (!startDateStr || !closeDateStr) return false;
+            const s = new Date(`${startDateStr} 00:00:00`);
+            const c = new Date(`${closeDateStr} 23:59:59`);
+            if (isNaN(s.getTime()) || isNaN(c.getTime())) return false;
+            return now >= s && now <= c;
+          };
+
+          const cwStarts = timelines.find((t) => t.label === "CORRECTION WINDOW" && t.key === "starts");
+          const cwCloses = timelines.find((t) => t.label === "CORRECTION WINDOW" && t.key === "closes");
+          const set1Open = checkDates(cwStarts?.dateValue, cwCloses?.dateValue);
+
+          const kStarts = timelines.find((t) => t.key === "corr_starts" || t.key === "correction_starts");
+          const kCloses = timelines.find((t) => t.key === "corr_closes" || t.key === "correction_closes");
+          const set2Open = checkDates(kStarts?.dateValue, kCloses?.dateValue);
+
+          if (!set1Open && !set2Open) {
+            notification.error({
+              message: "Correction Window Closed",
+              description: "The application correction window is currently not active.",
+            });
+            navigate("/application");
+            return;
           }
         }
       } catch (err) {
-        console.error("Error checking fee deadline", err);
+        console.error("Error checking correction window deadline", err);
       }
     };
-    checkFeeDeadline();
+    checkCorrectionWindow();
   }, [navigate]);
 
   // Handle payment redirect query parameters
@@ -950,6 +964,8 @@ export default function CorrectionPage() {
     const typeId = getExamTypeId(formData.category, formData.phyHandicapped, formData.appliedCategory);
 
     return {
+      applicantName: formData.applicantName ? formData.applicantName.trim().toUpperCase() : "",
+      fatherName: formData.fatherName ? formData.fatherName.trim().toUpperCase() : "",
       examTypeId: typeId,
       appliedCategory: formData.appliedCategory || "2-विज्ञानेत्तर वर्ग",
       graduationCourse: formData.graduationCourse || "",
@@ -1011,13 +1027,7 @@ export default function CorrectionPage() {
 
       try {
         const payload = buildPersonalDetailsPayload();
-
-        if (isNewRecord) {
-          await api.post("/api/UserPersonalDetails?completedStep=1", payload);
-          setIsNewRecord(false);
-        } else {
-          await api.put("/api/UserPersonalDetails?completedStep=1", payload);
-        }
+        await api.patch("/api/UserPersonalDetails/correction", payload);
       } catch (err) {
         console.error("Failed to save personal details", err);
         showTopError(
@@ -1030,78 +1040,10 @@ export default function CorrectionPage() {
       }
     }
     if (step === 2) {
-      if (isLocked) {
-        setPageError("");
-        setStep(3);
-        return;
-      }
-      if (!validateStep2()) {
-        showTopError("Please upload Photo, Signature, and Left Hand Thumb Impression.");
-        return;
-      }
-      try {
-        // Check if any files have changed (are File instances)
-        const hasFileChanges =
-          formData.photoFile instanceof File ||
-          formData.signatureFile instanceof File ||
-          formData.thumbFile instanceof File;
-
-        // Only call upload API if there are actual file changes
-        if (hasFileChanges) {
-          const fData = new FormData();
-
-          if (formData.photoFile instanceof File) {
-            fData.append("Photo", formData.photoFile);
-          }
-          if (formData.signatureFile instanceof File) {
-            fData.append("Signature", formData.signatureFile);
-          }
-          if (formData.thumbFile instanceof File) {
-            fData.append("Thumb", formData.thumbFile);
-          }
-
-          let exist = false;
-          try {
-            const checkRes = await api.get(`/api/Uploads/user`);
-            if (checkRes.data && checkRes.data.length > 0) {
-              exist = true;
-            }
-          } catch (e) {
-            // Empty means no upload
-          }
-
-          if (exist) {
-            // Only update files that have changed - PATCH allows partial updates
-            await api.patch(`/api/Uploads/user`, fData, {
-              headers: { "Content-Type": "multipart/form-data" },
-            });
-          } else {
-            // First upload - all files must be provided
-            if (
-              !(formData.photoFile instanceof File) ||
-              !(formData.signatureFile instanceof File) ||
-              !(formData.thumbFile instanceof File)
-            ) {
-              showTopError("All files must be freshly chosen for the first upload.");
-              return;
-            }
-            await api.post("/api/Uploads", fData, {
-              headers: { "Content-Type": "multipart/form-data" },
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Failed to upload files", err);
-        showTopError(
-          (typeof err.response?.data === 'string' 
-            ? err.response.data 
-            : err.response?.data?.title || err.response?.data?.message) ||
-          "Could not upload files. Please ensure files are within 200KB limit and correct format."
-        );
-        return;
-      }
-      // If we made it here without returning (either skipped uploads because no changes, or successfully uploaded)
-      // UploadsController now logs Step 2 completion, so we just proceed to next step
+      // In correction mode, Photo, Signature, and Thumb Impression cannot be changed. Proceed directly to Step 3.
+      setPageError("");
+      setStep(3);
+      return;
     }
     if (step === 3) {
       if (!formData.agreedTerms) {
@@ -1282,6 +1224,7 @@ export default function CorrectionPage() {
                   handleNext={handleNext}
                   handlePrevious={handlePrevious}
                   isLocked={isLocked}
+                  isCorrectionMode={true}
                   isValidatingFile={validatingFile}
                 />
               )}

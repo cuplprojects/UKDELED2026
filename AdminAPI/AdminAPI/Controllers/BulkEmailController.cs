@@ -178,13 +178,13 @@ namespace DELED.Controllers
                         <div style=""color: red; font-size: 13.5px; line-height: 1.6; border-top: 1px solid #f9cbd3; padding-top: 15px; margin-bottom: 25px; font-weight: bold;"">
                         <p style=""margin: 0 0 10px 0;"">आपने DELED 2026 के लिए पंजीकरण किया है किन्तु पंजीकरण शुल्क का भुगतान नहीं हुआ है| अतः आपका आवेदन अपूर्ण है| कृपया वेबसाईट <a href=""https://www.ukdeled.com"" style=""color: blue; font-weight: bold; text-decoration: underline;"">ukdeled.com</a> पर लॉग इन कर शुल्क का भुगतान करें|
 
-Last date for fee payment/ शुल्क भुगतान की अंकित तिथि  : 06 August 2026 |</p>
+Last date for fee payment/ शुल्क भुगतान की अंकित तिथि  : 12 OCTOBER 2026 |</p>
                         
                     </div>
                         <div style=""margin: 20px 0; font-size: 15px; line-height: 1.8;"">
                             <p style=""margin: 0 0 5px 0;""><strong>Candidate Name :</strong> <strong style=""font-size: 16px; color: #000;"">{name}</strong></p>
                             <p style=""margin: 0 0 5px 0;""><strong>Registration No. :</strong> <strong style=""font-size: 16px; color: #000;"">{registrationNumber}</strong></p>
-                            <p style=""margin: 0 0 5px 0;""><strong>Last Date for Fee Payment :</strong> <strong style=""font-size: 16px; color: red;"">06 August 2026</strong></p>
+                            <p style=""margin: 0 0 5px 0;""><strong>Last Date for Fee Payment :</strong> <strong style=""font-size: 16px; color: red;"">12 OCTOBER 2026</strong></p>
                         </div>
                     </div>
 
