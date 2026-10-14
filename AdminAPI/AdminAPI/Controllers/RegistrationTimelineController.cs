@@ -91,6 +91,7 @@ var timeline = _context.RegistrationTimelines
                     existing.Label = item.Label;
                     existing.DateValue = item.DateValue;
                     existing.SubLabel = item.SubLabel;
+                    existing.Status = item.Status;
                     _context.Entry(existing).State = EntityState.Modified;
                 }
                 else
@@ -100,7 +101,8 @@ var timeline = _context.RegistrationTimelines
                         Key = item.Key,
                         Label = item.Label,
                         DateValue = item.DateValue,
-                        SubLabel = item.SubLabel
+                        SubLabel = item.SubLabel,
+                        Status = item.Status
                     });
                 }
             }
@@ -136,6 +138,7 @@ var timeline = _context.RegistrationTimelines
             existing.Label = timeline.Label;
             existing.DateValue = timeline.DateValue;
             existing.SubLabel = timeline.SubLabel;
+            existing.Status = timeline.Status;
 
             _context.Entry(existing).State = EntityState.Modified;
 

@@ -24,5 +24,7 @@ namespace DELED.Models
         [Required]
         [MaxLength(100)]
         public string SubLabel { get; set; } // e.g. "11:00 AM onwards"
+
+        public int Status { get; set; } = 1; // 1 = Visible in cards, 0 = Hidden
     }
 }

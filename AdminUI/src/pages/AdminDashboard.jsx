@@ -319,7 +319,8 @@ export default function AdminDashboard() {
       key,
       label: newTimelineLabel.trim() || key.toUpperCase(),
       dateValue: newTimelineDate.trim() || "",
-      subLabel: newTimelineSubLabel.trim() || ""
+      subLabel: newTimelineSubLabel.trim() || "",
+      status: 1
     };
 
     setCmsTimelines([...cmsTimelines, newTimeline]);
@@ -574,7 +575,8 @@ export default function AdminDashboard() {
           key: item.key || item.Key,
           label: item.label || item.Label,
           dateValue: item.dateValue || item.DateValue,
-          subLabel: item.subLabel || item.SubLabel
+          subLabel: item.subLabel || item.SubLabel,
+          status: item.status !== undefined ? Number(item.status) : (item.Status !== undefined ? Number(item.Status) : 1)
         }));
         setCmsTimelines(normalized);
       }
@@ -3649,10 +3651,15 @@ export default function AdminDashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Starts Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "starts") || { label: "REGISTRATION STARTS", dateValue: "", subLabel: "11:00 AM onwards" };
+                          const item = cmsTimelines.find(t => t.key === "starts");
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "REGISTRATION STARTS"}</span>
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-emerald-50/50 border-emerald-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{item.label || "REGISTRATION STARTS"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
                               <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "11:00 AM onwards"}</span>
                               <FaCalendarAlt className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
@@ -3662,10 +3669,15 @@ export default function AdminDashboard() {
 
                         {/* Closes Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "closes") || { label: "REGISTRATION CLOSES", dateValue: "", subLabel: "Till 11:59 PM" };
+                          const item = cmsTimelines.find(t => t.key === "closes");
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "REGISTRATION CLOSES"}</span>
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-red-50/50 border-red-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{item.label || "REGISTRATION CLOSES"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
                               <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
                               <FaClock className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
@@ -3675,13 +3687,54 @@ export default function AdminDashboard() {
 
                         {/* Fee Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "fee") || { label: "LAST DATE FOR FEE", dateValue: "", subLabel: "Till 11:59 PM" };
+                          const item = cmsTimelines.find(t => t.key === "fee");
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "LAST DATE FOR FEE"}</span>
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-blue-50/50 border-blue-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{item.label || "LAST DATE FOR FEE"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
                               <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
                               <FaCreditCard className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
+                            </div>
+                          );
+                        })()}
+
+                        {/* Correction Starts Box */}
+                        {(() => {
+                          const item = cmsTimelines.find(t => t.key === "corr_starts" || t.key === "correction_starts" || (t.label || "").includes("CORRECTION STARTS"));
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
+                          return (
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-amber-50 border-amber-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-amber-700 uppercase tracking-wider">{item.label || "CORRECTION STARTS"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
+                              <span className="block text-lg font-bold text-amber-900 mt-1">{item.dateValue}</span>
+                              <span className="block text-xs font-medium text-amber-700 mt-0.5">{item.subLabel || "11:00 AM onwards"}</span>
+                              <FaCalendarAlt className="absolute right-3 bottom-2 text-2xl opacity-10 text-amber-600" />
+                            </div>
+                          );
+                        })()}
+
+                        {/* Correction Closes Box */}
+                        {(() => {
+                          const item = cmsTimelines.find(t => t.key === "corr_closes" || t.key === "correction_closes" || (t.label || "").includes("CORRECTION CLOSES"));
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
+                          return (
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-rose-50 border-rose-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-rose-700 uppercase tracking-wider">{item.label || "CORRECTION CLOSES"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-rose-100 text-rose-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
+                              <span className="block text-lg font-bold text-rose-900 mt-1">{item.dateValue}</span>
+                              <span className="block text-xs font-medium text-rose-700 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
+                              <FaClock className="absolute right-3 bottom-2 text-2xl opacity-10 text-rose-600" />
                             </div>
                           );
                         })()}
@@ -3698,7 +3751,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Key (Unique identifier)</label>
                           <input
                             type="text"
-                            placeholder="e.g. starts, closes, fee"
+                            placeholder="e.g. starts, closes, fee, corr_starts"
                             value={newTimelineKey}
                             onChange={(e) => setNewTimelineKey(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3708,7 +3761,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Card Header Label</label>
                           <input
                             type="text"
-                            placeholder="e.g. REGISTRATION STARTS"
+                            placeholder="e.g. REGISTRATION STARTS, CORRECTION STARTS"
                             value={newTimelineLabel}
                             onChange={(e) => setNewTimelineLabel(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3718,7 +3771,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Date Text</label>
                           <input
                             type="text"
-                            placeholder="e.g. 23 May 2026"
+                            placeholder="e.g. 13 October 2026"
                             value={newTimelineDate}
                             onChange={(e) => setNewTimelineDate(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3754,16 +3807,21 @@ export default function AdminDashboard() {
                         if (item.key === "starts") colorTheme = "border-l-4 border-l-emerald-500 bg-blue-50/10";
                         if (item.key === "closes") colorTheme = "border-l-4 border-l-red-500 bg-red-50/10";
                         if (item.key === "fee") colorTheme = "border-l-4 border-l-blue-500 bg-blue-50/10";
+                        if (item.key === "corr_starts" || (item.label || "").includes("CORRECTION STARTS")) colorTheme = "border-l-4 border-l-amber-500 bg-amber-50/10";
+                        if (item.key === "corr_closes" || (item.label || "").includes("CORRECTION CLOSES")) colorTheme = "border-l-4 border-l-rose-500 bg-rose-50/10";
 
                         return (
                           <div key={item.key} className={`p-6 border border-slate-200 rounded-xl space-y-4 shadow-sm ${colorTheme}`}>
                             <div className="flex items-center justify-between">
                               <h4 className="text-xs font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-2">
                                 {item.key === "starts" ? <FaPlayCircle className="text-emerald-500" /> : item.key === "closes" ? <FaStopCircle className="text-red-500" /> : item.key === "fee" ? <FaInfoCircle className="text-blue-500" /> : <FaCalendarAlt className="text-slate-500" />}
-                                {item.key === "starts" ? "Registration Starts Card" : item.key === "closes" ? "Registration Closes Card" : item.key === "fee" ? "Last Date for Fee Card" : `${item.label || item.key.toUpperCase()} Card`}
+                                {item.key === "starts" ? "Registration Starts Card" : item.key === "closes" ? "Registration Closes Card" : item.key === "fee" ? "Last Date for Fee Card" : item.key === "corr_starts" ? "Correction Starts Card" : item.key === "corr_closes" ? "Correction Closes Card" : `${item.label || item.key.toUpperCase()} Card`}
                               </h4>
                               <div className="flex items-center gap-2.5">
                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-semibold uppercase">KEY: {item.key}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${Number(item.status) === 1 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}>
+                                  {Number(item.status) === 1 ? 'STATUS: 1 (VISIBLE)' : 'STATUS: 0 (HIDDEN)'}
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -3779,7 +3837,7 @@ export default function AdminDashboard() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div>
                                 <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Card Header Label</label>
                                 <input
@@ -3823,6 +3881,22 @@ export default function AdminDashboard() {
                                   }}
                                   className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
                                 />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Card Visibility (Status)</label>
+                                <select
+                                  value={item.status !== undefined ? Number(item.status) : 1}
+                                  onChange={(e) => {
+                                    const updated = [...cmsTimelines];
+                                    updated[index].status = parseInt(e.target.value, 10);
+                                    setCmsTimelines(updated);
+                                  }}
+                                  className={`w-full border rounded-lg px-3 py-2 text-xs font-bold outline-hidden ${Number(item.status) === 1 ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800' : 'bg-gray-50 border-gray-300 text-gray-600'}`}
+                                >
+                                  <option value={1}>Visible in Cards (Status = 1)</option>
+                                  <option value={0}>Hidden from Cards (Status = 0)</option>
+                                </select>
                               </div>
                             </div>
                           </div>

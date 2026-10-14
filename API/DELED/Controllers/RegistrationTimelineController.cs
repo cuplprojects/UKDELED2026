@@ -40,6 +40,43 @@ namespace DELED.Controllers
             });
         }
 
+        [HttpGet("init-status")]
+        public async Task<IActionResult> InitStatus()
+        {
+            try
+            {
+                var conn = _context.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                {
+                    await conn.OpenAsync();
+                }
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'RegistrationTimelines' 
+                      AND COLUMN_NAME = 'Status';";
+                var exists = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+                if (!exists)
+                {
+                    cmd.CommandText = "ALTER TABLE `RegistrationTimelines` ADD COLUMN `Status` INT NOT NULL DEFAULT 1;";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                // Set expired registration/fee keys to Status = 0 and active correction keys to Status = 1
+                cmd.CommandText = "UPDATE `RegistrationTimelines` SET `Status` = 0 WHERE `Key` IN ('starts', 'closes', 'fee');";
+                await cmd.ExecuteNonQueryAsync();
+                cmd.CommandText = "UPDATE `RegistrationTimelines` SET `Status` = 1 WHERE `Key` IN ('corr_starts', 'corr_closes');";
+                await cmd.ExecuteNonQueryAsync();
+
+                return Ok(new { success = true, columnExists = true, created = !exists });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, error = ex.Message });
+            }
+        }
+
         // GET: api/RegistrationTimeline
         [HttpGet]
         public async Task<ActionResult<IEnumerable<RegistrationTimeline>>> GetTimelines()
@@ -91,6 +128,7 @@ namespace DELED.Controllers
                     existing.Label = item.Label;
                     existing.DateValue = item.DateValue;
                     existing.SubLabel = item.SubLabel;
+                    existing.Status = item.Status;
                     _context.Entry(existing).State = EntityState.Modified;
                 }
                 else
@@ -100,7 +138,8 @@ namespace DELED.Controllers
                         Key = item.Key,
                         Label = item.Label,
                         DateValue = item.DateValue,
-                        SubLabel = item.SubLabel
+                        SubLabel = item.SubLabel,
+                        Status = item.Status
                     });
                 }
             }
@@ -136,6 +175,7 @@ namespace DELED.Controllers
             existing.Label = timeline.Label;
             existing.DateValue = timeline.DateValue;
             existing.SubLabel = timeline.SubLabel;
+            existing.Status = timeline.Status;
 
             _context.Entry(existing).State = EntityState.Modified;
 

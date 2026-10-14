@@ -227,10 +227,12 @@ export default function Home() {
         const response = await api.get("/api/RegistrationTimeline");
         if (response.data && Array.isArray(response.data) && response.data.length > 0) {
           const normalized = response.data.map(item => ({
+            id: item.id || item.Id,
             key: item.key || item.Key,
             label: item.label || item.Label,
             dateValue: item.dateValue || item.DateValue,
-            subLabel: item.subLabel || item.SubLabel
+            subLabel: item.subLabel || item.SubLabel,
+            status: item.status !== undefined ? Number(item.status) : (item.Status !== undefined ? Number(item.Status) : 1)
           }));
           setTimelines(normalized);
         }
@@ -271,8 +273,36 @@ export default function Home() {
   };
 
   const getTimelineValue = (key, field, defaultValue) => {
-    const found = timelines.find(t => t.key === key);
-    return found ? found[field] : defaultValue;
+    let found = null;
+    if (key === "starts") {
+      found = timelines.find(t => (t.key === "starts" || t.key === "reg_starts") && !(t.label || "").toUpperCase().includes("CORRECTION"));
+    } else if (key === "closes") {
+      found = timelines.find(t => (t.key === "closes" || t.key === "reg_closes") && !(t.label || "").toUpperCase().includes("CORRECTION"));
+    } else if (key === "corr_starts") {
+      found = timelines.find(t => t.key === "corr_starts" || t.key === "correction_starts" || ((t.key === "starts" || t.key === "corr_starts") && (t.label || "").toUpperCase().includes("CORRECTION")));
+    } else if (key === "corr_closes") {
+      found = timelines.find(t => t.key === "corr_closes" || t.key === "correction_closes" || ((t.key === "closes" || t.key === "corr_closes") && (t.label || "").toUpperCase().includes("CORRECTION")));
+    } else {
+      found = timelines.find(t => t.key === key);
+    }
+    return (found && found[field] !== undefined && found[field] !== null && found[field] !== "") ? found[field] : defaultValue;
+  };
+
+  const isCardVisible = (key) => {
+    let found = null;
+    if (key === "starts") {
+      found = timelines.find(t => (t.key === "starts" || t.key === "reg_starts") && !(t.label || "").toUpperCase().includes("CORRECTION"));
+    } else if (key === "closes") {
+      found = timelines.find(t => (t.key === "closes" || t.key === "reg_closes") && !(t.label || "").toUpperCase().includes("CORRECTION"));
+    } else if (key === "corr_starts") {
+      found = timelines.find(t => t.key === "corr_starts" || t.key === "correction_starts" || ((t.key === "starts" || t.key === "corr_starts") && (t.label || "").toUpperCase().includes("CORRECTION")));
+    } else if (key === "corr_closes") {
+      found = timelines.find(t => t.key === "corr_closes" || t.key === "correction_closes" || ((t.key === "closes" || t.key === "corr_closes") && (t.label || "").toUpperCase().includes("CORRECTION")));
+    } else {
+      found = timelines.find(t => t.key === key);
+    }
+    // Only rows with status 1 are visible in cards
+    return !!(found && found.dateValue && Number(found.status) === 1);
   };
 
   const handleLoginSubmit = async (e) => {
@@ -368,61 +398,149 @@ export default function Home() {
                   डी0 एल0 एड0 2026 के आवेदन की महत्वपूर्ण तिथियाँ-
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-                {/* Box 1: Start Date */}
-                <div className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group">
-                  <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
-                    {getTimelineValue("starts", "label", "REGISTRATION STARTS")}
-                  </span>
-                  <span className="block text-lg sm:text-xl md:text-2xl font-black text-emerald-800 mt-1">
-                    {getTimelineValue("starts", "dateValue")}
-                  </span>
-                  <span className="block text-xs sm:text-sm font-bold text-blue-700 mt-0.5">
-                    {getTimelineValue("starts", "subLabel")}
-                  </span>
-                  <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
-                    <svg className="w-10 h-10 text-emerald-850" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                  </div>
-                </div>
+              {(() => {
+                const showStarts = isCardVisible("starts");
+                const showCloses = isCardVisible("closes");
+                const showFee = isCardVisible("fee");
+                const showCorrStarts = isCardVisible("corr_starts");
+                const showCorrCloses = isCardVisible("corr_closes");
 
-                {/* Box 2: End Date */}
-                <div className="bg-red-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-red-100 relative overflow-hidden group">
-                  <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
-                    {getTimelineValue("closes", "label", "REGISTRATION CLOSES")}
-                  </span>
-                  <span className="block text-lg sm:text-xl md:text-2xl font-black text-red-700 mt-1">
-                    {getTimelineValue("closes", "dateValue")}
-                  </span>
-                  <span className="block text-xs sm:text-sm font-bold text-red-600 mt-0.5">
-                    {getTimelineValue("closes", "subLabel")}
-                  </span>
-                  <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
-                    <svg className="w-10 h-10 text-red-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                </div>
+                const visibleCardsCount = [showStarts, showCloses, showFee, showCorrStarts, showCorrCloses].filter(Boolean).length;
 
-                {/* Box 3: Fee Payment */}
-                <div className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group">
-                  <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
-                    {getTimelineValue("fee", "label", "LAST DATE FOR FEE")}
-                  </span>
-                  <span className="block text-lg sm:text-xl md:text-2xl font-black text-blue-700 mt-1">
-                    {getTimelineValue("fee", "dateValue")}
-                  </span>
-                  <span className="block text-xs sm:text-sm font-bold text-blue-600 mt-0.5 font-sans">
-                    {getTimelineValue("fee", "subLabel")}
-                  </span>
-                  <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
-                    <svg className="w-10 h-10 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                    </svg>
+                if (visibleCardsCount === 0) {
+                  return (
+                    <div className="bg-amber-50/70 border border-amber-200 rounded-lg sm:rounded-xl p-4 sm:p-5 flex items-center gap-3">
+                      <div className="p-2 bg-amber-100 rounded-lg text-amber-700">
+                        <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-sm sm:text-base font-bold text-gray-800">
+                          आवेदन एवं संशोधन प्रक्रिया समाप्त हो चुकी है (Application & Correction Schedule Ended)
+                        </h4>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
+                          डी0 एल0 एड0 2026 हेतु ऑनलाइन आवेदन एवं आवेदन संशोधन की निर्धारित तिथियाँ पूर्ण हो चुकी हैं।
+                        </p>
+                      </div>
+                    </div>
+                  );
+                }
+
+                const gridColsClass = visibleCardsCount === 1
+                  ? "grid-cols-1 max-w-sm"
+                  : visibleCardsCount === 2
+                  ? "grid-cols-1 sm:grid-cols-2 max-w-2xl"
+                  : visibleCardsCount === 3
+                  ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
+                  : visibleCardsCount === 4
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5";
+
+                return (
+                  <div className={`grid ${gridColsClass} gap-3 sm:gap-4 md:gap-5`}>
+                    {/* Box 1: Start Date */}
+                    {showStarts && (
+                      <div className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group">
+                        <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
+                          {getTimelineValue("starts", "label", "REGISTRATION STARTS")}
+                        </span>
+                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-emerald-800 mt-1">
+                          {getTimelineValue("starts", "dateValue")}
+                        </span>
+                        <span className="block text-xs sm:text-sm font-bold text-blue-700 mt-0.5">
+                          {getTimelineValue("starts", "subLabel")}
+                        </span>
+                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
+                          <svg className="w-10 h-10 text-emerald-850" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Box 2: End Date */}
+                    {showCloses && (
+                      <div className="bg-red-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-red-100 relative overflow-hidden group">
+                        <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
+                          {getTimelineValue("closes", "label", "REGISTRATION CLOSES")}
+                        </span>
+                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-red-700 mt-1">
+                          {getTimelineValue("closes", "dateValue")}
+                        </span>
+                        <span className="block text-xs sm:text-sm font-bold text-red-600 mt-0.5">
+                          {getTimelineValue("closes", "subLabel")}
+                        </span>
+                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
+                          <svg className="w-10 h-10 text-red-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Box 3: Fee Payment */}
+                    {showFee && (
+                      <div className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group">
+                        <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
+                          {getTimelineValue("fee", "label", "LAST DATE FOR FEE")}
+                        </span>
+                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-blue-700 mt-1">
+                          {getTimelineValue("fee", "dateValue")}
+                        </span>
+                        <span className="block text-xs sm:text-sm font-bold text-blue-600 mt-0.5 font-sans">
+                          {getTimelineValue("fee", "subLabel")}
+                        </span>
+                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
+                          <svg className="w-10 h-10 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Box 4: Correction Starts */}
+                    {showCorrStarts && (
+                      <div className="bg-amber-50/60 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-amber-200 relative overflow-hidden group">
+                        <span className="block text-xs sm:text-sm font-extrabold text-amber-900 uppercase tracking-wider line-clamp-1">
+                          {getTimelineValue("corr_starts", "label", "CORRECTION STARTS")}
+                        </span>
+                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-amber-800 mt-1">
+                          {getTimelineValue("corr_starts", "dateValue")}
+                        </span>
+                        <span className="block text-xs sm:text-sm font-bold text-amber-700 mt-0.5">
+                          {getTimelineValue("corr_starts", "subLabel")}
+                        </span>
+                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
+                          <svg className="w-10 h-10 text-amber-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Box 5: Correction Closes */}
+                    {showCorrCloses && (
+                      <div className="bg-rose-50/60 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-rose-200 relative overflow-hidden group">
+                        <span className="block text-xs sm:text-sm font-extrabold text-rose-900 uppercase tracking-wider line-clamp-1">
+                          {getTimelineValue("corr_closes", "label", "CORRECTION CLOSES")}
+                        </span>
+                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-rose-800 mt-1">
+                          {getTimelineValue("corr_closes", "dateValue")}
+                        </span>
+                        <span className="block text-xs sm:text-sm font-bold text-rose-700 mt-0.5">
+                          {getTimelineValue("corr_closes", "subLabel")}
+                        </span>
+                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
+                          <svg className="w-10 h-10 text-rose-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              </div>
+                );
+              })()}
             </div>
 
           </div>
@@ -526,8 +644,15 @@ export default function Home() {
               <div className="flex gap-2 sm:gap-2.5 mt-3">
                 <button
                   type="button"
-                  onClick={() => navigate("/register")}
-                  className="flex-1 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  onClick={() => {
+                    if (!isRegistrationOpen) {
+                      setError("ऑनलाइन पंजीकरण की अंतिम तिथि समाप्त हो चुकी है। नए पंजीकरण की अनुमति नहीं है।");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                      return;
+                    }
+                    navigate("/register");
+                  }}
+                  className={`flex-1 py-2.5 sm:py-3 ${!isRegistrationOpen ? 'bg-gray-400 hover:bg-gray-500 cursor-not-allowed' : 'bg-blue-700 hover:bg-blue-800 cursor-pointer'} text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-1.5 whitespace-nowrap`}
                 >
                   <FaUserPlus className="w-4 h-4 text-[#93c5fd] shrink-0" />
                   <span>NEW REGISTRATION</span>
