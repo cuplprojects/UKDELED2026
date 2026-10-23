@@ -25,6 +25,38 @@ namespace DELED.Controllers
             _configuration = configuration;
         }
 
+        private static bool _statusColumnChecked = false;
+
+        private async Task EnsureStatusColumnAsync()
+        {
+            if (_statusColumnChecked) return;
+            try
+            {
+                var conn = _context.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                {
+                    await conn.OpenAsync();
+                }
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'ImpDocuments' 
+                      AND COLUMN_NAME = 'Status';";
+                var exists = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+                if (!exists)
+                {
+                    cmd.CommandText = "ALTER TABLE `ImpDocuments` ADD COLUMN `Status` INT NOT NULL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                _statusColumnChecked = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ImpDocumentController] EnsureStatusColumn error: {ex.Message}");
+            }
+        }
+
         // ================================
         // Upload ImpDocument
         // POST api/ImpDocument/upload
@@ -37,6 +69,8 @@ namespace DELED.Controllers
         {
             try
             {
+                await EnsureStatusColumnAsync();
+
                 if (request.File == null || request.File.Length == 0)
                 {
                     return BadRequest(new
@@ -89,7 +123,8 @@ namespace DELED.Controllers
                 var document = new ImpDocument
                 {
                     Name = request.Name,
-                    Path = savedPath
+                    Path = savedPath,
+                    Status = request.Status ?? 0
                 };
 
                 _context.ImpDocuments.Add(document);
@@ -104,6 +139,8 @@ namespace DELED.Controllers
                         impDocumentId = document.ImpDocumentId,
                         document.Name,
                         document.Path,
+                        status = document.Status,
+                        isNew = document.Status == 1,
                         url = $"{Request.Scheme}://{Request.Host}/{document.Path}"
                     }
                 });
@@ -125,6 +162,8 @@ namespace DELED.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> GetAll()
         {
+            await EnsureStatusColumnAsync();
+
             var data = await _context.ImpDocuments
                 .OrderByDescending(x => x.ImpDocumentId)
                 .Select(x => new
@@ -132,6 +171,8 @@ namespace DELED.Controllers
                     x.ImpDocumentId,
                     x.Name,
                     x.Path,
+                    status = x.Status,
+                    isNew = x.Status == 1,
                     url = $"{Request.Scheme}://{Request.Host}/{x.Path}"
                 })
                 .ToListAsync();
@@ -151,6 +192,7 @@ namespace DELED.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
+            await EnsureStatusColumnAsync();
             var document = await _context.ImpDocuments
                 .FirstOrDefaultAsync(x => x.ImpDocumentId == id);
 
@@ -171,6 +213,8 @@ namespace DELED.Controllers
                     document.ImpDocumentId,
                     document.Name,
                     document.Path,
+                    status = document.Status,
+                    isNew = document.Status == 1,
                     url = $"{Request.Scheme}://{Request.Host}/{document.Path}"
                 }
             });
@@ -184,6 +228,7 @@ namespace DELED.Controllers
         [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
+            await EnsureStatusColumnAsync();
             var document = await _context.ImpDocuments.FindAsync(id);
 
             if (document == null)
@@ -205,7 +250,7 @@ namespace DELED.Controllers
         }
 
         // ================================
-        // Update Name
+        // Update Name and Status
         // PUT api/ImpDocument/{id}
         // ================================
         [HttpPut("{id}")]
@@ -214,6 +259,7 @@ namespace DELED.Controllers
             int id,
             [FromBody] UpdateImpDocumentRequest request)
         {
+            await EnsureStatusColumnAsync();
             var document = await _context.ImpDocuments.FindAsync(id);
 
             if (document == null)
@@ -221,13 +267,61 @@ namespace DELED.Controllers
                 return NotFound();
             }
 
-            document.Name = request.Name;
+            if (!string.IsNullOrWhiteSpace(request.Name))
+            {
+                document.Name = request.Name;
+            }
+            if (request.Status.HasValue)
+            {
+                document.Status = request.Status.Value;
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
                 success = true,
-                message = "Updated"
+                message = "Updated",
+                data = new
+                {
+                    document.ImpDocumentId,
+                    document.Name,
+                    document.Path,
+                    status = document.Status,
+                    isNew = document.Status == 1,
+                    url = $"{Request.Scheme}://{Request.Host}/{document.Path}"
+                }
+            });
+        }
+
+        // ================================
+        // Update Status only
+        // PUT api/ImpDocument/{id}/status
+        // ================================
+        [HttpPut("{id}/status")]
+        [AllowAnonymous]
+        public async Task<IActionResult> UpdateStatus(
+            int id,
+            [FromBody] UpdateImpDocStatusRequest request)
+        {
+            await EnsureStatusColumnAsync();
+            var document = await _context.ImpDocuments.FindAsync(id);
+
+            if (document == null)
+            {
+                return NotFound(new { success = false, message = "Document not found" });
+            }
+
+            document.Status = request.Status;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Status updated",
+                impDocumentId = document.ImpDocumentId,
+                status = document.Status,
+                isNew = document.Status == 1
             });
         }
 
@@ -242,6 +336,7 @@ namespace DELED.Controllers
             int id,
             [FromForm] ImpDocumentPatchRequest request)
         {
+            await EnsureStatusColumnAsync();
             var document = await _context.ImpDocuments.FindAsync(id);
 
             if (document == null)
@@ -253,6 +348,12 @@ namespace DELED.Controllers
             if (!string.IsNullOrWhiteSpace(request.Name))
             {
                 document.Name = request.Name;
+            }
+
+            // Update status if provided
+            if (request.Status.HasValue)
+            {
+                document.Status = request.Status.Value;
             }
 
             // Handle file upload
@@ -309,6 +410,8 @@ namespace DELED.Controllers
                     document.ImpDocumentId,
                     document.Name,
                     document.Path,
+                    status = document.Status,
+                    isNew = document.Status == 1,
                     url = $"{Request.Scheme}://{Request.Host}/{document.Path}"
                 }
             });
@@ -378,17 +481,25 @@ namespace DELED.Controllers
     public class ImpDocumentUploadRequest
     {
         public string Name { get; set; } = "";
+        public int? Status { get; set; }
         public IFormFile File { get; set; } = null!;
     }
 
     public class UpdateImpDocumentRequest
     {
-        public string Name { get; set; } = "";
+        public string? Name { get; set; }
+        public int? Status { get; set; }
     }
 
     public class ImpDocumentPatchRequest
     {
         public string? Name { get; set; }
+        public int? Status { get; set; }
         public IFormFile? File { get; set; }
+    }
+
+    public class UpdateImpDocStatusRequest
+    {
+        public int Status { get; set; }
     }
 }

@@ -43,31 +43,34 @@ export default function Home() {
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
 
   useEffect(() => {
+    const checkIsNew = (doc) => {
+      if (!doc) return false;
+      return doc.status === 1 || doc.Status === 1 || doc.status === "1" || doc.isNew === true;
+    };
+
     const fetchNotices = async () => {
       try {
         const response = await api.get("/api/Notice/all");
         if (response.data && response.data.success && Array.isArray(response.data.data)) {
-          // Define the mapping from DB name (lowercase) to UI display attributes
+          // Define the mapping from DB name (lowercase) to UI display label
           const mapping = {
-            "vigyapti": { label: "विज्ञप्ति-06/10/2026", isNew: true },
-            "deledsyllabus": { label: "DELED-Syllabus (पाठ्यक्रम)", isNew: true },
-            "deled_i_2025": { label: "DELED-I 2025 Question Booklet", isNew: true },
-            "deled_ii_2025": { label: "DELED-II 2025 Question Booklet", isNew: true },
-            
-            "deled26notice": { label: "DELED 2026 Notice (विज्ञप्ति)", isNew: true },
-            "deled_i_2024": { label: "DELED-I 2024 Question Booklet", isNew: false },
-            "deled_ii_2024": { label: "DELED-II 2024 Question Booklet", isNew: false },
-            "deled_i_2023": { label: "DELED-I 2023 Question Booklet", isNew: false },
-            "deled_ii_2023": { label: "DELED-II 2023 Question Booklet", isNew: false },
-            "deled_i_2022": { label: "DELED-I 2022 Question Booklet", isNew: false },
-            "deled_ii_2022": { label: "DELED-II 2022 Question Booklet", isNew: false },
-            "deled21_i": { label: "DELED-I 2021 Question Booklet", isNew: false },
-            "deled21_ii": { label: "DELED-II 2021 Question Booklet", isNew: false },
-            "deled_i_2020": { label: "DELED-I 2020 Question Booklet", isNew: false },
-            "deled_ii_2020": { label: "DELED-II 2020 Question Booklet", isNew: false },
-            "deled_i_2019": { label: "DELED-I 2019 Question Booklet", isNew: false },
-            "deled_ii_2019": { label: "DELED-II 2019 Question Booklet", isNew: false }
-            
+            "vigyapti": "विज्ञप्ति-06/10/2026",
+            "deledsyllabus": "DELED-Syllabus (पाठ्यक्रम)",
+            "deled_i_2025": "DELED-I 2025 Question Booklet",
+            "deled_ii_2025": "DELED-II 2025 Question Booklet",
+            "deled26notice": "DELED 2026 Notice (विज्ञप्ति)",
+            "deled_i_2024": "DELED-I 2024 Question Booklet",
+            "deled_ii_2024": "DELED-II 2024 Question Booklet",
+            "deled_i_2023": "DELED-I 2023 Question Booklet",
+            "deled_ii_2023": "DELED-II 2023 Question Booklet",
+            "deled_i_2022": "DELED-I 2022 Question Booklet",
+            "deled_ii_2022": "DELED-II 2022 Question Booklet",
+            "deled21_i": "DELED-I 2021 Question Booklet",
+            "deled21_ii": "DELED-II 2021 Question Booklet",
+            "deled_i_2020": "DELED-I 2020 Question Booklet",
+            "deled_ii_2020": "DELED-II 2020 Question Booklet",
+            "deled_i_2019": "DELED-I 2019 Question Booklet",
+            "deled_ii_2019": "DELED-II 2019 Question Booklet"
           };
 
           // Order key sequence to preserve UI visual order
@@ -77,8 +80,6 @@ export default function Home() {
             "deledsyllabus",
             "deled_i_2025",
             "deled_ii_2025",
-            
-            
             "deled_i_2024",
             "deled_ii_2024",
             "deled_i_2023",
@@ -91,7 +92,6 @@ export default function Home() {
             "deled_ii_2020",
             "deled_i_2019",
             "deled_ii_2019"
-            
           ];
 
           // Create a lookup map of lowercase dbName -> item
@@ -107,10 +107,13 @@ export default function Home() {
           // First, add predefined ones in exact order
           orderKeys.forEach(key => {
             if (dbNoticesMap[key]) {
+              const item = dbNoticesMap[key];
               orderedMappedList.push({
-                label: mapping[key].label,
-                link: dbNoticesMap[key].url,
-                isNew: mapping[key].isNew
+                id: item.noticeId || item.NoticeId || item.id,
+                label: typeof mapping[key] === "object" ? mapping[key].label : (mapping[key] || item.name),
+                link: item.url,
+                status: item.status ?? item.Status ?? 0,
+                isNew: checkIsNew(item)
               });
               delete dbNoticesMap[key];
             }
@@ -119,13 +122,18 @@ export default function Home() {
           // Then, append any other notices uploaded that are not in our predefined list
           Object.values(dbNoticesMap).forEach(item => {
             orderedMappedList.push({
+              id: item.noticeId || item.NoticeId || item.id,
               label: item.name,
               link: item.url,
-              isNew: false
+              status: item.status ?? item.Status ?? 0,
+              isNew: checkIsNew(item)
             });
           });
-          console.log("Fetched and ordered circulars:", orderedMappedList);
-          setCirculars(orderedMappedList);
+
+          // Sort to ensure all "New" items are visible at first while maintaining relative order
+          const prioritizedList = [...orderedMappedList].sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+          console.log("Fetched and ordered circulars:", prioritizedList);
+          setCirculars(prioritizedList);
         }
       } catch (err) {
         console.error("Failed to fetch notices:", err);
@@ -196,9 +204,13 @@ export default function Home() {
           // First, add predefined ones in exact order
           orderKeys.forEach(key => {
             if (dbDocsMap[key]) {
+              const item = dbDocsMap[key];
               orderedMappedList.push({
-                label: mapping[key],
-                link: dbDocsMap[key].url
+                id: item.impDocumentId || item.ImpDocumentId || item.id,
+                label: mapping[key] || item.name,
+                link: item.url,
+                status: item.status ?? item.Status ?? 0,
+                isNew: checkIsNew(item)
               });
               delete dbDocsMap[key];
             }
@@ -207,12 +219,17 @@ export default function Home() {
           // Then, append any other documents uploaded that are not in our predefined list
           Object.values(dbDocsMap).forEach(item => {
             orderedMappedList.push({
+              id: item.impDocumentId || item.ImpDocumentId || item.id,
               label: item.name,
-              link: item.url
+              link: item.url,
+              status: item.status ?? item.Status ?? 0,
+              isNew: checkIsNew(item)
             });
           });
 
-          setDocuments(orderedMappedList);
+          // Sort to ensure all "New" items are visible at first while maintaining relative order
+          const prioritizedList = [...orderedMappedList].sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+          setDocuments(prioritizedList);
         }
       } catch (err) {
         console.error("Failed to fetch documents:", err);
@@ -780,9 +797,16 @@ export default function Home() {
                           {item.label}
                         </span>
                       </div>
-                      <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-blue-700 transition group-hover:translate-x-1 duration-200 shrink-0">
-                        →
-                      </span>
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        {item.isNew && (
+                          <span className="bg-red-500 text-white font-black text-[7px] sm:text-[8px] px-1 sm:px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                            New
+                          </span>
+                        )}
+                        <span className="text-[10px] sm:text-xs text-gray-400 group-hover:text-blue-700 transition group-hover:translate-x-1 duration-200">
+                          →
+                        </span>
+                      </div>
                     </a>
                   ))
                 )}

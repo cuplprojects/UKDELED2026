@@ -282,6 +282,11 @@ export default function AdminDashboard() {
   const [cmsTimelines, setCmsTimelines] = useState([]);
   const [cmsLoading, setCmsLoading] = useState(false);
   const [cmsSaving, setCmsSaving] = useState(false);
+  const [cmsNotices, setCmsNotices] = useState([]);
+  const [cmsDocuments, setCmsDocuments] = useState([]);
+  const [cmsNoticesLoading, setCmsNoticesLoading] = useState(false);
+  const [togglingNoticeId, setTogglingNoticeId] = useState(null);
+  const [togglingDocId, setTogglingDocId] = useState(null);
   const [showEmailReportPdf, setShowEmailReportPdf] = useState(false);
   const [pdfReportUrl, setPdfReportUrl] = useState(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
@@ -591,9 +596,117 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchCmsNoticesAndDocs = async () => {
+    setCmsNoticesLoading(true);
+    try {
+      let noticeData = null;
+      let docData = null;
+
+      try {
+        const res = await api.get("/api/Notice/all");
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          noticeData = res.data.data;
+        }
+      } catch (e1) {
+        try {
+          const res = await userApi.get("/api/Notice/all");
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            noticeData = res.data.data;
+          }
+        } catch (e2) {
+          console.warn("Could not fetch notices:", e2);
+        }
+      }
+
+      try {
+        const res = await api.get("/api/ImpDocument/all");
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          docData = res.data.data;
+        }
+      } catch (e1) {
+        try {
+          const res = await userApi.get("/api/ImpDocument/all");
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            docData = res.data.data;
+          }
+        } catch (e2) {
+          console.warn("Could not fetch documents:", e2);
+        }
+      }
+
+      if (noticeData) setCmsNotices(noticeData);
+      if (docData) setCmsDocuments(docData);
+    } catch (err) {
+      console.error("Failed to load notices & documents:", err);
+    } finally {
+      setCmsNoticesLoading(false);
+    }
+  };
+
+  const handleToggleNoticeStatus = async (noticeId, currentStatus) => {
+    const nextStatus = Number(currentStatus) === 1 ? 0 : 1;
+    setTogglingNoticeId(noticeId);
+    try {
+      let success = false;
+      try {
+        const res = await api.put(`/api/Notice/${noticeId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      } catch (e1) {
+        const res = await userApi.put(`/api/Notice/${noticeId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      }
+
+      if (success) {
+        setCmsNotices(prev => prev.map(n => ((n.noticeId === noticeId || n.id === noticeId) ? { ...n, status: nextStatus, isNew: nextStatus === 1 } : n)));
+        notification.success({
+          message: "Notice Status Updated",
+          description: `Notice status updated to ${nextStatus === 1 ? '"New" (Badge visible)' : '"Normal" (Badge hidden)'}.`
+        });
+      }
+    } catch (err) {
+      notification.error({
+        message: "Status Update Failed",
+        description: err.response?.data?.message || "Failed to update notice status."
+      });
+    } finally {
+      setTogglingNoticeId(null);
+    }
+  };
+
+  const handleToggleDocStatus = async (docId, currentStatus) => {
+    const nextStatus = Number(currentStatus) === 1 ? 0 : 1;
+    setTogglingDocId(docId);
+    try {
+      let success = false;
+      try {
+        const res = await api.put(`/api/ImpDocument/${docId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      } catch (e1) {
+        const res = await userApi.put(`/api/ImpDocument/${docId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      }
+
+      if (success) {
+        setCmsDocuments(prev => prev.map(d => ((d.impDocumentId === docId || d.id === docId) ? { ...d, status: nextStatus, isNew: nextStatus === 1 } : d)));
+        notification.success({
+          message: "Document Status Updated",
+          description: `Document status updated to ${nextStatus === 1 ? '"New" (Badge visible)' : '"Normal" (Badge hidden)'}.`
+        });
+      }
+    } catch (err) {
+      notification.error({
+        message: "Status Update Failed",
+        description: err.response?.data?.message || "Failed to update document status."
+      });
+    } finally {
+      setTogglingDocId(null);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "cms") {
       fetchCmsTimelines();
+      fetchCmsNoticesAndDocs();
     }
   }, [activeTab]);
 
@@ -1007,6 +1120,8 @@ export default function AdminDashboard() {
     }
 
     const cityGrandTotal = reportCityWise.reduce((acc, row) => acc + (row.deled || row.Deled || row.total || row.Total || 0), 0);
+    const cityPhTotal = reportCityWise.reduce((acc, row) => acc + (row.phCount || row.PhCount || 0), 0);
+    const cityScribeTotal = reportCityWise.reduce((acc, row) => acc + (row.scribeCount || row.ScribeCount || 0), 0);
     const totalRegReportCount = reportDateWise.reduce((acc, row) => acc + (row.regNo || row.RegNo || 0), 0);
     const totalFeesReportCount = reportDateWise.reduce((acc, row) => acc + (row.feesNo || row.FeesNo || 0), 0);
 
@@ -1032,18 +1147,22 @@ export default function AdminDashboard() {
       `).join('');
 
     const cityRowsHtml = reportCityWise.length === 0
-      ? `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #94a3b8;">No report data found.</td></tr>`
+      ? `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">No report data found.</td></tr>`
       : `${reportCityWise.map((row, idx) => `
         <tr>
           <td style="text-align: center;">${idx + 1}</td>
           <td>${row.cityName || row.CityName || ""}</td>
           <td style="text-align: center; font-weight: bold;">${row.deled || row.Deled || row.total || row.Total || 0}</td>
+          <td style="text-align: center;">${row.phCount || row.PhCount || 0}</td>
+          <td style="text-align: center;">${row.scribeCount || row.ScribeCount || 0}</td>
         </tr>
       `).join('')}
       <tr class="total-row">
         <td></td>
         <td>TOTAL</td>
         <td style="text-align: center; font-size: 12px;">${cityGrandTotal}</td>
+        <td style="text-align: center; font-size: 12px;">${cityPhTotal}</td>
+        <td style="text-align: center; font-size: 12px;">${cityScribeTotal}</td>
       </tr>`;
 
     const htmlDoc = `<!DOCTYPE html>
@@ -1162,6 +1281,8 @@ export default function AdminDashboard() {
         <th style="text-align: center; width: 80px;">Sr. No.</th>
         <th>Exam City Code/Name</th>
         <th style="text-align: center;">DELED</th>
+        <th style="text-align: center;">PH Count</th>
+        <th style="text-align: center;">Scribe Count</th>
       </tr>
     </thead>
     <tbody>
@@ -2734,13 +2855,15 @@ export default function AdminDashboard() {
                             <tr className="bg-slate-50/55 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-xs font-semibold">
                               <th className="px-6 py-3 border-r border-slate-200 text-center w-16">Sr. No.</th>
                               <th className="px-6 py-3 border-r border-slate-200 text-left">Exam City Code/Name</th>
-                              <th className="px-6 py-3 text-center">DELED</th>
+                              <th className="px-6 py-3 border-r border-slate-200 text-center">DELED</th>
+                              <th className="px-6 py-3 border-r border-slate-200 text-center">PH Count</th>
+                              <th className="px-6 py-3 text-center">Scribe Count</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {reportCityWise.length === 0 ? (
                               <tr>
-                                <td colSpan={3} className="px-6 py-8 text-center text-slate-450">No report data found.</td>
+                                <td colSpan={5} className="px-6 py-8 text-center text-slate-450">No report data found.</td>
                               </tr>
                             ) : (
                               <>
@@ -2748,15 +2871,23 @@ export default function AdminDashboard() {
                                   <tr key={idx} className="hover:bg-slate-50/30 transition">
                                     <td className="px-6 py-3 border-r border-slate-200 text-center">{idx + 1}</td>
                                     <td className="px-6 py-3 border-r border-slate-200 text-slate-800 font-medium">{row.cityName || row.CityName}</td>
-                                    <td className="px-6 py-3 text-center font-bold text-slate-800">{row.deled || row.Deled || row.total || row.Total || 0}</td>
+                                    <td className="px-6 py-3 border-r border-slate-200 text-center font-bold text-slate-800">{row.deled || row.Deled || row.total || row.Total || 0}</td>
+                                    <td className="px-6 py-3 border-r border-slate-200 text-center text-slate-800">{row.phCount ?? row.PhCount ?? 0}</td>
+                                    <td className="px-6 py-3 text-center text-slate-800">{row.scribeCount ?? row.ScribeCount ?? 0}</td>
                                   </tr>
                                 ))}
                                 {/* Totals row */}
                                 <tr className="bg-slate-50/20 border-t border-slate-200 text-sm font-bold">
                                   <td className="px-6 py-3 border-r border-slate-200 text-center"></td>
                                   <td className="px-6 py-3 border-r border-slate-200 text-left text-slate-800 uppercase tracking-wider">Total</td>
-                                  <td className="px-6 py-3 text-center text-slate-900 font-extrabold">
+                                  <td className="px-6 py-3 border-r border-slate-200 text-center text-slate-900 font-extrabold">
                                     {reportCityWise.reduce((acc, row) => acc + (row.deled || row.Deled || row.total || row.Total || 0), 0)}
+                                  </td>
+                                  <td className="px-6 py-3 border-r border-slate-200 text-center text-slate-900 font-extrabold">
+                                    {reportCityWise.reduce((acc, row) => acc + (row.phCount || row.PhCount || 0), 0)}
+                                  </td>
+                                  <td className="px-6 py-3 text-center text-slate-900 font-extrabold">
+                                    {reportCityWise.reduce((acc, row) => acc + (row.scribeCount || row.ScribeCount || 0), 0)}
                                   </td>
                                 </tr>
                               </>
@@ -3923,6 +4054,173 @@ export default function AdminDashboard() {
                           </>
                         )}
                       </button>
+                    </div>
+
+                    {/* Notices & Documents "New" Badge Status Management */}
+                    <div className="pt-8 border-t border-slate-200 space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <FaBullhorn className="text-blue-600" />
+                            <span>Notices & Important Documents "New" Badge Manager</span>
+                          </h4>
+                          <p className="text-xs text-slate-500 font-normal mt-0.5">
+                            Dynamically toggle the "New" badge on or off for public notices and important documents displayed on the homepage.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={fetchCmsNoticesAndDocs}
+                          disabled={cmsNoticesLoading}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer border border-slate-300 transition flex items-center gap-1.5 self-start"
+                        >
+                          {cmsNoticesLoading ? (
+                            <div className="w-3.5 h-3.5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <span>Refresh Lists</span>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Notices Section */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                              <FaBullhorn className="text-emerald-600" />
+                              <span>Public Notices / Circulars ({cmsNotices.length})</span>
+                            </h5>
+                            <span className="text-[11px] text-slate-400 font-medium">Click button to toggle</span>
+                          </div>
+
+                          {cmsNoticesLoading ? (
+                            <div className="py-8 text-center text-xs text-slate-400">Loading notices...</div>
+                          ) : cmsNotices.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-slate-400">No notices found.</div>
+                          ) : (
+                            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                              {cmsNotices.map((notice) => {
+                                const nId = notice.noticeId || notice.id;
+                                const isItemNew = Number(notice.status) === 1 || notice.isNew === true;
+                                const isToggling = togglingNoticeId === nId;
+
+                                return (
+                                  <div
+                                    key={nId}
+                                    className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-xs transition"
+                                  >
+                                    <div className="min-w-0 pr-3">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-slate-800 truncate" title={notice.name}>
+                                          {notice.name}
+                                        </span>
+                                        {isItemNew && (
+                                          <span className="bg-red-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                                            New
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+                                        ID: {nId} | Path: {notice.path}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      disabled={isToggling}
+                                      onClick={() => handleToggleNoticeStatus(nId, notice.status)}
+                                      className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0 border ${
+                                        isItemNew
+                                          ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                                          : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+                                      }`}
+                                    >
+                                      {isToggling ? (
+                                        <span className="flex items-center gap-1">
+                                          <div className="w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                                          Saving...
+                                        </span>
+                                      ) : isItemNew ? (
+                                        "Status: 1 (New)"
+                                      ) : (
+                                        "Status: 0 (Normal)"
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Important Documents Section */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                              <FaFolder className="text-blue-600" />
+                              <span>Important Documents ({cmsDocuments.length})</span>
+                            </h5>
+                            <span className="text-[11px] text-slate-400 font-medium">Click button to toggle</span>
+                          </div>
+
+                          {cmsNoticesLoading ? (
+                            <div className="py-8 text-center text-xs text-slate-400">Loading documents...</div>
+                          ) : cmsDocuments.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-slate-400">No documents found.</div>
+                          ) : (
+                            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                              {cmsDocuments.map((doc) => {
+                                const dId = doc.impDocumentId || doc.id;
+                                const isItemNew = Number(doc.status) === 1 || doc.isNew === true;
+                                const isToggling = togglingDocId === dId;
+
+                                return (
+                                  <div
+                                    key={dId}
+                                    className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-xs transition"
+                                  >
+                                    <div className="min-w-0 pr-3">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-slate-800 truncate" title={doc.name}>
+                                          {doc.name}
+                                        </span>
+                                        {isItemNew && (
+                                          <span className="bg-red-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                                            New
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+                                        ID: {dId} | Path: {doc.path}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      disabled={isToggling}
+                                      onClick={() => handleToggleDocStatus(dId, doc.status)}
+                                      className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0 border ${
+                                        isItemNew
+                                          ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                                          : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+                                      }`}
+                                    >
+                                      {isToggling ? (
+                                        <span className="flex items-center gap-1">
+                                          <div className="w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                                          Saving...
+                                        </span>
+                                      ) : isItemNew ? (
+                                        "Status: 1 (New)"
+                                      ) : (
+                                        "Status: 0 (Normal)"
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                   </form>
