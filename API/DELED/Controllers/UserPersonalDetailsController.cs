@@ -1037,24 +1037,19 @@ namespace DELED.Controllers
         {
             var now = DELED.Helpers.TimeHelper.GetIST();
 
-            // Set 1: CORRECTION WINDOW (starts / closes)
-            var cwStarts = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Label == "CORRECTION WINDOW" && t.Key == "starts");
-            var cwCloses = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Label == "CORRECTION WINDOW" && t.Key == "closes");
+            var cwStarts = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => 
+                (t.Label.Contains("CORRECTION") || t.Key == "corr_starts" || t.Key == "correction_starts") && 
+                (t.Key == "starts" || t.Label.Contains("STARTS")));
+
+            var cwCloses = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => 
+                (t.Label.Contains("CORRECTION") || t.Key == "corr_closes" || t.Key == "correction_closes") && 
+                (t.Key == "closes" || t.Label.Contains("CLOSES")));
+
             if (cwStarts != null && cwCloses != null &&
                 DateTime.TryParse($"{cwStarts.DateValue} 00:00:00", out DateTime s1) &&
                 DateTime.TryParse($"{cwCloses.DateValue} 23:59:59", out DateTime c1))
             {
                 if (now >= s1 && now <= c1) return true;
-            }
-
-            // Set 2: corr_starts / corr_closes
-            var kStarts = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Key == "corr_starts" || t.Key == "correction_starts");
-            var kCloses = await _context.RegistrationTimelines.FirstOrDefaultAsync(t => t.Key == "corr_closes" || t.Key == "correction_closes");
-            if (kStarts != null && kCloses != null &&
-                DateTime.TryParse($"{kStarts.DateValue} 00:00:00", out DateTime s2) &&
-                DateTime.TryParse($"{kCloses.DateValue} 23:59:59", out DateTime c2))
-            {
-                if (now >= s2 && now <= c2) return true;
             }
 
             return false;

@@ -177,6 +177,11 @@ namespace DELED.Controllers
         [HttpPost("SentEMAILOTP")]
         public async Task<ActionResult<string>> sendEMAILOtp(OTPEmailRequest otprequest)
         {
+            if (IsRegistrationClosed())
+            {
+                return BadRequest(new { success = false, message = "Registration period has closed." });
+            }
+
             var (emailotp, emailotpexpiryTime) = _otpService.GenerateOtp();
 
             string emailBody = $@"
@@ -204,6 +209,11 @@ namespace DELED.Controllers
         [HttpPost("SentPhoneOTP")]
         public async Task<ActionResult<string>> sendPhoneOtp(OTPPhoneRequest otprequest)
         {
+            if (IsRegistrationClosed())
+            {
+                return BadRequest(new { success = false, message = "Registration period has closed." });
+            }
+
             var (phoneotp, emailotpexpiryTime) = _otpService.GenerateOtp();
 
             var smsService = new SmsService(
@@ -240,7 +250,7 @@ namespace DELED.Controllers
 
         private bool IsRegistrationClosed()
         {
-            var timeline = _context.RegistrationTimelines.FirstOrDefault(t => t.Key == "closes");
+            var timeline = _context.RegistrationTimelines.FirstOrDefault(t => t.Key == "closes" && t.Label.Contains("REGISTRATION"));
             if (timeline != null && DateTime.TryParse($"{timeline.DateValue} 23:59:59", out DateTime parsedDate))
             {
                 return DELED.Helpers.TimeHelper.GetIST() >= parsedDate;

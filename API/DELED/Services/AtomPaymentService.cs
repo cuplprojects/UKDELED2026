@@ -43,8 +43,8 @@ namespace DELED.Services
 
         public string Encrypt(string plainText)
         {
-            string passphrase = _configuration["NTTData:Passphrase"] ;
-            string salt = _configuration["NTTData:Salt"];
+            string passphrase = _configuration["NTTData:Passphrase"] ?? _configuration["NTTData:RequestAesKey"];
+            string salt = _configuration["NTTData:Salt"] ?? _configuration["NTTData:RequestSalt"] ?? passphrase;
             int.TryParse(_configuration["NTTData:Iterations"], out int iterations);
             byte[] iv = GetAtomIV();
             
@@ -55,8 +55,8 @@ namespace DELED.Services
 
         public string Decrypt(string cipherText)
         {
-            string passphrase = _configuration["NTTData:Passphrase1"];
-            string salt = _configuration["NTTData:Salt1"];
+            string passphrase = _configuration["NTTData:Passphrase1"] ?? _configuration["NTTData:ResponseAesKey"];
+            string salt = _configuration["NTTData:Salt1"] ?? _configuration["NTTData:ResponseSalt"] ?? passphrase;
             int.TryParse(_configuration["NTTData:Iterations"], out int iterations);
             byte[] iv = GetAtomIV();
 
@@ -176,13 +176,25 @@ namespace DELED.Services
                 var content = new StringContent(payload, Encoding.UTF8);
                 content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json");
 
-                _logger.LogInformation("GenerateToken: Sending auth request to Atom API for MerchantTxnId: {MerchantTxnId}", merchantTxnId);
+                Console.WriteLine("======================= ATOM AUTH REQUEST =======================");
+                Console.WriteLine($"[GenerateToken] MerchantTxnId: {merchantTxnId}");
+                Console.WriteLine($"[GenerateToken] Request URL: {requestUrl}");
+                Console.WriteLine($"[GenerateToken] Raw Payload JSON:\n{payload}");
+                Console.WriteLine("=================================================================");
+
+                _logger.LogInformation("GenerateToken: Sending auth request to Atom API for MerchantTxnId: {MerchantTxnId}, URL: {RequestUrl}, Payload: {Payload}", 
+                    merchantTxnId, requestUrl, payload);
 
                 var response = await _httpClient.PostAsync(requestUrl, content);
                 var responseString = await response.Content.ReadAsStringAsync();
+
+                Console.WriteLine("======================= ATOM AUTH RESPONSE ======================");
+                Console.WriteLine($"[GenerateToken] Response StatusCode: {(int)response.StatusCode}");
+                Console.WriteLine($"[GenerateToken] Response Body: {responseString}");
+                Console.WriteLine("=================================================================");
                 
-                _logger.LogInformation("GenerateToken: Atom API response - StatusCode: {StatusCode}, MerchantTxnId: {MerchantTxnId}", 
-                    (int)response.StatusCode, merchantTxnId);
+                _logger.LogInformation("GenerateToken: Atom API response - StatusCode: {StatusCode}, Response: {Response}, MerchantTxnId: {MerchantTxnId}", 
+                    (int)response.StatusCode, responseString, merchantTxnId);
                 
                 if (!response.IsSuccessStatusCode)
                 {
@@ -245,7 +257,7 @@ namespace DELED.Services
                 long integerAmount = (long)amount;
                 string amountStr = integerAmount.ToString();
                 
-                string reqHashKey = _configuration["NTTData:HashKey"] ?? "a87064e58d7287771a";
+                string reqHashKey = _configuration["NTTData:HashKey"] ?? _configuration["NTTData:HashRequestKey"] ?? "a87064e58d7287771a";
                 string strsignature = merchId + password + merchantTxnId + amountStr + "INR" + "TXNVERIFICATION";
                 byte[] keyBytes = Encoding.UTF8.GetBytes(reqHashKey);
                 byte[] hashBytes = new System.Security.Cryptography.HMACSHA512(keyBytes).ComputeHash(Encoding.UTF8.GetBytes(strsignature));
@@ -324,7 +336,7 @@ namespace DELED.Services
 
                     if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
                     {
-                        _logger.LogError("RequeryPayment: CRITICAL - HTTP 403 Forbidden from Atom API. This indicates a merchant credential issue. MerchantId: 618408, TxnId: {MerchantTxnId}", 
+                        _logger.LogError("RequeryPayment: CRITICAL - HTTP 403 Forbidden from Atom API. This indicates a merchant credential issue. MerchantId, TxnId: {MerchantTxnId}", 
                             merchantTxnId);
                     }
 
@@ -523,6 +535,7 @@ namespace DELED.Services
             var merchId = _configuration["NTTData:MerchantId"] ?? "";
             var userId = _configuration["NTTData:UserId"] ?? "";
             var password = _configuration["NTTData:Password"] ?? "";
+            var product = _configuration["NTTData:Product"] ?? "SACHIV";
 
             var payloadObj = new
             {
@@ -545,7 +558,7 @@ namespace DELED.Services
                     payDetails = new
                     {
                         amount = amount.ToString("F2"),
-                        product = "SCHOOL", // Set to "SCHOOL" as in the ASPX production kit
+                        product = product,
                         custAccNo = registrationId.ToString(), // Set to registration ID as in the ASPX production kit
                         txnCurrency = "INR",
                     },

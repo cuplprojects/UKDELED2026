@@ -26,8 +26,8 @@ namespace DELED.Controllers
         [HttpGet("status")]
         public IActionResult GetStatus()
         {
-            var timeline = _context.RegistrationTimelines.FirstOrDefault(t => t.Key == "closes");
-            bool isOpen = true;
+var timeline = _context.RegistrationTimelines
+    .FirstOrDefault(t => t.Key == "closes" && t.Label.Contains("REGISTRATION"));            bool isOpen = true;
             DateTime? closeDate = null;
             if (timeline != null && DateTime.TryParse($"{timeline.DateValue} 23:59:59", out DateTime parsedDate))
             {
