@@ -41,6 +41,7 @@ export default function Home() {
   ]);
   const [alerts, setAlerts] = useState([]);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
+  const [admitTimelineStatus, setAdmitTimelineStatus] = useState(null);
 
   useEffect(() => {
     const fetchNotices = async () => {
@@ -261,8 +262,20 @@ export default function Home() {
       }
     };
 
+    const fetchAdmitTimelineStatus = async () => {
+      try {
+        const response = await api.get("/api/AdmitCard/timeline-status");
+        if (response.data) {
+          setAdmitTimelineStatus(response.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch admit card timeline status:", err);
+      }
+    };
+
     fetchTimelines();
     fetchTimelineStatus();
+    fetchAdmitTimelineStatus();
     fetchAlerts();
   }, []);
 
@@ -360,6 +373,32 @@ export default function Home() {
             </div>
 
             <div className="p-4 sm:p-5 md:p-6 flex-1 flex flex-col justify-center">
+              {/* Admit Card Download Banner - Only visible when date is in range */}
+              {admitTimelineStatus?.isOpen && (
+                <div className="mb-4 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white bg-gradient-to-r from-emerald-600 to-teal-700">
+                  <div className="flex items-center gap-3">
+                    <span className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0">
+                      🎫
+                    </span>
+                    <div>
+                      <h4 className="font-extrabold text-sm sm:text-base tracking-wide">
+                        डी० एल० एड० 2026 प्रवेश पत्र डाउनलोड प्रारंभ
+                      </h4>
+                      <p className="text-white/90 text-xs mt-0.5">
+                        {admitTimelineStatus?.message || "Candidate Admit Card is available according to the official timeline schedule."}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/admit-card")}
+                    className="px-4 py-2 text-xs sm:text-sm font-black rounded-lg shadow transition cursor-pointer whitespace-nowrap self-stretch sm:self-auto text-center bg-white text-emerald-800 hover:bg-emerald-50"
+                  >
+                    Download Admit Card →
+                  </button>
+                </div>
+              )}
+
               <div className="mb-4 border-b border-gray-100 pb-3">
                 <h3 className="text-[#b81d24] font-black text-base sm:text-lg md:text-xl">
                   आवश्यक सूचना :
@@ -368,7 +407,7 @@ export default function Home() {
                   डी0 एल0 एड0 2026 के आवेदन की महत्वपूर्ण तिथियाँ-
                 </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-5">
                 {/* Box 1: Start Date */}
                 <div className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group">
                   <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
@@ -422,6 +461,26 @@ export default function Home() {
                     </svg>
                   </div>
                 </div>
+
+                {/* Box 4: Admit Card Download */}
+                {(timelines.some(t => t.key === "admit_starts" || t.key === "admit_closes" || (t.label && t.label.toUpperCase().includes("ADMIT")))) && (
+                  <div className="bg-emerald-50/60 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-emerald-200 relative overflow-hidden group">
+                    <span className="block text-xs sm:text-sm font-extrabold text-emerald-900 uppercase tracking-wider line-clamp-1">
+                      {getTimelineValue("admit_starts", "label") || "ADMIT CARD DOWNLOAD"}
+                    </span>
+                    <span className="block text-lg sm:text-xl md:text-2xl font-black text-emerald-800 mt-1">
+                      {getTimelineValue("admit_starts", "dateValue") || getTimelineValue("admit_closes", "dateValue")}
+                    </span>
+                    <span className="block text-xs sm:text-sm font-bold text-emerald-700 mt-0.5">
+                      {getTimelineValue("admit_starts", "subLabel") || getTimelineValue("admit_closes", "subLabel") || "10:00 AM onwards"}
+                    </span>
+                    <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
+                      <svg className="w-10 h-10 text-emerald-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

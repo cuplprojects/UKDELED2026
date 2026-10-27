@@ -72,11 +72,14 @@ namespace DELED.Controllers
 
             var existingDbTimelines = await _context.RegistrationTimelines.ToListAsync();
 
-            // 1. Delete removed timelines
+            var incomingIds = new HashSet<int>(timelines.Where(t => t.Id > 0).Select(t => t.Id));
             var incomingKeys = new HashSet<string>(timelines.Select(t => t.Key.ToLower()));
+
+            // 1. Delete removed timelines
             foreach (var dbItem in existingDbTimelines)
             {
-                if (!incomingKeys.Contains(dbItem.Key.ToLower()))
+                bool keep = (dbItem.Id > 0 && incomingIds.Contains(dbItem.Id)) || incomingKeys.Contains(dbItem.Key.ToLower());
+                if (!keep)
                 {
                     _context.RegistrationTimelines.Remove(dbItem);
                 }
@@ -85,9 +88,19 @@ namespace DELED.Controllers
             // 2. Insert or update timelines
             foreach (var item in timelines)
             {
-                var existing = existingDbTimelines.FirstOrDefault(t => t.Key.ToLower() == item.Key.ToLower());
+                RegistrationTimeline? existing = null;
+                if (item.Id > 0)
+                {
+                    existing = existingDbTimelines.FirstOrDefault(t => t.Id == item.Id);
+                }
+                if (existing == null)
+                {
+                    existing = existingDbTimelines.FirstOrDefault(t => t.Key.ToLower() == item.Key.ToLower());
+                }
+
                 if (existing != null)
                 {
+                    existing.Key = item.Key;
                     existing.Label = item.Label;
                     existing.DateValue = item.DateValue;
                     existing.SubLabel = item.SubLabel;

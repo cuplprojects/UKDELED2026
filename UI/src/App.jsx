@@ -9,6 +9,7 @@ import CorrectionPage from './pages/CorrectionPage'
 import ApplicationDashboard from './pages/ApplicationDashboard'
 import ForgotPassword from './pages/ForgotPassword'
 import VerifyApplication from './pages/VerifyApplication'
+import AdmitCard from './pages/AdmitCard'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
 import Maintenance from './pages/Maintenance'
@@ -53,6 +54,8 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route path="/admit-card" element={<AdmitCard />} />
+        <Route path="/download-admit-card" element={<AdmitCard />} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
       </Routes>
     </Router>

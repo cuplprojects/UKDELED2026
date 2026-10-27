@@ -81,6 +81,65 @@ export default function ApplicationDashboard() {
     }
   };
 
+  const [admitCardDownloading, setAdmitCardDownloading] = useState(false);
+  const [admitTimelineStatus, setAdmitTimelineStatus] = useState(null);
+
+  const handleDownloadAdmitCard = async () => {
+    if (!profile?.registrationNo) return;
+    setAdmitCardDownloading(true);
+    try {
+      const response = await api.post(
+        "/api/AdmitCard/download",
+        {
+          registrationNo: profile.registrationNo,
+          dob: profile.dob || "",
+          fullName: profile.fullName || "",
+          isLogin: true
+        },
+        { responseType: "blob" }
+      );
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `AdmitCard_${profile.registrationNo}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      notification.success({
+        message: "Admit Card Downloaded",
+        description: `Admit card for registration ${profile.registrationNo} downloaded successfully.`,
+        placement: "topRight"
+      });
+
+      // Telemetry log
+      api.post("/api/AdmitCard/log-download", {
+        registrationNo: profile.registrationNo,
+        isLogin: true
+      }).catch(console.error);
+    } catch (err) {
+      let desc = "Admit Card is not currently available for download or schedule is inactive.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed.message) desc = parsed.message;
+        } catch (_) {}
+      } else if (err.response?.data?.message) {
+        desc = err.response.data.message;
+      }
+      notification.warning({
+        message: "Admit Card Notice",
+        description: desc,
+        placement: "topRight"
+      });
+    } finally {
+      setAdmitCardDownloading(false);
+    }
+  };
 
   const isCorrectionWindowOpen = () => {
     if (!timelines || timelines.length === 0) return false;
@@ -177,6 +236,15 @@ export default function ApplicationDashboard() {
             }
           } catch (e) {
             console.error("Error fetching timelines", e);
+          }
+
+          try {
+            const admitStatusRes = await api.get(`/api/AdmitCard/timeline-status`);
+            if (admitStatusRes.data) {
+              setAdmitTimelineStatus(admitStatusRes.data);
+            }
+          } catch (e) {
+            console.error("Error fetching admit card timeline status", e);
           }
 
           try {
@@ -804,6 +872,19 @@ export default function ApplicationDashboard() {
                       className="col-span-1 sm:col-span-2 lg:col-span-3 flex items-center justify-center gap-2 p-3 sm:p-4 md:p-5 bg-yellow-500 hover:bg-yellow-600 text-white font-extrabold text-xs sm:text-sm md:text-base rounded-lg transition duration-200 shadow-md hover:scale-[1.01] cursor-pointer"
                     >
                       <span>✏️</span> Make Corrections to Application
+                    </button>
+                  )}
+
+                  {/* Download Admit Card Button - Only shown when date is in range */}
+                  {profile?.isPaymentCompleted && admitTimelineStatus?.isOpen && (
+                    <button
+                      onClick={handleDownloadAdmitCard}
+                      disabled={admitCardDownloading}
+                      className="flex items-center justify-center gap-2 p-3 sm:p-4 md:p-5 text-white font-extrabold text-xs sm:text-sm md:text-base rounded-lg transition duration-200 shadow-md bg-emerald-600 hover:bg-emerald-700 hover:scale-[1.01] cursor-pointer disabled:opacity-50"
+                      title="Download Admit Card"
+                    >
+                      <span>🎫</span>{" "}
+                      {admitCardDownloading ? "Downloading Admit Card..." : "Download Admit Card"}
                     </button>
                   )}
 

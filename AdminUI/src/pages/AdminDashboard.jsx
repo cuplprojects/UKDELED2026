@@ -3646,14 +3646,14 @@ export default function AdminDashboard() {
                       <h4 className="text-xs font-semibold text-slate-550 uppercase tracking-wider mb-4 flex items-center gap-1.5">
                         <FaEye className="text-slate-400" /> Public Portal Preview (Live)
                       </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {/* Starts Box */}
                         {(() => {
                           const item = cmsTimelines.find(t => t.key === "starts") || { label: "REGISTRATION STARTS", dateValue: "", subLabel: "11:00 AM onwards" };
                           return (
                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
                               <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "REGISTRATION STARTS"}</span>
-                              <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
+                              <span className="block text-base font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "11:00 AM onwards"}</span>
                               <FaCalendarAlt className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
                             </div>
@@ -3666,7 +3666,7 @@ export default function AdminDashboard() {
                           return (
                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
                               <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "REGISTRATION CLOSES"}</span>
-                              <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
+                              <span className="block text-base font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
                               <FaClock className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
                             </div>
@@ -3679,9 +3679,35 @@ export default function AdminDashboard() {
                           return (
                             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
                               <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "LAST DATE FOR FEE"}</span>
-                              <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
+                              <span className="block text-base font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
                               <FaCreditCard className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
+                            </div>
+                          );
+                        })()}
+
+                        {/* Admit Card Starts Box */}
+                        {(() => {
+                          const item = cmsTimelines.find(t => t.key === "admit_starts" || t.key === "admit_start" || (t.label && t.label.toUpperCase().includes("ADMIT") && t.label.toUpperCase().includes("START"))) || { label: "ADMIT CARD DOWNLOAD STARTS", dateValue: "", subLabel: "10:00 AM onwards" };
+                          return (
+                            <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-200 relative overflow-hidden">
+                              <span className="block text-[10px] font-semibold text-teal-600 uppercase tracking-wider">{item.label || "ADMIT CARD STARTS"}</span>
+                              <span className="block text-base font-bold text-teal-900 mt-1">{item.dateValue}</span>
+                              <span className="block text-xs font-medium text-teal-700 mt-0.5">{item.subLabel || "10:00 AM onwards"}</span>
+                              <FaIdCard className="absolute right-3 bottom-2 text-2xl opacity-10 text-teal-600" />
+                            </div>
+                          );
+                        })()}
+
+                        {/* Admit Card Closes Box */}
+                        {(() => {
+                          const item = cmsTimelines.find(t => t.key === "admit_closes" || t.key === "admit_close" || (t.label && t.label.toUpperCase().includes("ADMIT") && t.label.toUpperCase().includes("CLOSE"))) || { label: "ADMIT CARD DOWNLOAD CLOSES", dateValue: "", subLabel: "Till 11:59 PM" };
+                          return (
+                            <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200 relative overflow-hidden">
+                              <span className="block text-[10px] font-semibold text-amber-600 uppercase tracking-wider">{item.label || "ADMIT CARD CLOSES"}</span>
+                              <span className="block text-base font-bold text-amber-900 mt-1">{item.dateValue}</span>
+                              <span className="block text-xs font-medium text-amber-700 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
+                              <FaClock className="absolute right-3 bottom-2 text-2xl opacity-10 text-amber-600" />
                             </div>
                           );
                         })()}
@@ -3698,7 +3724,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Key (Unique identifier)</label>
                           <input
                             type="text"
-                            placeholder="e.g. starts, closes, fee"
+                            placeholder="e.g. admit_starts, admit_closes, fee"
                             value={newTimelineKey}
                             onChange={(e) => setNewTimelineKey(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3708,7 +3734,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Card Header Label</label>
                           <input
                             type="text"
-                            placeholder="e.g. REGISTRATION STARTS"
+                            placeholder="e.g. ADMIT CARD DOWNLOAD STARTS"
                             value={newTimelineLabel}
                             onChange={(e) => setNewTimelineLabel(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3718,7 +3744,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Date Text</label>
                           <input
                             type="text"
-                            placeholder="e.g. 23 May 2026"
+                            placeholder="e.g. 15 October 2026"
                             value={newTimelineDate}
                             onChange={(e) => setNewTimelineDate(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3728,7 +3754,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Sub-label Text</label>
                           <input
                             type="text"
-                            placeholder="e.g. 11:00 AM onwards"
+                            placeholder="e.g. 10:00 AM onwards"
                             value={newTimelineSubLabel}
                             onChange={(e) => setNewTimelineSubLabel(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3754,13 +3780,15 @@ export default function AdminDashboard() {
                         if (item.key === "starts") colorTheme = "border-l-4 border-l-emerald-500 bg-blue-50/10";
                         if (item.key === "closes") colorTheme = "border-l-4 border-l-red-500 bg-red-50/10";
                         if (item.key === "fee") colorTheme = "border-l-4 border-l-blue-500 bg-blue-50/10";
+                        if (item.key === "admit_starts" || (item.label && item.label.toUpperCase().includes("ADMIT") && item.label.toUpperCase().includes("START"))) colorTheme = "border-l-4 border-l-teal-600 bg-teal-50/10";
+                        if (item.key === "admit_closes" || (item.label && item.label.toUpperCase().includes("ADMIT") && item.label.toUpperCase().includes("CLOSE"))) colorTheme = "border-l-4 border-l-amber-600 bg-amber-50/10";
 
                         return (
-                          <div key={item.key} className={`p-6 border border-slate-200 rounded-xl space-y-4 shadow-sm ${colorTheme}`}>
+                          <div key={item.id || item.key || index} className={`p-6 border border-slate-200 rounded-xl space-y-4 shadow-sm ${colorTheme}`}>
                             <div className="flex items-center justify-between">
                               <h4 className="text-xs font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                {item.key === "starts" ? <FaPlayCircle className="text-emerald-500" /> : item.key === "closes" ? <FaStopCircle className="text-red-500" /> : item.key === "fee" ? <FaInfoCircle className="text-blue-500" /> : <FaCalendarAlt className="text-slate-500" />}
-                                {item.key === "starts" ? "Registration Starts Card" : item.key === "closes" ? "Registration Closes Card" : item.key === "fee" ? "Last Date for Fee Card" : `${item.label || item.key.toUpperCase()} Card`}
+                                {item.key === "starts" ? <FaPlayCircle className="text-emerald-500" /> : item.key === "closes" ? <FaStopCircle className="text-red-500" /> : item.key === "fee" ? <FaInfoCircle className="text-blue-500" /> : item.key.includes("admit") || (item.label && item.label.toUpperCase().includes("ADMIT")) ? <FaIdCard className="text-teal-600" /> : <FaCalendarAlt className="text-slate-500" />}
+                                {item.key === "starts" ? "Registration Starts Card" : item.key === "closes" ? "Registration Closes Card" : item.key === "fee" ? "Last Date for Fee Card" : item.key === "admit_starts" ? "Admit Card Download Starts Card" : item.key === "admit_closes" ? "Admit Card Download Closes Card" : `${item.label || item.key.toUpperCase()} Card`}
                               </h4>
                               <div className="flex items-center gap-2.5">
                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-semibold uppercase">KEY: {item.key}</span>

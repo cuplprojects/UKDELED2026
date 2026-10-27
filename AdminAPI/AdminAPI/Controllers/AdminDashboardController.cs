@@ -163,6 +163,8 @@ namespace DELED.Controllers
                                           .Take(20)
                                           .ToListAsync();
 
+                var downloadedCount = await _context.ACDloggers.Select(x => x.UserId).Distinct().CountAsync();
+
                 return Ok(new
                 {
                     success = true,
@@ -171,7 +173,7 @@ namespace DELED.Controllers
                         totalRegistration = count.ToString("D4"),
                         paidApplications = paidCount.ToString("D4"),
                         finalExamCount = finalExamCount.ToString("D4"),
-                        admitCardDownloaded = $"0000 / {count.ToString("D4")}"
+                        admitCardDownloaded = $"{downloadedCount.ToString("D4")} / {count.ToString("D4")}"
                     },
                     applications = usersList,
                     totalApplicationsCount = totalCount,

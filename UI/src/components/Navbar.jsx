@@ -1,12 +1,32 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaHome, FaDownload, FaExternalLinkAlt, FaUser, FaPowerOff } from "react-icons/fa";
+import { FaHome, FaDownload, FaExternalLinkAlt, FaUser, FaPowerOff, FaIdCard } from "react-icons/fa";
 import { useAuthStore } from "../stores/authStore";
+import { api } from "../stores/apiStore";
 
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isAuthenticated, logout } = useAuthStore();
+  const [isAdmitCardOpen, setIsAdmitCardOpen] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    api.get("/api/AdmitCard/timeline-status")
+      .then((res) => {
+        if (isMounted && res.data?.success && res.data.isOpen) {
+          setIsAdmitCardOpen(true);
+        } else if (isMounted) {
+          setIsAdmitCardOpen(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setIsAdmitCardOpen(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [location.pathname]);
 
   const isHome = location.pathname === "/" || location.pathname === "/application";
 
@@ -19,7 +39,7 @@ export default function Navbar() {
 
   return (
     <nav className="bg-blue-600 px-4 sm:px-8 py-2 flex items-center justify-between gap-4 text-white text-sm md:text-base font-bold w-full select-none shadow-xs">
-      {/* Left Side: HOME, INFORMATION BROCHURE, UBSE WEBSITE */}
+      {/* Left Side: HOME, INFORMATION BROCHURE, UBSE WEBSITE, ADMIT CARD (only when active) */}
       <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
         <button
           onClick={() => navigate(isAuthenticated ? "/application" : "/")}
@@ -48,6 +68,20 @@ export default function Navbar() {
           <FaExternalLinkAlt className="w-3.5 h-3.5 text-white" />
           <span>UBSE WEBSITE</span>
         </a>
+        {isAdmitCardOpen && (
+          <>
+            <div className="w-px h-5 bg-white/30"></div>
+            <button
+              onClick={() => navigate("/admit-card")}
+              className={`flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 transition whitespace-nowrap cursor-pointer rounded text-white shadow-xs font-bold ${
+                location.pathname === "/admit-card" ? "ring-2 ring-white" : ""
+              }`}
+            >
+              <FaIdCard className="w-4 h-4 text-white" />
+              <span>ADMIT CARD</span>
+            </button>
+          </>
+        )}
       </div>
 
       {/* Right Side: Welcome User & Log Out */}

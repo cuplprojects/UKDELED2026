@@ -41,7 +41,8 @@ builder.Services.AddCors(options =>
     {
         policyBuilder.AllowAnyOrigin()
                       .AllowAnyMethod()
-                      .AllowAnyHeader();
+                      .AllowAnyHeader()
+                      .WithExposedHeaders("X-Registration-No", "X-Candidate-Name", "X-Encrypted-Token", "Content-Disposition");
     });
 });
 
