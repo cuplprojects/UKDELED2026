@@ -9,6 +9,7 @@ import CorrectionPage from './pages/CorrectionPage'
 import ApplicationDashboard from './pages/ApplicationDashboard'
 import ForgotPassword from './pages/ForgotPassword'
 import VerifyApplication from './pages/VerifyApplication'
+import VerifyAdmitCard from './pages/VerifyAdmitCard'
 import AdmitCard from './pages/AdmitCard'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
@@ -28,6 +29,19 @@ function App() {
         <Route path="/verify/:registrationNo" element={<VerifyApplication />} />
         <Route path="/applicant-review" element={<VerifyApplication />} />
         <Route path="/applicant-review/:registrationNo" element={<VerifyApplication />} />
+
+        {/* Admit Card QR Verification (Direct URL scan only - no navigation buttons) */}
+        <Route path="/verify-admit-card" element={<VerifyAdmitCard />} />
+        <Route path="/verify-admit-card/:registrationNo" element={<VerifyAdmitCard />} />
+        <Route path="/verify-admitcard" element={<VerifyAdmitCard />} />
+        <Route path="/verify-admitcard/:registrationNo" element={<VerifyAdmitCard />} />
+        <Route path="/admit-card-verification" element={<VerifyAdmitCard />} />
+        <Route path="/admit-card-verification/:registrationNo" element={<VerifyAdmitCard />} />
+        <Route path="/admit-card/verify" element={<VerifyAdmitCard />} />
+        <Route path="/admit-card/verify/:registrationNo" element={<VerifyAdmitCard />} />
+        <Route path="/admitcard/verify" element={<VerifyAdmitCard />} />
+        <Route path="/admitcard/verify/:registrationNo" element={<VerifyAdmitCard />} />
+
         <Route path="/new-registration" element={<GuestRoute><NewRegistration /></GuestRoute>} />
         <Route path="/verify-otp" element={<GuestRoute><OtpVerification /></GuestRoute>} />
         <Route 
