@@ -84,7 +84,7 @@ export default function AdmitCard() {
     }
 
     if (!formData.fullName.trim()) {
-      setErrorMessage("Candidate Full Name is required.");
+      setErrorMessage("Candidate Name is required.");
       return;
     }
     if (!formData.dob) {
@@ -293,7 +293,7 @@ export default function AdmitCard() {
             <div className="bg-emerald-50/70 border-b border-emerald-100 px-6 py-3 flex items-center gap-2 text-emerald-800 text-xs font-semibold">
               <FaCheckCircle className="text-emerald-600 shrink-0" />
               <span>
-                Download window is currently active. Search with Candidate Full Name and Date of Birth to view and print your admit card.
+                Download window is currently active. Search with Candidate Name and Date of Birth to view and print your admit card.
               </span>
             </div>
           )}
@@ -379,27 +379,18 @@ export default function AdmitCard() {
 
               {/* Search Form */}
               <form onSubmit={handleSearchSubmit} className="space-y-4">
-                {/* Candidate Full Name */}
+                {/* Candidate Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Candidate Full Name <span className="text-red-500">*</span>
+                    Candidate Name <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <FaUser className="w-3.5 h-3.5" />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. SARVAGYA"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition uppercase"
-                    />
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1">
-                    Space & case-insensitive (multi-word match supported)
-                  </p>
+                  <input
+                    type="text"
+                    required
+                    value={formData.fullName}
+                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition uppercase"
+                  />
                 </div>
 
                 {/* Date of Birth */}
@@ -407,18 +398,13 @@ export default function AdmitCard() {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Date of Birth (DOB) <span className="text-red-500">*</span>
                   </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                      <FaCalendarAlt className="w-3.5 h-3.5" />
-                    </div>
-                    <input
-                      type="date"
-                      required
-                      value={formData.dob}
-                      onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                      className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
-                    />
-                  </div>
+                  <input
+                    type="date"
+                    required
+                    value={formData.dob}
+                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition cursor-pointer"
+                  />
                 </div>
 
                 {/* 5-Digit Security Captcha */}
@@ -427,14 +413,14 @@ export default function AdmitCard() {
                     Security Captcha <span className="text-red-500">*</span>
                   </label>
                   <div className="flex items-center gap-3 mb-2">
-                    <div className="px-5 py-2 bg-gradient-to-r from-slate-800 to-slate-900 text-emerald-400 font-mono font-black text-lg tracking-widest rounded-xl select-none shadow-inner border border-slate-700">
+                    <div className="px-5 py-2 bg-gradient-to-r from-slate-800 to-slate-900 text-emerald-400 font-mono font-black text-lg tracking-widest rounded-lg select-none shadow-inner border border-slate-700">
                       {captchaCode}
                     </div>
                     <button
                       type="button"
                       onClick={refreshCaptcha}
-                      className="p-2.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-xl transition cursor-pointer border border-blue-200"
-                      title="Generate new 5-digit Captcha"
+                      className="p-2.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition cursor-pointer border border-blue-200"
+                      title="Generate new Captcha"
                     >
                       <FaSyncAlt className="w-4 h-4" />
                     </button>
@@ -443,10 +429,9 @@ export default function AdmitCard() {
                     type="text"
                     required
                     maxLength={5}
-                    placeholder="Enter 5-digit security code"
                     value={captchaInput}
                     onChange={(e) => setCaptchaInput(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 placeholder-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition"
                   />
                 </div>
 

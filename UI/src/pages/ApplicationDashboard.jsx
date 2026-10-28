@@ -884,7 +884,7 @@ export default function ApplicationDashboard() {
                     <button
                       onClick={handleDownloadAdmitCard}
                       disabled={admitCardDownloading}
-                      className="flex items-center justify-center gap-2 p-3 sm:p-4 md:p-5 text-white font-extrabold text-xs sm:text-sm md:text-base rounded-lg transition duration-200 shadow-md bg-emerald-600 hover:bg-emerald-700 hover:scale-[1.01] cursor-pointer disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 p-3 sm:p-4 md:p-5 text-white font-extrabold text-xs sm:text-sm md:text-base rounded-lg transition duration-200 shadow-md bg-blue-600 hover:bg-blue-700 hover:scale-[1.01] cursor-pointer disabled:opacity-50"
                       title="Download Admit Card"
                     >
                       <span>🎫</span>{" "}

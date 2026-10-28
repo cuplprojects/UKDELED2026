@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import Layout from "../components/Layout";
 import { api } from "../stores/apiStore";
-import { FaEye, FaEyeSlash, FaSyncAlt, FaUserPlus } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaSyncAlt, FaUserPlus, FaIdCard, FaDownload } from "react-icons/fa";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -42,6 +42,9 @@ export default function Home() {
   const [alerts, setAlerts] = useState([]);
   const [isRegistrationOpen, setIsRegistrationOpen] = useState(true);
   const [admitTimelineStatus, setAdmitTimelineStatus] = useState(null);
+  const [loginMode, setLoginMode] = useState("login"); // "login" | "admitCard"
+  const [admitFormData, setAdmitFormData] = useState({ candidateName: "", dob: "" });
+  const [admitLoading, setAdmitLoading] = useState(false);
 
   useEffect(() => {
     const fetchNotices = async () => {
@@ -334,6 +337,80 @@ export default function Home() {
     }
   };
 
+  const handleAdmitCardSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!admitFormData.candidateName.trim()) {
+      setError("Candidate Name is required.");
+      return;
+    }
+    if (!admitFormData.dob) {
+      setError("Date of Birth is required.");
+      return;
+    }
+    if (captchaInput !== captchaVal) {
+      setError("Invalid Captcha Code. Please try again.");
+      setCaptchaInput("");
+      generateCaptcha();
+      return;
+    }
+
+    setAdmitLoading(true);
+    try {
+      const response = await api.post(
+        "/api/AdmitCard/download",
+        {
+          fullName: admitFormData.candidateName.trim(),
+          dob: admitFormData.dob,
+          isLogin: false
+        },
+        { responseType: "blob" }
+      );
+
+      // Determine downloaded file name
+      const contentDisposition = response.headers["content-disposition"];
+      let filename = `AdmitCard_${admitFormData.candidateName.trim().replace(/\s+/g, "_")}.pdf`;
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+        if (match && match[1]) {
+          filename = match[1].replace(/['"]/g, "");
+        }
+      }
+
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setSuccess("Admit Card downloaded successfully!");
+      setCaptchaInput("");
+      generateCaptcha();
+    } catch (err) {
+      console.error("Admit Card download error:", err);
+      let errorDesc = "Failed to download Admit Card. Please verify Candidate Name and Date of Birth.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed.message) errorDesc = parsed.message;
+        } catch (_) {}
+      } else if (err.response?.data?.message) {
+        errorDesc = err.response.data.message;
+      }
+      setError(errorDesc);
+      setCaptchaInput("");
+      generateCaptcha();
+    } finally {
+      setAdmitLoading(false);
+    }
+  };
+
 
 
   const activeAlerts = alerts
@@ -373,32 +450,6 @@ export default function Home() {
             </div>
 
             <div className="p-4 sm:p-5 md:p-6 flex-1 flex flex-col justify-center">
-              {/* Admit Card Download Banner - Only visible when date is in range */}
-              {admitTimelineStatus?.isOpen && (
-                <div className="mb-4 rounded-xl p-4 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-white bg-gradient-to-r from-emerald-600 to-teal-700">
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-xl shrink-0">
-                      🎫
-                    </span>
-                    <div>
-                      <h4 className="font-extrabold text-sm sm:text-base tracking-wide">
-                        डी० एल० एड० 2026 प्रवेश पत्र डाउनलोड प्रारंभ
-                      </h4>
-                      <p className="text-white/90 text-xs mt-0.5">
-                        {admitTimelineStatus?.message || "Candidate Admit Card is available according to the official timeline schedule."}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/admit-card")}
-                    className="px-4 py-2 text-xs sm:text-sm font-black rounded-lg shadow transition cursor-pointer whitespace-nowrap self-stretch sm:self-auto text-center bg-white text-emerald-800 hover:bg-emerald-50"
-                  >
-                    Download Admit Card →
-                  </button>
-                </div>
-              )}
-
               <div className="mb-4 border-b border-gray-100 pb-3">
                 <h3 className="text-[#b81d24] font-black text-base sm:text-lg md:text-xl">
                   आवश्यक सूचना :
@@ -486,130 +537,267 @@ export default function Home() {
 
           </div>
 
-          {/* Login Container (Stretches across columns 9-12 on large screens) */}
+          {/* Login / Download Admit Card Container */}
           <div className="lg:col-span-1 xl:col-span-4 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col justify-between">
             <div className="bg-blue-600 text-white px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between font-bold text-base sm:text-lg md:text-xl border-b border-blue-700">
               <span className="flex items-center gap-2.5 min-w-0">
-                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white inline-block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-3.418 4.818l-2.828 2.828m0 0A2 2 0 0110 17H8v2H6v2H3v-3l2.828-2.828m0 0A2 2 0 018 12h2m4-2a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                <span className="truncate">Applicant Login</span>
+                {loginMode === "admitCard" ? (
+                  <>
+                    <FaIdCard className="w-5 h-5 sm:w-6 sm:h-6 text-white shrink-0" />
+                    <span className="truncate">Download Admit Card (प्रवेश पत्र)</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-white inline-block shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m-3.418 4.818l-2.828 2.828m0 0A2 2 0 0110 17H8v2H6v2H3v-3l2.828-2.828m0 0A2 2 0 018 12h2m4-2a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <span className="truncate">Applicant Login</span>
+                  </>
+                )}
               </span>
             </div>
 
-            <form autoComplete="off" onSubmit={handleLoginSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 flex-1">
-              {error && (
-                <div className="bg-red-50 text-red-700 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm font-semibold border border-red-200 animate-shake">
-                  ⚠️ {error}
-                </div>
-              )}
+            {loginMode === "admitCard" ? (
+              /* Admit Card Mode Form */
+              <form autoComplete="off" onSubmit={handleAdmitCardSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 flex-1">
+                {error && (
+                  <div className="bg-red-50 text-red-700 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm font-semibold border border-red-200 animate-shake">
+                    ⚠️ {error}
+                  </div>
+                )}
 
-              {success && (
-                <div className="bg-blue-50 text-blue-700 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm font-semibold border border-blue-200">
-                  ✓ {success}
-                </div>
-              )}
+                {success && (
+                  <div className="bg-emerald-50 text-emerald-800 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm font-semibold border border-emerald-200">
+                    ✓ {success}
+                  </div>
+                )}
 
-              <div>
-                <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1.5">
-                  Registration No. (पंजीकरण संख्या)<span className="text-red-600 font-bold">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="registrationNo"
-                  value={loginData.registrationNo}
-                  onChange={handleInputChange}
-                  placeholder="Enter Registration No."
-                  required
-                  disabled={loading}
-                  className="w-full px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1.5">
-                  Password (पासवर्ड)<span className="text-red-600 font-bold">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={loginData.password}
-                    onChange={handleInputChange}
-                    placeholder="Enter Password"
-                    required
-                    disabled={loading}
-                    className="w-full px-3.5 py-2.5 sm:py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-base select-none cursor-pointer focus:outline-hidden"
-                  >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Captcha Section */}
-              <div className="space-y-1.5 my-2">
-                <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1">
-                  Enter Captcha Code (कैप्चा कोड) 
-                </label>
-                <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                {/* Candidate Name in place of Registration No. */}
+                <div>
+                  <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
+                    Candidate Name (अभ्यर्थी का नाम)<span className="text-red-600 font-bold">*</span>
+                  </label>
                   <input
                     type="text"
-                    name="captchaInput"
-                    value={captchaInput}
-                    onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, ""))}
-                    placeholder="Captcha"
                     required
-                    disabled={loading}
-                    className="flex-1 min-w-0 px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
+                    disabled={admitLoading}
+                    value={admitFormData.candidateName}
+                    onChange={(e) => setAdmitFormData({ ...admitFormData, candidateName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition uppercase font-semibold"
                   />
-                  <div className="bg-blue-200 border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-base sm:text-xl tracking-wider font-black text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
-                    {captchaVal}
+                </div>
+
+                {/* Date of Birth in place of Password */}
+                <div>
+                  <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
+                    Date of Birth (जन्म तिथि)<span className="text-red-600 font-bold">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    disabled={admitLoading}
+                    value={admitFormData.dob}
+                    onChange={(e) => setAdmitFormData({ ...admitFormData, dob: e.target.value })}
+                    className="w-full px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition font-semibold cursor-pointer"
+                  />
+                </div>
+
+                {/* Captcha Section */}
+                <div className="space-y-1.5 my-2">
+                  <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1">
+                    Enter Captcha Code (कैप्चा कोड)
+                  </label>
+                  <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                    <input
+                      type="text"
+                      name="captchaInput"
+                      value={captchaInput}
+                      onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, ""))}
+                      placeholder="Captcha"
+                      required
+                      disabled={admitLoading}
+                      className="flex-1 min-w-0 px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
+                    />
+                    <div className="bg-blue-200 border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-base sm:text-xl tracking-wider font-black text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
+                      {captchaVal}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={generateCaptcha}
+                      title="Reload Captcha"
+                      disabled={admitLoading}
+                      className="p-2.5 sm:p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-sm transition flex items-center justify-center shrink-0 cursor-pointer"
+                    >
+                      <FaSyncAlt className="w-4 h-4 text-gray-600" />
+                    </button>
                   </div>
+                </div>
+
+                {/* Download Admit Card Action Button */}
+                <div className="mt-3">
                   <button
-                    type="button"
-                    onClick={generateCaptcha}
-                    title="Reload Captcha"
-                    disabled={loading}
-                    className="p-2.5 sm:p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-sm transition flex items-center justify-center shrink-0 cursor-pointer"
+                    type="submit"
+                    disabled={admitLoading}
+                    className="w-full py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer disabled:opacity-50"
                   >
-                    <FaSyncAlt className="w-4 h-4 text-gray-600" />
+                    <FaDownload className="w-4 h-4 text-white" />
+                    <span>{admitLoading ? "Downloading Admit Card..." : "Download Admit Card (प्रवेश पत्र डाउनलोड करें)"}</span>
                   </button>
                 </div>
-              </div>
 
-              <div className="flex gap-2 sm:gap-2.5 mt-3">
-                <button
-                  type="button"
-                  onClick={() => navigate("/register")}
-                  className="flex-1 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
-                >
-                  <FaUserPlus className="w-4 h-4 text-[#93c5fd] shrink-0" />
-                  <span>NEW REGISTRATION</span>
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase whitespace-nowrap cursor-pointer"
-                >
-                  {loading ? "Logging in..." : "Login (लॉगिन करें)"}
-                </button>
-              </div>
+                {/* Switch Back to Login Link */}
+                <div className="text-center pt-2 sm:pt-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLoginMode("login");
+                      setError("");
+                      setSuccess("");
+                      setCaptchaInput("");
+                      generateCaptcha();
+                    }}
+                    className="bg-transparent border-0 p-0 text-sm sm:text-base font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer transition flex items-center justify-center gap-1.5 mx-auto"
+                  >
+                    <span>← Back to Applicant Login (लॉगिन पर वापस जाएँ)</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* Normal Applicant Login Form */
+              <form autoComplete="off" onSubmit={handleLoginSubmit} className="p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 flex-1">
+                {error && (
+                  <div className="bg-red-50 text-red-700 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm font-semibold border border-red-200 animate-shake">
+                    ⚠️ {error}
+                  </div>
+                )}
 
-              <div className="text-center pt-3 sm:pt-4">
-                <button
-                  type="button"
-                  onClick={() => navigate("/forgot-password")}
-                  className="bg-transparent border-0 p-0 text-base sm:text-lg md:text-[17.5px] font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer transition"
-                >
-                  Forgot Password? (पासवर्ड भूल गए?)
-                </button>
-              </div>
-            </form>
+                {success && (
+                  <div className="bg-blue-50 text-blue-700 p-2.5 sm:p-3 rounded-lg text-xs sm:text-sm font-semibold border border-blue-200">
+                    ✓ {success}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1.5">
+                    Registration No. (पंजीकरण संख्या)<span className="text-red-600 font-bold">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="registrationNo"
+                    value={loginData.registrationNo}
+                    onChange={handleInputChange}
+                    placeholder="Enter Registration No."
+                    required
+                    disabled={loading}
+                    className="w-full px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1.5">
+                    Password (पासवर्ड)<span className="text-red-600 font-bold">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={loginData.password}
+                      onChange={handleInputChange}
+                      placeholder="Enter Password"
+                      required
+                      disabled={loading}
+                      className="w-full px-3.5 py-2.5 sm:py-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-base select-none cursor-pointer focus:outline-hidden"
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Captcha Section */}
+                <div className="space-y-1.5 my-2">
+                  <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1">
+                    Enter Captcha Code (कैप्चा कोड) 
+                  </label>
+                  <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                    <input
+                      type="text"
+                      name="captchaInput"
+                      value={captchaInput}
+                      onChange={(e) => setCaptchaInput(e.target.value.replace(/\D/g, ""))}
+                      placeholder="Captcha"
+                      required
+                      disabled={loading}
+                      className="flex-1 min-w-0 px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
+                    />
+                    <div className="bg-blue-200 border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-base sm:text-xl tracking-wider font-black text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
+                      {captchaVal}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={generateCaptcha}
+                      title="Reload Captcha"
+                      disabled={loading}
+                      className="p-2.5 sm:p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-sm transition flex items-center justify-center shrink-0 cursor-pointer"
+                    >
+                      <FaSyncAlt className="w-4 h-4 text-gray-600" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 sm:gap-2.5 mt-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/register")}
+                    className="flex-1 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-1.5 whitespace-nowrap cursor-pointer"
+                  >
+                    <FaUserPlus className="w-4 h-4 text-[#93c5fd] shrink-0" />
+                    <span>NEW REGISTRATION</span>
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase whitespace-nowrap cursor-pointer"
+                  >
+                    {loading ? "Logging in..." : "Login (लॉगिन करें)"}
+                  </button>
+                </div>
+
+                {/* Just above Forgot Password: Download Admit Card Link */}
+                {admitTimelineStatus?.isOpen && (
+                  <div className="text-center pt-3 pb-1 border-b border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginMode("admitCard");
+                        setError("");
+                        setSuccess("");
+                        setCaptchaInput("");
+                        generateCaptcha();
+                      }}
+                      className="bg-transparent border-0 p-0 text-sm sm:text-base font-extrabold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer transition flex items-center justify-center gap-2 mx-auto"
+                    >
+                      <FaIdCard className="w-4 h-4 text-blue-600" />
+                      <span>Download Admit Card (प्रवेश पत्र डाउनलोड करें)</span>
+                    </button>
+                  </div>
+                )}
+
+                <div className="text-center pt-2 sm:pt-3">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/forgot-password")}
+                    className="bg-transparent border-0 p-0 text-base sm:text-lg md:text-[17.5px] font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer transition"
+                  >
+                    Forgot Password? (पासवर्ड भूल गए?)
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
         </div>

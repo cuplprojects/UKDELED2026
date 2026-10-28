@@ -73,8 +73,8 @@ export default function Navbar() {
             <div className="w-px h-5 bg-white/30"></div>
             <button
               onClick={() => navigate("/admit-card")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 transition whitespace-nowrap cursor-pointer rounded text-white shadow-xs font-bold ${
-                location.pathname === "/admit-card" ? "ring-2 ring-white" : ""
+              className={`flex items-center gap-2 px-3.5 py-1.5 hover:bg-blue-700 transition whitespace-nowrap cursor-pointer rounded-xs ${
+                location.pathname === "/admit-card" ? "bg-blue-700" : ""
               }`}
             >
               <FaIdCard className="w-4 h-4 text-white" />
