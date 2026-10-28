@@ -748,8 +748,15 @@ namespace DELED.Controllers
                     join ec in _context.ExamCity on pd.ExamCity1 equals ec.CityId into ecJoin
                     from ec in ecJoin.DefaultIfEmpty()
                     where u.IsPaymentCompleted
-                    group new { ec.CityName, ec.CityCode } by new { ec.CityName, ec.CityCode } into g
-                    select new { CityName = g.Key.CityName, CityCode = g.Key.CityCode, Count = g.Count() }
+                    group new { pd, ec } by new { ec.CityName, ec.CityCode } into g
+                    select new
+                    {
+                        CityName = g.Key.CityName,
+                        CityCode = g.Key.CityCode,
+                        Count = g.Count(),
+                        PhCount = g.Sum(x => x.pd.IsPhysicallyHandicapped ? 1 : 0),
+                        ScribeCount = g.Sum(x => x.pd.ScribeRequired ? 1 : 0)
+                    }
                 ).ToListAsync();
 
                 var cityRows = cityData
@@ -765,7 +772,9 @@ namespace DELED.Controllers
                             Deled = city.Count,
                             Deled1 = city.Count,
                             Deled2 = 0,
-                            Total = city.Count
+                            Total = city.Count,
+                            PhCount = city.PhCount,
+                            ScribeCount = city.ScribeCount
                         };
                     }).ToList();
 

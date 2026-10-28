@@ -282,6 +282,11 @@ export default function AdminDashboard() {
   const [cmsTimelines, setCmsTimelines] = useState([]);
   const [cmsLoading, setCmsLoading] = useState(false);
   const [cmsSaving, setCmsSaving] = useState(false);
+  const [cmsNotices, setCmsNotices] = useState([]);
+  const [cmsDocuments, setCmsDocuments] = useState([]);
+  const [cmsNoticesLoading, setCmsNoticesLoading] = useState(false);
+  const [togglingNoticeId, setTogglingNoticeId] = useState(null);
+  const [togglingDocId, setTogglingDocId] = useState(null);
   const [showEmailReportPdf, setShowEmailReportPdf] = useState(false);
   const [pdfReportUrl, setPdfReportUrl] = useState(null);
   const [loadingPdf, setLoadingPdf] = useState(false);
@@ -319,7 +324,8 @@ export default function AdminDashboard() {
       key,
       label: newTimelineLabel.trim() || key.toUpperCase(),
       dateValue: newTimelineDate.trim() || "",
-      subLabel: newTimelineSubLabel.trim() || ""
+      subLabel: newTimelineSubLabel.trim() || "",
+      status: 1
     };
 
     setCmsTimelines([...cmsTimelines, newTimeline]);
@@ -574,7 +580,8 @@ export default function AdminDashboard() {
           key: item.key || item.Key,
           label: item.label || item.Label,
           dateValue: item.dateValue || item.DateValue,
-          subLabel: item.subLabel || item.SubLabel
+          subLabel: item.subLabel || item.SubLabel,
+          status: item.status !== undefined ? Number(item.status) : (item.Status !== undefined ? Number(item.Status) : 1)
         }));
         setCmsTimelines(normalized);
       }
@@ -589,9 +596,117 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchCmsNoticesAndDocs = async () => {
+    setCmsNoticesLoading(true);
+    try {
+      let noticeData = null;
+      let docData = null;
+
+      try {
+        const res = await api.get("/api/Notice/all");
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          noticeData = res.data.data;
+        }
+      } catch (e1) {
+        try {
+          const res = await userApi.get("/api/Notice/all");
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            noticeData = res.data.data;
+          }
+        } catch (e2) {
+          console.warn("Could not fetch notices:", e2);
+        }
+      }
+
+      try {
+        const res = await api.get("/api/ImpDocument/all");
+        if (res.data?.success && Array.isArray(res.data.data)) {
+          docData = res.data.data;
+        }
+      } catch (e1) {
+        try {
+          const res = await userApi.get("/api/ImpDocument/all");
+          if (res.data?.success && Array.isArray(res.data.data)) {
+            docData = res.data.data;
+          }
+        } catch (e2) {
+          console.warn("Could not fetch documents:", e2);
+        }
+      }
+
+      if (noticeData) setCmsNotices(noticeData);
+      if (docData) setCmsDocuments(docData);
+    } catch (err) {
+      console.error("Failed to load notices & documents:", err);
+    } finally {
+      setCmsNoticesLoading(false);
+    }
+  };
+
+  const handleToggleNoticeStatus = async (noticeId, currentStatus) => {
+    const nextStatus = Number(currentStatus) === 1 ? 0 : 1;
+    setTogglingNoticeId(noticeId);
+    try {
+      let success = false;
+      try {
+        const res = await api.put(`/api/Notice/${noticeId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      } catch (e1) {
+        const res = await userApi.put(`/api/Notice/${noticeId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      }
+
+      if (success) {
+        setCmsNotices(prev => prev.map(n => ((n.noticeId === noticeId || n.id === noticeId) ? { ...n, status: nextStatus, isNew: nextStatus === 1 } : n)));
+        notification.success({
+          message: "Notice Status Updated",
+          description: `Notice status updated to ${nextStatus === 1 ? '"New" (Badge visible)' : '"Normal" (Badge hidden)'}.`
+        });
+      }
+    } catch (err) {
+      notification.error({
+        message: "Status Update Failed",
+        description: err.response?.data?.message || "Failed to update notice status."
+      });
+    } finally {
+      setTogglingNoticeId(null);
+    }
+  };
+
+  const handleToggleDocStatus = async (docId, currentStatus) => {
+    const nextStatus = Number(currentStatus) === 1 ? 0 : 1;
+    setTogglingDocId(docId);
+    try {
+      let success = false;
+      try {
+        const res = await api.put(`/api/ImpDocument/${docId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      } catch (e1) {
+        const res = await userApi.put(`/api/ImpDocument/${docId}/status`, { status: nextStatus });
+        if (res.data?.success) success = true;
+      }
+
+      if (success) {
+        setCmsDocuments(prev => prev.map(d => ((d.impDocumentId === docId || d.id === docId) ? { ...d, status: nextStatus, isNew: nextStatus === 1 } : d)));
+        notification.success({
+          message: "Document Status Updated",
+          description: `Document status updated to ${nextStatus === 1 ? '"New" (Badge visible)' : '"Normal" (Badge hidden)'}.`
+        });
+      }
+    } catch (err) {
+      notification.error({
+        message: "Status Update Failed",
+        description: err.response?.data?.message || "Failed to update document status."
+      });
+    } finally {
+      setTogglingDocId(null);
+    }
+  };
+
   useEffect(() => {
     if (activeTab === "cms") {
       fetchCmsTimelines();
+      fetchCmsNoticesAndDocs();
     }
   }, [activeTab]);
 
@@ -1005,6 +1120,8 @@ export default function AdminDashboard() {
     }
 
     const cityGrandTotal = reportCityWise.reduce((acc, row) => acc + (row.deled || row.Deled || row.total || row.Total || 0), 0);
+    const cityPhTotal = reportCityWise.reduce((acc, row) => acc + (row.phCount || row.PhCount || 0), 0);
+    const cityScribeTotal = reportCityWise.reduce((acc, row) => acc + (row.scribeCount || row.ScribeCount || 0), 0);
     const totalRegReportCount = reportDateWise.reduce((acc, row) => acc + (row.regNo || row.RegNo || 0), 0);
     const totalFeesReportCount = reportDateWise.reduce((acc, row) => acc + (row.feesNo || row.FeesNo || 0), 0);
 
@@ -1030,18 +1147,22 @@ export default function AdminDashboard() {
       `).join('');
 
     const cityRowsHtml = reportCityWise.length === 0
-      ? `<tr><td colspan="3" style="text-align: center; padding: 20px; color: #94a3b8;">No report data found.</td></tr>`
+      ? `<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94a3b8;">No report data found.</td></tr>`
       : `${reportCityWise.map((row, idx) => `
         <tr>
           <td style="text-align: center;">${idx + 1}</td>
           <td>${row.cityName || row.CityName || ""}</td>
           <td style="text-align: center; font-weight: bold;">${row.deled || row.Deled || row.total || row.Total || 0}</td>
+          <td style="text-align: center;">${row.phCount || row.PhCount || 0}</td>
+          <td style="text-align: center;">${row.scribeCount || row.ScribeCount || 0}</td>
         </tr>
       `).join('')}
       <tr class="total-row">
         <td></td>
         <td>TOTAL</td>
         <td style="text-align: center; font-size: 12px;">${cityGrandTotal}</td>
+        <td style="text-align: center; font-size: 12px;">${cityPhTotal}</td>
+        <td style="text-align: center; font-size: 12px;">${cityScribeTotal}</td>
       </tr>`;
 
     const htmlDoc = `<!DOCTYPE html>
@@ -1160,6 +1281,8 @@ export default function AdminDashboard() {
         <th style="text-align: center; width: 80px;">Sr. No.</th>
         <th>Exam City Code/Name</th>
         <th style="text-align: center;">DELED</th>
+        <th style="text-align: center;">PH Count</th>
+        <th style="text-align: center;">Scribe Count</th>
       </tr>
     </thead>
     <tbody>
@@ -2732,13 +2855,15 @@ export default function AdminDashboard() {
                             <tr className="bg-slate-50/55 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-xs font-semibold">
                               <th className="px-6 py-3 border-r border-slate-200 text-center w-16">Sr. No.</th>
                               <th className="px-6 py-3 border-r border-slate-200 text-left">Exam City Code/Name</th>
-                              <th className="px-6 py-3 text-center">DELED</th>
+                              <th className="px-6 py-3 border-r border-slate-200 text-center">DELED</th>
+                              <th className="px-6 py-3 border-r border-slate-200 text-center">PH Count</th>
+                              <th className="px-6 py-3 text-center">Scribe Count</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {reportCityWise.length === 0 ? (
                               <tr>
-                                <td colSpan={3} className="px-6 py-8 text-center text-slate-450">No report data found.</td>
+                                <td colSpan={5} className="px-6 py-8 text-center text-slate-450">No report data found.</td>
                               </tr>
                             ) : (
                               <>
@@ -2746,15 +2871,23 @@ export default function AdminDashboard() {
                                   <tr key={idx} className="hover:bg-slate-50/30 transition">
                                     <td className="px-6 py-3 border-r border-slate-200 text-center">{idx + 1}</td>
                                     <td className="px-6 py-3 border-r border-slate-200 text-slate-800 font-medium">{row.cityName || row.CityName}</td>
-                                    <td className="px-6 py-3 text-center font-bold text-slate-800">{row.deled || row.Deled || row.total || row.Total || 0}</td>
+                                    <td className="px-6 py-3 border-r border-slate-200 text-center font-bold text-slate-800">{row.deled || row.Deled || row.total || row.Total || 0}</td>
+                                    <td className="px-6 py-3 border-r border-slate-200 text-center text-slate-800">{row.phCount ?? row.PhCount ?? 0}</td>
+                                    <td className="px-6 py-3 text-center text-slate-800">{row.scribeCount ?? row.ScribeCount ?? 0}</td>
                                   </tr>
                                 ))}
                                 {/* Totals row */}
                                 <tr className="bg-slate-50/20 border-t border-slate-200 text-sm font-bold">
                                   <td className="px-6 py-3 border-r border-slate-200 text-center"></td>
                                   <td className="px-6 py-3 border-r border-slate-200 text-left text-slate-800 uppercase tracking-wider">Total</td>
-                                  <td className="px-6 py-3 text-center text-slate-900 font-extrabold">
+                                  <td className="px-6 py-3 border-r border-slate-200 text-center text-slate-900 font-extrabold">
                                     {reportCityWise.reduce((acc, row) => acc + (row.deled || row.Deled || row.total || row.Total || 0), 0)}
+                                  </td>
+                                  <td className="px-6 py-3 border-r border-slate-200 text-center text-slate-900 font-extrabold">
+                                    {reportCityWise.reduce((acc, row) => acc + (row.phCount || row.PhCount || 0), 0)}
+                                  </td>
+                                  <td className="px-6 py-3 text-center text-slate-900 font-extrabold">
+                                    {reportCityWise.reduce((acc, row) => acc + (row.scribeCount || row.ScribeCount || 0), 0)}
                                   </td>
                                 </tr>
                               </>
@@ -3649,11 +3782,16 @@ export default function AdminDashboard() {
                       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
                         {/* Starts Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "starts") || { label: "REGISTRATION STARTS", dateValue: "", subLabel: "11:00 AM onwards" };
+                          const item = cmsTimelines.find(t => t.key === "starts");
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "REGISTRATION STARTS"}</span>
-                              <span className="block text-base font-bold text-slate-800 mt-1">{item.dateValue}</span>
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-emerald-50/50 border-emerald-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{item.label || "REGISTRATION STARTS"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
+                              <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "11:00 AM onwards"}</span>
                               <FaCalendarAlt className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
                             </div>
@@ -3662,11 +3800,16 @@ export default function AdminDashboard() {
 
                         {/* Closes Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "closes") || { label: "REGISTRATION CLOSES", dateValue: "", subLabel: "Till 11:59 PM" };
+                          const item = cmsTimelines.find(t => t.key === "closes");
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "REGISTRATION CLOSES"}</span>
-                              <span className="block text-base font-bold text-slate-800 mt-1">{item.dateValue}</span>
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-red-50/50 border-red-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{item.label || "REGISTRATION CLOSES"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-red-100 text-red-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
+                              <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
                               <FaClock className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
                             </div>
@@ -3675,39 +3818,54 @@ export default function AdminDashboard() {
 
                         {/* Fee Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "fee") || { label: "LAST DATE FOR FEE", dateValue: "", subLabel: "Till 11:59 PM" };
+                          const item = cmsTimelines.find(t => t.key === "fee");
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{item.label || "LAST DATE FOR FEE"}</span>
-                              <span className="block text-base font-bold text-slate-800 mt-1">{item.dateValue}</span>
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-blue-50/50 border-blue-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider">{item.label || "LAST DATE FOR FEE"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-blue-100 text-blue-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
+                              <span className="block text-lg font-bold text-slate-800 mt-1">{item.dateValue}</span>
                               <span className="block text-xs font-medium text-slate-600 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
                               <FaCreditCard className="absolute right-3 bottom-2 text-2xl opacity-10 text-slate-400" />
                             </div>
                           );
                         })()}
 
-                        {/* Admit Card Starts Box */}
+                        {/* Correction Starts Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "admit_starts" || t.key === "admit_start" || (t.label && t.label.toUpperCase().includes("ADMIT") && t.label.toUpperCase().includes("START"))) || { label: "ADMIT CARD DOWNLOAD STARTS", dateValue: "", subLabel: "10:00 AM onwards" };
+                          const item = cmsTimelines.find(t => t.key === "corr_starts" || t.key === "correction_starts" || (t.label || "").includes("CORRECTION STARTS"));
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-teal-50/50 p-4 rounded-xl border border-teal-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-teal-600 uppercase tracking-wider">{item.label || "ADMIT CARD STARTS"}</span>
-                              <span className="block text-base font-bold text-teal-900 mt-1">{item.dateValue}</span>
-                              <span className="block text-xs font-medium text-teal-700 mt-0.5">{item.subLabel || "10:00 AM onwards"}</span>
-                              <FaIdCard className="absolute right-3 bottom-2 text-2xl opacity-10 text-teal-600" />
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-amber-50 border-amber-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-amber-700 uppercase tracking-wider">{item.label || "CORRECTION STARTS"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-amber-100 text-amber-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
+                              <span className="block text-lg font-bold text-amber-900 mt-1">{item.dateValue}</span>
+                              <span className="block text-xs font-medium text-amber-700 mt-0.5">{item.subLabel || "11:00 AM onwards"}</span>
+                              <FaCalendarAlt className="absolute right-3 bottom-2 text-2xl opacity-10 text-amber-600" />
                             </div>
                           );
                         })()}
 
-                        {/* Admit Card Closes Box */}
+                        {/* Correction Closes Box */}
                         {(() => {
-                          const item = cmsTimelines.find(t => t.key === "admit_closes" || t.key === "admit_close" || (t.label && t.label.toUpperCase().includes("ADMIT") && t.label.toUpperCase().includes("CLOSE"))) || { label: "ADMIT CARD DOWNLOAD CLOSES", dateValue: "", subLabel: "Till 11:59 PM" };
+                          const item = cmsTimelines.find(t => t.key === "corr_closes" || t.key === "correction_closes" || (t.label || "").includes("CORRECTION CLOSES"));
+                          if (!item) return null;
+                          const isVis = Number(item.status) === 1;
                           return (
-                            <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200 relative overflow-hidden">
-                              <span className="block text-[10px] font-semibold text-amber-600 uppercase tracking-wider">{item.label || "ADMIT CARD CLOSES"}</span>
-                              <span className="block text-base font-bold text-amber-900 mt-1">{item.dateValue}</span>
-                              <span className="block text-xs font-medium text-amber-700 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
-                              <FaClock className="absolute right-3 bottom-2 text-2xl opacity-10 text-amber-600" />
+                            <div className={`p-4 rounded-xl border relative overflow-hidden ${isVis ? 'bg-rose-50 border-rose-200' : 'bg-gray-100/70 border-gray-200 opacity-60'}`}>
+                              <div className="flex items-center justify-between">
+                                <span className="block text-[10px] font-semibold text-rose-700 uppercase tracking-wider">{item.label || "CORRECTION CLOSES"}</span>
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${isVis ? 'bg-rose-100 text-rose-800' : 'bg-gray-200 text-gray-600'}`}>{isVis ? 'Active (Status 1)' : 'Hidden (Status 0)'}</span>
+                              </div>
+                              <span className="block text-lg font-bold text-rose-900 mt-1">{item.dateValue}</span>
+                              <span className="block text-xs font-medium text-rose-700 mt-0.5">{item.subLabel || "Till 11:59 PM"}</span>
+                              <FaClock className="absolute right-3 bottom-2 text-2xl opacity-10 text-rose-600" />
                             </div>
                           );
                         })()}
@@ -3724,7 +3882,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Key (Unique identifier)</label>
                           <input
                             type="text"
-                            placeholder="e.g. admit_starts, admit_closes, fee"
+                            placeholder="e.g. starts, closes, fee, corr_starts"
                             value={newTimelineKey}
                             onChange={(e) => setNewTimelineKey(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3734,7 +3892,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Card Header Label</label>
                           <input
                             type="text"
-                            placeholder="e.g. ADMIT CARD DOWNLOAD STARTS"
+                            placeholder="e.g. REGISTRATION STARTS, CORRECTION STARTS"
                             value={newTimelineLabel}
                             onChange={(e) => setNewTimelineLabel(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3744,7 +3902,7 @@ export default function AdminDashboard() {
                           <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Date Text</label>
                           <input
                             type="text"
-                            placeholder="e.g. 15 October 2026"
+                            placeholder="e.g. 13 October 2026"
                             value={newTimelineDate}
                             onChange={(e) => setNewTimelineDate(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
@@ -3780,18 +3938,21 @@ export default function AdminDashboard() {
                         if (item.key === "starts") colorTheme = "border-l-4 border-l-emerald-500 bg-blue-50/10";
                         if (item.key === "closes") colorTheme = "border-l-4 border-l-red-500 bg-red-50/10";
                         if (item.key === "fee") colorTheme = "border-l-4 border-l-blue-500 bg-blue-50/10";
-                        if (item.key === "admit_starts" || (item.label && item.label.toUpperCase().includes("ADMIT") && item.label.toUpperCase().includes("START"))) colorTheme = "border-l-4 border-l-teal-600 bg-teal-50/10";
-                        if (item.key === "admit_closes" || (item.label && item.label.toUpperCase().includes("ADMIT") && item.label.toUpperCase().includes("CLOSE"))) colorTheme = "border-l-4 border-l-amber-600 bg-amber-50/10";
+                        if (item.key === "corr_starts" || (item.label || "").includes("CORRECTION STARTS")) colorTheme = "border-l-4 border-l-amber-500 bg-amber-50/10";
+                        if (item.key === "corr_closes" || (item.label || "").includes("CORRECTION CLOSES")) colorTheme = "border-l-4 border-l-rose-500 bg-rose-50/10";
 
                         return (
                           <div key={item.id || item.key || index} className={`p-6 border border-slate-200 rounded-xl space-y-4 shadow-sm ${colorTheme}`}>
                             <div className="flex items-center justify-between">
                               <h4 className="text-xs font-semibold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                                {item.key === "starts" ? <FaPlayCircle className="text-emerald-500" /> : item.key === "closes" ? <FaStopCircle className="text-red-500" /> : item.key === "fee" ? <FaInfoCircle className="text-blue-500" /> : item.key.includes("admit") || (item.label && item.label.toUpperCase().includes("ADMIT")) ? <FaIdCard className="text-teal-600" /> : <FaCalendarAlt className="text-slate-500" />}
-                                {item.key === "starts" ? "Registration Starts Card" : item.key === "closes" ? "Registration Closes Card" : item.key === "fee" ? "Last Date for Fee Card" : item.key === "admit_starts" ? "Admit Card Download Starts Card" : item.key === "admit_closes" ? "Admit Card Download Closes Card" : `${item.label || item.key.toUpperCase()} Card`}
+                                {item.key === "starts" ? <FaPlayCircle className="text-emerald-500" /> : item.key === "closes" ? <FaStopCircle className="text-red-500" /> : item.key === "fee" ? <FaInfoCircle className="text-blue-500" /> : <FaCalendarAlt className="text-slate-500" />}
+                                {item.key === "starts" ? "Registration Starts Card" : item.key === "closes" ? "Registration Closes Card" : item.key === "fee" ? "Last Date for Fee Card" : item.key === "corr_starts" ? "Correction Starts Card" : item.key === "corr_closes" ? "Correction Closes Card" : `${item.label || item.key.toUpperCase()} Card`}
                               </h4>
                               <div className="flex items-center gap-2.5">
                                 <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-semibold uppercase">KEY: {item.key}</span>
+                                <span className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${Number(item.status) === 1 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-gray-100 text-gray-500 border border-gray-300'}`}>
+                                  {Number(item.status) === 1 ? 'STATUS: 1 (VISIBLE)' : 'STATUS: 0 (HIDDEN)'}
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -3807,7 +3968,7 @@ export default function AdminDashboard() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                               <div>
                                 <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Card Header Label</label>
                                 <input
@@ -3852,6 +4013,22 @@ export default function AdminDashboard() {
                                   className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-normal text-slate-800 focus:ring-2 focus:ring-slate-500/10 focus:border-slate-500 outline-hidden"
                                 />
                               </div>
+
+                              <div>
+                                <label className="block text-[10px] font-medium text-slate-500 mb-1 uppercase">Card Visibility (Status)</label>
+                                <select
+                                  value={item.status !== undefined ? Number(item.status) : 1}
+                                  onChange={(e) => {
+                                    const updated = [...cmsTimelines];
+                                    updated[index].status = parseInt(e.target.value, 10);
+                                    setCmsTimelines(updated);
+                                  }}
+                                  className={`w-full border rounded-lg px-3 py-2 text-xs font-bold outline-hidden ${Number(item.status) === 1 ? 'bg-emerald-50/50 border-emerald-300 text-emerald-800' : 'bg-gray-50 border-gray-300 text-gray-600'}`}
+                                >
+                                  <option value={1}>Visible in Cards (Status = 1)</option>
+                                  <option value={0}>Hidden from Cards (Status = 0)</option>
+                                </select>
+                              </div>
                             </div>
                           </div>
                         );
@@ -3877,6 +4054,173 @@ export default function AdminDashboard() {
                           </>
                         )}
                       </button>
+                    </div>
+
+                    {/* Notices & Documents "New" Badge Status Management */}
+                    <div className="pt-8 border-t border-slate-200 space-y-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <h4 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                            <FaBullhorn className="text-blue-600" />
+                            <span>Notices & Important Documents "New" Badge Manager</span>
+                          </h4>
+                          <p className="text-xs text-slate-500 font-normal mt-0.5">
+                            Dynamically toggle the "New" badge on or off for public notices and important documents displayed on the homepage.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={fetchCmsNoticesAndDocs}
+                          disabled={cmsNoticesLoading}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer border border-slate-300 transition flex items-center gap-1.5 self-start"
+                        >
+                          {cmsNoticesLoading ? (
+                            <div className="w-3.5 h-3.5 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <span>Refresh Lists</span>
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Notices Section */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                              <FaBullhorn className="text-emerald-600" />
+                              <span>Public Notices / Circulars ({cmsNotices.length})</span>
+                            </h5>
+                            <span className="text-[11px] text-slate-400 font-medium">Click button to toggle</span>
+                          </div>
+
+                          {cmsNoticesLoading ? (
+                            <div className="py-8 text-center text-xs text-slate-400">Loading notices...</div>
+                          ) : cmsNotices.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-slate-400">No notices found.</div>
+                          ) : (
+                            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                              {cmsNotices.map((notice) => {
+                                const nId = notice.noticeId || notice.id;
+                                const isItemNew = Number(notice.status) === 1 || notice.isNew === true;
+                                const isToggling = togglingNoticeId === nId;
+
+                                return (
+                                  <div
+                                    key={nId}
+                                    className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-xs transition"
+                                  >
+                                    <div className="min-w-0 pr-3">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-slate-800 truncate" title={notice.name}>
+                                          {notice.name}
+                                        </span>
+                                        {isItemNew && (
+                                          <span className="bg-red-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                                            New
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+                                        ID: {nId} | Path: {notice.path}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      disabled={isToggling}
+                                      onClick={() => handleToggleNoticeStatus(nId, notice.status)}
+                                      className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0 border ${
+                                        isItemNew
+                                          ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                                          : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+                                      }`}
+                                    >
+                                      {isToggling ? (
+                                        <span className="flex items-center gap-1">
+                                          <div className="w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                                          Saving...
+                                        </span>
+                                      ) : isItemNew ? (
+                                        "Status: 1 (New)"
+                                      ) : (
+                                        "Status: 0 (Normal)"
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Important Documents Section */}
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                              <FaFolder className="text-blue-600" />
+                              <span>Important Documents ({cmsDocuments.length})</span>
+                            </h5>
+                            <span className="text-[11px] text-slate-400 font-medium">Click button to toggle</span>
+                          </div>
+
+                          {cmsNoticesLoading ? (
+                            <div className="py-8 text-center text-xs text-slate-400">Loading documents...</div>
+                          ) : cmsDocuments.length === 0 ? (
+                            <div className="py-8 text-center text-xs text-slate-400">No documents found.</div>
+                          ) : (
+                            <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                              {cmsDocuments.map((doc) => {
+                                const dId = doc.impDocumentId || doc.id;
+                                const isItemNew = Number(doc.status) === 1 || doc.isNew === true;
+                                const isToggling = togglingDocId === dId;
+
+                                return (
+                                  <div
+                                    key={dId}
+                                    className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-xs transition"
+                                  >
+                                    <div className="min-w-0 pr-3">
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-xs font-semibold text-slate-800 truncate" title={doc.name}>
+                                          {doc.name}
+                                        </span>
+                                        {isItemNew && (
+                                          <span className="bg-red-500 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full uppercase shrink-0">
+                                            New
+                                          </span>
+                                        )}
+                                      </div>
+                                      <span className="text-[10px] text-slate-400 truncate block mt-0.5">
+                                        ID: {dId} | Path: {doc.path}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      disabled={isToggling}
+                                      onClick={() => handleToggleDocStatus(dId, doc.status)}
+                                      className={`px-3 py-1.5 rounded-md text-xs font-bold uppercase tracking-wider transition cursor-pointer shrink-0 border ${
+                                        isItemNew
+                                          ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                                          : "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+                                      }`}
+                                    >
+                                      {isToggling ? (
+                                        <span className="flex items-center gap-1">
+                                          <div className="w-3 h-3 border-2 border-slate-600 border-t-transparent rounded-full animate-spin"></div>
+                                          Saving...
+                                        </span>
+                                      ) : isItemNew ? (
+                                        "Status: 1 (New)"
+                                      ) : (
+                                        "Status: 0 (Normal)"
+                                      )}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </div>
 
                   </form>

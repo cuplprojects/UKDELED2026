@@ -23,6 +23,38 @@ namespace DELED.Controllers
             _fileStorageService = fileStorageService;
         }
 
+        private static bool _statusColumnChecked = false;
+
+        private async Task EnsureStatusColumnAsync()
+        {
+            if (_statusColumnChecked) return;
+            try
+            {
+                var conn = _context.Database.GetDbConnection();
+                if (conn.State != System.Data.ConnectionState.Open)
+                {
+                    await conn.OpenAsync();
+                }
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = @"
+                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_SCHEMA = DATABASE() 
+                      AND TABLE_NAME = 'Notices' 
+                      AND COLUMN_NAME = 'Status';";
+                var exists = Convert.ToInt32(await cmd.ExecuteScalarAsync()) > 0;
+                if (!exists)
+                {
+                    cmd.CommandText = "ALTER TABLE `Notices` ADD COLUMN `Status` INT NOT NULL DEFAULT 0;";
+                    await cmd.ExecuteNonQueryAsync();
+                }
+                _statusColumnChecked = true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AdminAPI NoticeController] EnsureStatusColumn error: {ex.Message}");
+            }
+        }
+
         // ================================
         // Upload Notice
         // POST api/Notice/upload
@@ -35,6 +67,8 @@ namespace DELED.Controllers
         {
             try
             {
+                await EnsureStatusColumnAsync();
+
                 if (request.File == null || request.File.Length == 0)
                 {
                     return BadRequest(new
@@ -87,7 +121,8 @@ namespace DELED.Controllers
                 var notice = new Notice
                 {
                     Name = request.Name,
-                    Path = savedPath
+                    Path = savedPath,
+                    Status = request.Status ?? 0
                 };
 
                 _context.Notices.Add(notice);
@@ -102,6 +137,8 @@ namespace DELED.Controllers
                         noticeId = notice.NoticeId,
                         notice.Name,
                         notice.Path,
+                        status = notice.Status,
+                        isNew = notice.Status == 1,
                         url = $"{Request.Scheme}://{Request.Host}/{notice.Path}"
                     }
                 });
@@ -123,6 +160,8 @@ namespace DELED.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> GetAll()
         {
+            await EnsureStatusColumnAsync();
+
             var data = await _context.Notices
                 .OrderByDescending(x => x.NoticeId)
                 .Select(x => new
@@ -130,6 +169,8 @@ namespace DELED.Controllers
                     x.NoticeId,
                     x.Name,
                     x.Path,
+                    status = x.Status,
+                    isNew = x.Status == 1,
                     url = $"{Request.Scheme}://{Request.Host}/{x.Path}"
                 })
                 .ToListAsync();
@@ -149,6 +190,7 @@ namespace DELED.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> Get(int id)
         {
+            await EnsureStatusColumnAsync();
             var notice = await _context.Notices
                 .FirstOrDefaultAsync(x => x.NoticeId == id);
 
@@ -169,6 +211,8 @@ namespace DELED.Controllers
                     notice.NoticeId,
                     notice.Name,
                     notice.Path,
+                    status = notice.Status,
+                    isNew = notice.Status == 1,
                     url = $"{Request.Scheme}://{Request.Host}/{notice.Path}"
                 }
             });
@@ -182,6 +226,7 @@ namespace DELED.Controllers
         [Authorize]
         public async Task<IActionResult> Delete(int id)
         {
+            await EnsureStatusColumnAsync();
             var notice = await _context.Notices.FindAsync(id);
 
             if (notice == null)
@@ -203,7 +248,7 @@ namespace DELED.Controllers
         }
 
         // ================================
-        // Update Name
+        // Update Name and Status
         // PUT api/Notice/{id}
         // ================================
         [HttpPut("{id}")]
@@ -212,6 +257,7 @@ namespace DELED.Controllers
             int id,
             [FromBody] UpdateNoticeRequest request)
         {
+            await EnsureStatusColumnAsync();
             var notice = await _context.Notices.FindAsync(id);
 
             if (notice == null)
@@ -219,13 +265,61 @@ namespace DELED.Controllers
                 return NotFound();
             }
 
-            notice.Name = request.Name;
+            if (!string.IsNullOrWhiteSpace(request.Name))
+            {
+                notice.Name = request.Name;
+            }
+            if (request.Status.HasValue)
+            {
+                notice.Status = request.Status.Value;
+            }
+
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
                 success = true,
-                message = "Updated"
+                message = "Updated",
+                data = new
+                {
+                    notice.NoticeId,
+                    notice.Name,
+                    notice.Path,
+                    status = notice.Status,
+                    isNew = notice.Status == 1,
+                    url = $"{Request.Scheme}://{Request.Host}/{notice.Path}"
+                }
+            });
+        }
+
+        // ================================
+        // Update Status only
+        // PUT api/Notice/{id}/status
+        // ================================
+        [HttpPut("{id}/status")]
+        [AllowAnonymous]
+        public async Task<IActionResult> UpdateStatus(
+            int id,
+            [FromBody] UpdateNoticeStatusRequest request)
+        {
+            await EnsureStatusColumnAsync();
+            var notice = await _context.Notices.FindAsync(id);
+
+            if (notice == null)
+            {
+                return NotFound(new { success = false, message = "Notice not found" });
+            }
+
+            notice.Status = request.Status;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                success = true,
+                message = "Status updated",
+                noticeId = notice.NoticeId,
+                status = notice.Status,
+                isNew = notice.Status == 1
             });
         }
 
@@ -240,6 +334,7 @@ namespace DELED.Controllers
             int id,
             [FromForm] NoticePatchRequest request)
         {
+            await EnsureStatusColumnAsync();
             var notice = await _context.Notices.FindAsync(id);
 
             if (notice == null)
@@ -251,6 +346,12 @@ namespace DELED.Controllers
             if (!string.IsNullOrWhiteSpace(request.Name))
             {
                 notice.Name = request.Name;
+            }
+
+            // Update status if provided
+            if (request.Status.HasValue)
+            {
+                notice.Status = request.Status.Value;
             }
 
             // Handle file upload
@@ -307,6 +408,8 @@ namespace DELED.Controllers
                     notice.NoticeId,
                     notice.Name,
                     notice.Path,
+                    status = notice.Status,
+                    isNew = notice.Status == 1,
                     url = $"{Request.Scheme}://{Request.Host}/{notice.Path}"
                 }
             });
@@ -319,17 +422,25 @@ namespace DELED.Controllers
     public class NoticeUploadRequest
     {
         public string Name { get; set; } = "";
+        public int? Status { get; set; }
         public IFormFile File { get; set; } = null!;
     }
 
     public class UpdateNoticeRequest
     {
-        public string Name { get; set; } = "";
+        public string? Name { get; set; }
+        public int? Status { get; set; }
     }
 
     public class NoticePatchRequest
     {
         public string? Name { get; set; }
+        public int? Status { get; set; }
         public IFormFile? File { get; set; }
+    }
+
+    public class UpdateNoticeStatusRequest
+    {
+        public int Status { get; set; }
     }
 }

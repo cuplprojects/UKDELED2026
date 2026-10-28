@@ -102,6 +102,17 @@ namespace DELED.Services
             List<DateWiseReportDto> dateWiseData,
             List<(string CityName, int Count)> cityRows)
         {
+            return GenerateDailyReportPdf(
+                generatedAt,
+                dateWiseData,
+                cityRows.Select(c => (c.CityName, c.Count, PhCount: 0, ScribeCount: 0)).ToList());
+        }
+
+        public static byte[] GenerateDailyReportPdf(
+            DateTime generatedAt,
+            List<DateWiseReportDto> dateWiseData,
+            List<(string CityName, int Count, int PhCount, int ScribeCount)> cityRows)
+        {
             // QuestPDF community licence — set once at startup, but safe to call here too.
             QuestPDF.Settings.License = LicenseType.Community;
 
@@ -201,6 +212,8 @@ namespace DELED.Services
                                 c.ConstantColumn(35);   // Sr.No.
                                 c.RelativeColumn(3);    // Exam City Code/Name
                                 c.RelativeColumn(1);    // DELED
+                                c.RelativeColumn(1);    // PH Count
+                                c.RelativeColumn(1);    // Scribe Count
                             });
 
                             static IContainer HeaderCell(IContainer c) =>
@@ -211,6 +224,8 @@ namespace DELED.Services
                                 h.Cell().Element(HeaderCell).Text("Sr.\nNo.").Bold();
                                 h.Cell().Element(HeaderCell).Text("Exam City Code/Name").Bold();
                                 h.Cell().Element(HeaderCell).Text("DELED").Bold();
+                                h.Cell().Element(HeaderCell).Text("PH Count").Bold();
+                                h.Cell().Element(HeaderCell).Text("Scribe Count").Bold();
                             });
 
                             static IContainer DataCell(IContainer c) =>
@@ -218,18 +233,26 @@ namespace DELED.Services
 
                             int sr = 1;
                             int totalAll = 0;
+                            int totalPh = 0;
+                            int totalScribe = 0;
 
                             foreach (var city in cityRows)
                             {
                                 table.Cell().Element(DataCell).AlignCenter().Text(sr++.ToString());
                                 table.Cell().Element(DataCell).Text(city.CityName);
                                 table.Cell().Element(DataCell).AlignCenter().Text(city.Count.ToString());
+                                table.Cell().Element(DataCell).AlignCenter().Text(city.PhCount.ToString());
+                                table.Cell().Element(DataCell).AlignCenter().Text(city.ScribeCount.ToString());
 
                                 totalAll += city.Count;
+                                totalPh += city.PhCount;
+                                totalScribe += city.ScribeCount;
                             }
 
                             table.Cell().ColumnSpan(2).Element(DataCell).AlignRight().Text("Total").Bold();
                             table.Cell().Element(DataCell).AlignCenter().Text(totalAll.ToString()).Bold();
+                            table.Cell().Element(DataCell).AlignCenter().Text(totalPh.ToString()).Bold();
+                            table.Cell().Element(DataCell).AlignCenter().Text(totalScribe.ToString()).Bold();
                         });
                     });
 
@@ -302,15 +325,22 @@ namespace DELED.Services
                 });
             }
 
-            // Exam city breakdown — fetching single DELED paid count per city
+            // Exam city breakdown — fetching single DELED paid count per city along with PH and Scribe counts
             var cityData = await (
                 from pd in context.UserPersonalDetails
                 join u in context.Users on pd.UserId equals u.UserId
                 join ec in context.ExamCity on pd.ExamCity1 equals ec.CityId into ecJoin
                 from ec in ecJoin.DefaultIfEmpty()
                 where u.IsPaymentCompleted
-                group new { ec.CityName, ec.CityCode } by new { ec.CityName, ec.CityCode } into g
-                select new { CityName = g.Key.CityName, CityCode = g.Key.CityCode, Count = g.Count() }
+                group new { pd, ec } by new { ec.CityName, ec.CityCode } into g
+                select new
+                {
+                    CityName = g.Key.CityName,
+                    CityCode = g.Key.CityCode,
+                    Count = g.Count(),
+                    PhCount = g.Sum(x => x.pd.IsPhysicallyHandicapped ? 1 : 0),
+                    ScribeCount = g.Sum(x => x.pd.ScribeRequired ? 1 : 0)
+                }
             ).ToListAsync();
 
             var cityRows = cityData
@@ -320,7 +350,7 @@ namespace DELED.Services
                     string cityNameDisplay = !string.IsNullOrEmpty(city.CityName)
                         ? (!string.IsNullOrEmpty(city.CityCode) ? $"{city.CityCode} - {city.CityName}" : city.CityName)
                         : "Not Specified";
-                    return (CityName: cityNameDisplay, Count: city.Count);
+                    return (CityName: cityNameDisplay, Count: city.Count, PhCount: city.PhCount, ScribeCount: city.ScribeCount);
                 }).ToList();
 
             // ── Generate PDF ──────────────────────────────────────────────────
