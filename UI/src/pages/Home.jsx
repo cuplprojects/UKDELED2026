@@ -506,15 +506,10 @@ export default function Home() {
                 </p>
               </div>
               {(() => {
-                const showStarts = isCardVisible("starts");
-                const showCloses = isCardVisible("closes");
-                const showFee = isCardVisible("fee");
-                const showCorrStarts = isCardVisible("corr_starts");
-                const showCorrCloses = isCardVisible("corr_closes");
+                // Automatically display all active timelines (status === 1 with dateValue)
+                const activeTimelines = timelines.filter(t => t.dateValue && Number(t.status) === 1);
 
-                const visibleCardsCount = [showStarts, showCloses, showFee, showCorrStarts, showCorrCloses].filter(Boolean).length;
-
-                if (visibleCardsCount === 0) {
+                if (activeTimelines.length === 0) {
                   return (
                     <div className="bg-amber-50/70 border border-amber-200 rounded-lg sm:rounded-xl p-4 sm:p-5 flex items-center gap-3">
                       <div className="p-2 bg-amber-100 rounded-lg text-amber-700">
@@ -524,16 +519,17 @@ export default function Home() {
                       </div>
                       <div>
                         <h4 className="text-sm sm:text-base font-bold text-gray-800">
-                          आवेदन एवं संशोधन प्रक्रिया समाप्त हो चुकी है (Application & Correction Schedule Ended)
+                          महत्वपूर्ण तिथियाँ समाप्त हो चुकी हैं (All Process Schedules Ended)
                         </h4>
                         <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
-                          डी0 एल0 एड0 2026 हेतु ऑनलाइन आवेदन एवं आवेदन संशोधन की निर्धारित तिथियाँ पूर्ण हो चुकी हैं।
+                          डी0 एल0 एड0 2026 हेतु ऑनलाइन आवेदन, संशोधन एवं संबंधित प्रक्रिया की निर्धारित तिथियाँ पूर्ण हो चुकी हैं।
                         </p>
                       </div>
                     </div>
                   );
                 }
 
+                const visibleCardsCount = activeTimelines.length;
                 const gridColsClass = visibleCardsCount === 1
                   ? "grid-cols-1 max-w-sm"
                   : visibleCardsCount === 2
@@ -542,109 +538,39 @@ export default function Home() {
                   ? "grid-cols-1 sm:grid-cols-2 md:grid-cols-3"
                   : visibleCardsCount === 4
                   ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
-                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5";
+                  : visibleCardsCount === 5
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
+                  : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6";
 
                 return (
                   <div className={`grid ${gridColsClass} gap-3 sm:gap-4 md:gap-5`}>
-                    {/* Box 1: Start Date */}
-                    {showStarts && (
-                      <div className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group">
+                    {activeTimelines.map((item, idx) => (
+                      <div
+                        key={item.id || item.key || idx}
+                        className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group shadow-2xs hover:shadow-xs transition"
+                      >
                         <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
-                          {getTimelineValue("starts", "label", "REGISTRATION STARTS")}
+                          {item.label}
                         </span>
                         <span className="block text-lg sm:text-xl md:text-2xl font-black text-emerald-800 mt-1">
-                          {getTimelineValue("starts", "dateValue")}
+                          {item.dateValue}
                         </span>
-                        <span className="block text-xs sm:text-sm font-bold text-blue-700 mt-0.5">
-                          {getTimelineValue("starts", "subLabel")}
-                        </span>
-                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
+                        {item.subLabel ? (
+                          <span className="block text-xs sm:text-sm font-bold text-blue-700 mt-0.5">
+                            {item.subLabel}
+                          </span>
+                        ) : (
+                          <span className="block text-xs sm:text-sm font-medium text-transparent mt-0.5 select-none">
+                            &nbsp;
+                          </span>
+                        )}
+                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300 pointer-events-none">
                           <svg className="w-10 h-10 text-emerald-850" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         </div>
                       </div>
-                    )}
-
-                    {/* Box 2: End Date */}
-                    {showCloses && (
-                      <div className="bg-red-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-red-100 relative overflow-hidden group">
-                        <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
-                          {getTimelineValue("closes", "label", "REGISTRATION CLOSES")}
-                        </span>
-                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-red-700 mt-1">
-                          {getTimelineValue("closes", "dateValue")}
-                        </span>
-                        <span className="block text-xs sm:text-sm font-bold text-red-600 mt-0.5">
-                          {getTimelineValue("closes", "subLabel")}
-                        </span>
-                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
-                          <svg className="w-10 h-10 text-red-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Box 3: Fee Payment */}
-                    {showFee && (
-                      <div className="bg-blue-50/50 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-blue-100 relative overflow-hidden group">
-                        <span className="block text-xs sm:text-sm font-extrabold text-gray-500 uppercase tracking-wider line-clamp-1">
-                          {getTimelineValue("fee", "label", "LAST DATE FOR FEE")}
-                        </span>
-                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-blue-700 mt-1">
-                          {getTimelineValue("fee", "dateValue")}
-                        </span>
-                        <span className="block text-xs sm:text-sm font-bold text-blue-600 mt-0.5 font-sans">
-                          {getTimelineValue("fee", "subLabel")}
-                        </span>
-                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
-                          <svg className="w-10 h-10 text-blue-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Box 4: Correction Starts */}
-                    {showCorrStarts && (
-                      <div className="bg-amber-50/60 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-amber-200 relative overflow-hidden group">
-                        <span className="block text-xs sm:text-sm font-extrabold text-amber-900 uppercase tracking-wider line-clamp-1">
-                          {getTimelineValue("corr_starts", "label", "CORRECTION STARTS")}
-                        </span>
-                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-amber-800 mt-1">
-                          {getTimelineValue("corr_starts", "dateValue")}
-                        </span>
-                        <span className="block text-xs sm:text-sm font-bold text-amber-700 mt-0.5">
-                          {getTimelineValue("corr_starts", "subLabel")}
-                        </span>
-                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
-                          <svg className="w-10 h-10 text-amber-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Box 5: Correction Closes */}
-                    {showCorrCloses && (
-                      <div className="bg-rose-50/60 p-3.5 sm:p-4 rounded-lg sm:rounded-xl border border-rose-200 relative overflow-hidden group">
-                        <span className="block text-xs sm:text-sm font-extrabold text-rose-900 uppercase tracking-wider line-clamp-1">
-                          {getTimelineValue("corr_closes", "label", "CORRECTION CLOSES")}
-                        </span>
-                        <span className="block text-lg sm:text-xl md:text-2xl font-black text-rose-800 mt-1">
-                          {getTimelineValue("corr_closes", "dateValue")}
-                        </span>
-                        <span className="block text-xs sm:text-sm font-bold text-rose-700 mt-0.5">
-                          {getTimelineValue("corr_closes", "subLabel")}
-                        </span>
-                        <div className="absolute right-3 bottom-2 opacity-20 group-hover:scale-110 transition duration-300">
-                          <svg className="w-10 h-10 text-rose-800" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 );
               })()}
@@ -889,7 +815,7 @@ export default function Home() {
                   </button>
                 </div>
 
-                {/* Just above Forgot Password: Download Admit Card Link */}
+                {/* Download Admit Card Link - Date-wise visibility based on active timeline schedule */}
                 {admitTimelineStatus?.isOpen && (
                   <div className="text-center pt-3 pb-1 border-b border-gray-100">
                     <button
