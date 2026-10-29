@@ -1,9 +1,24 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import Layout from "../components/Layout";
+import PdfViewer from "../components/PdfViewer";
 import { api } from "../stores/apiStore";
-import { FaEye, FaEyeSlash, FaSyncAlt, FaUserPlus, FaIdCard, FaDownload } from "react-icons/fa";
+import {
+  FaEye,
+  FaEyeSlash,
+  FaSyncAlt,
+  FaUserPlus,
+  FaIdCard,
+  FaDownload,
+  FaUsers,
+  FaFilePdf,
+  FaPrint,
+  FaTimes,
+  FaFilter,
+  FaCheckCircle,
+  FaExclamationTriangle
+} from "react-icons/fa";
 
 export default function Home() {
   const navigate = useNavigate();
@@ -45,6 +60,40 @@ export default function Home() {
   const [loginMode, setLoginMode] = useState("login"); // "login" | "admitCard"
   const [admitFormData, setAdmitFormData] = useState({ candidateName: "", dob: "" });
   const [admitLoading, setAdmitLoading] = useState(false);
+
+  // Disambiguation Modal States (Multiple candidates detected)
+  const [candidatesModalOpen, setCandidatesModalOpen] = useState(false);
+  const [matchedCandidates, setMatchedCandidates] = useState([]);
+  const [candidateFilterText, setCandidateFilterText] = useState("");
+  const [downloadingCandidateReg, setDownloadingCandidateReg] = useState(null);
+  const [modalError, setModalError] = useState("");
+
+  // Helper to sanitize admit card errors and prevent exposing internal server drives/paths
+  const sanitizeAdmitCardError = (rawMsg) => {
+    if (!rawMsg) return "प्रवेश पत्र अभी उपलब्ध नहीं है। कृपया कुछ समय बाद पुनः प्रयास करें। (Admit Card is not yet available. Please check back later.)";
+    if (/drive|storage|vault|path|folder|directory|\.pdf|[A-Z]:\\/i.test(rawMsg)) {
+      return "प्रवेश पत्र अभी उपलब्ध नहीं है। कृपया कुछ समय बाद पुनः प्रयास करें। (Admit Card is not yet available. Please check back later.)";
+    }
+    return rawMsg;
+  };
+
+  // PDF Canvas Viewer Modal States (Matching AdmitCard.jsx)
+  const [pdfBlob, setPdfBlob] = useState(null);
+  const [activeCandidate, setActiveCandidate] = useState(null);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+
+  // Instant disambiguation filter inside multiple candidates modal
+  const filteredCandidatesInModal = useMemo(() => {
+    if (!candidateFilterText.trim()) return matchedCandidates;
+    const q = candidateFilterText.toLowerCase().trim();
+    return matchedCandidates.filter((c) =>
+      (c.fullName && c.fullName.toLowerCase().includes(q)) ||
+      (c.registrationNo && c.registrationNo.toLowerCase().includes(q)) ||
+      (c.fatherName && c.fatherName.toLowerCase().includes(q)) ||
+      (c.district && c.district.toLowerCase().includes(q)) ||
+      (c.homeDistrict && c.homeDistrict.toLowerCase().includes(q))
+    );
+  }, [matchedCandidates, candidateFilterText]);
 
   useEffect(() => {
     const checkIsNew = (doc) => {
@@ -384,12 +433,172 @@ export default function Home() {
     }
   };
 
+  const handleDownloadCandidateAdmitCard = async (candidate) => {
+    setDownloadingCandidateReg(candidate.registrationNo);
+    setError("");
+
+    try {
+      const response = await api.post(
+        "/api/AdmitCard/download",
+        {
+          registrationNo: candidate.registrationNo,
+          dob: candidate.dob || admitFormData.dob,
+          fullName: candidate.fullName,
+          isLogin: false
+        },
+        { responseType: "blob" }
+      );
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const regNo = candidate.registrationNo || "Candidate";
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `AdmitCard_${regNo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+
+      // Telemetry log
+      api.post("/api/AdmitCard/log-download", {
+        registrationNo: regNo,
+        isLogin: false
+      }).catch(console.error);
+
+      setSuccess(`Admit Card downloaded successfully for ${candidate.fullName} (${regNo})!`);
+      setCandidatesModalOpen(false);
+      setModalError("");
+      setCaptchaInput("");
+      generateCaptcha();
+    } catch (err) {
+      let errorDesc = "Admit Card is not yet available. Please check back later.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed.message) errorDesc = parsed.message;
+        } catch (_) {}
+      } else if (err.response?.data?.message) {
+        errorDesc = err.response.data.message;
+      }
+      const cleanMsg = sanitizeAdmitCardError(errorDesc);
+      setError(cleanMsg);
+      setModalError(cleanMsg);
+    } finally {
+      setDownloadingCandidateReg(null);
+    }
+  };
+
+  const handlePreviewCandidateAdmitCard = async (candidate) => {
+    setDownloadingCandidateReg(candidate.registrationNo);
+    setError("");
+    setModalError("");
+
+    try {
+      const response = await api.post(
+        "/api/AdmitCard/download",
+        {
+          registrationNo: candidate.registrationNo,
+          dob: candidate.dob || admitFormData.dob,
+          fullName: candidate.fullName,
+          isLogin: false
+        },
+        { responseType: "blob" }
+      );
+
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      setPdfBlob(blob);
+      setActiveCandidate(candidate);
+      setShowPdfModal(true);
+      setCandidatesModalOpen(false);
+      setModalError("");
+    } catch (err) {
+      let errorDesc = "Admit Card is not yet available. Please check back later.";
+      if (err.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed.message) errorDesc = parsed.message;
+        } catch (_) {}
+      } else if (err.response?.data?.message) {
+        errorDesc = err.response.data.message;
+      }
+      const cleanMsg = sanitizeAdmitCardError(errorDesc);
+      setError(cleanMsg);
+      setModalError(cleanMsg);
+    } finally {
+      setDownloadingCandidateReg(null);
+    }
+  };
+
+  const triggerDownload = () => {
+    if (!pdfBlob || !activeCandidate) return;
+
+    const regNo = activeCandidate.registrationNo || "Candidate";
+    const url = window.URL.createObjectURL(pdfBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `AdmitCard_${regNo}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+
+    api.post("/api/AdmitCard/log-download", {
+      registrationNo: regNo,
+      isLogin: false
+    }).catch(console.error);
+  };
+
+  const triggerPrint = () => {
+    if (!pdfBlob || !activeCandidate) return;
+
+    const url = window.URL.createObjectURL(pdfBlob);
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.src = url;
+
+    document.body.appendChild(iframe);
+
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (e) {
+        const printWin = window.open(url);
+        if (printWin) {
+          printWin.focus();
+          printWin.print();
+        }
+      } finally {
+        setTimeout(() => {
+          iframe.remove();
+          window.URL.revokeObjectURL(url);
+        }, 60000);
+      }
+    };
+
+    api.post("/api/AdmitCard/log-download", {
+      registrationNo: activeCandidate.registrationNo,
+      isLogin: false
+    }).catch(console.error);
+  };
+
   const handleAdmitCardSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
 
-    if (!admitFormData.candidateName.trim()) {
+    // Trim spaces in candidate name (leading, trailing, and internal consecutive spaces)
+    const cleanName = (admitFormData.candidateName || "").trim().replace(/\s+/g, " ");
+
+    if (!cleanName) {
       setError("Candidate Name is required.");
       return;
     }
@@ -406,51 +615,35 @@ export default function Home() {
 
     setAdmitLoading(true);
     try {
-      const response = await api.post(
-        "/api/AdmitCard/download",
-        {
-          fullName: admitFormData.candidateName.trim(),
-          dob: admitFormData.dob,
-          isLogin: false
-        },
-        { responseType: "blob" }
-      );
-
-      // Determine downloaded file name
-      const contentDisposition = response.headers["content-disposition"];
-      let filename = `AdmitCard_${admitFormData.candidateName.trim().replace(/\s+/g, "_")}.pdf`;
-      if (contentDisposition) {
-        const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-        if (match && match[1]) {
-          filename = match[1].replace(/['"]/g, "");
+      // First search matching candidates using clean trimmed name and DOB
+      const searchRes = await api.get("/api/AdmitCard/search-candidates", {
+        params: {
+          query: cleanName,
+          dob: admitFormData.dob
         }
+      });
+
+      if (searchRes.data && searchRes.data.success && Array.isArray(searchRes.data.data) && searchRes.data.data.length > 0) {
+        const candidates = searchRes.data.data;
+        if (candidates.length === 1) {
+          // Exactly 1 match -> directly download admit card
+          await handleDownloadCandidateAdmitCard(candidates[0]);
+        } else {
+          // Multiple candidates detected -> show disambiguation modal just like on admit-card page
+          setMatchedCandidates(candidates);
+          setCandidateFilterText("");
+          setModalError("");
+          setCandidatesModalOpen(true);
+        }
+      } else {
+        setError("No candidate records found matching the provided Name and Date of Birth.");
+        setCaptchaInput("");
+        generateCaptcha();
       }
-
-      const url = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-      setSuccess("Admit Card downloaded successfully!");
-      setCaptchaInput("");
-      generateCaptcha();
     } catch (err) {
-      console.error("Admit Card download error:", err);
-      let errorDesc = "Failed to download Admit Card. Please verify Candidate Name and Date of Birth.";
-      if (err.response?.data instanceof Blob) {
-        try {
-          const text = await err.response.data.text();
-          const parsed = JSON.parse(text);
-          if (parsed.message) errorDesc = parsed.message;
-        } catch (_) {}
-      } else if (err.response?.data?.message) {
-        errorDesc = err.response.data.message;
-      }
-      setError(errorDesc);
+      console.error("Admit Card search error:", err);
+      const msg = err.response?.data?.message || "Record not found. Please verify Candidate Name and Date of Birth.";
+      setError(msg);
       setCaptchaInput("");
       generateCaptcha();
     } finally {
@@ -624,6 +817,7 @@ export default function Home() {
                     disabled={admitLoading}
                     value={admitFormData.candidateName}
                     onChange={(e) => setAdmitFormData({ ...admitFormData, candidateName: e.target.value })}
+                    onBlur={() => setAdmitFormData(prev => ({ ...prev, candidateName: (prev.candidateName || "").trim().replace(/\s+/g, " ") }))}
                     className="w-full px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition uppercase font-semibold"
                   />
                 </div>
@@ -969,6 +1163,224 @@ export default function Home() {
         </div>
 
       </main>
+
+      {/* Multiple Candidates Disambiguation Modal (Matching Admit Card Page) */}
+      {candidatesModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 z-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-700 to-indigo-700 text-white p-4 sm:p-5 flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center font-bold shrink-0">
+                  <FaUsers className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-black text-base sm:text-lg">
+                      Multiple Candidates Detected
+                    </h3>
+                    <span className="px-2.5 py-0.5 bg-emerald-500 text-white text-xs font-black rounded-full">
+                      {matchedCandidates.length} Matched
+                    </span>
+                  </div>
+                  <p className="text-xs text-blue-100 mt-0.5">
+                    समान नाम एवं जन्मतिथि वाले अभ्यर्थी मिले — कृपया अपना रिकॉर्ड चुनें
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCandidatesModalOpen(false)}
+                className="p-1.5 text-blue-200 hover:text-white rounded-lg transition cursor-pointer text-lg shrink-0"
+                title="Close"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Sub-header instruction & disambiguation search filter */}
+            <div className="p-4 bg-slate-50 border-b border-slate-200 shrink-0">
+              <p className="text-xs text-slate-600 mb-2">
+                Multiple records matched Name: <strong className="text-slate-800">{(admitFormData.candidateName || "").trim().replace(/\s+/g, " ").toUpperCase()}</strong>. Please identify your application using <strong>Father's Name</strong> or <strong>Registration Number</strong>:
+              </p>
+              {matchedCandidates.length > 2 && (
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <FaFilter className="w-3 h-3" />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Filter by Registration No, Father's Name, or District..."
+                    value={candidateFilterText}
+                    onChange={(e) => setCandidateFilterText(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 placeholder-slate-400 focus:ring-2 focus:ring-blue-500 outline-none transition"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* In-Modal Error Alert Banner */}
+            {modalError && (
+              <div className="mx-4 mt-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-semibold rounded-xl flex items-start gap-2 animate-shake shrink-0">
+                <FaExclamationTriangle className="shrink-0 mt-0.5 text-red-600 text-sm" />
+                <span>{modalError}</span>
+              </div>
+            )}
+
+            {/* Candidates Card List (Matching AdmitCard.jsx layout) */}
+            <div className="p-4 sm:p-5 overflow-y-auto space-y-3 flex-1">
+              {filteredCandidatesInModal.map((cand) => {
+                const isDownloadingThis = downloadingCandidateReg === cand.registrationNo;
+                return (
+                  <div
+                    key={cand.registrationNo}
+                    className="p-4 rounded-xl border border-slate-200 hover:border-blue-400 bg-gradient-to-br from-white to-slate-50 transition shadow-2xs hover:shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-black text-sm sm:text-base text-slate-900 uppercase">
+                          {cand.fullName}
+                        </span>
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-800 font-mono font-bold text-xs rounded-md">
+                          {cand.registrationNo}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600">
+                        <span className="font-semibold text-slate-400">Father's Name:</span> {cand.fatherName || "N/A"}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-0.5">
+                        <span>
+                          <span className="font-semibold text-slate-400">DOB:</span> {cand.dob || admitFormData.dob}
+                        </span>
+                        {(cand.district || cand.homeDistrict) && (
+                          <span>
+                            <span className="font-semibold text-slate-400">District:</span> {cand.district || cand.homeDistrict}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadCandidateAdmitCard(cand)}
+                        disabled={isDownloadingThis}
+                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        title="Download Admit Card PDF"
+                      >
+                        {isDownloadingThis ? (
+                          <>
+                            <FaSyncAlt className="animate-spin text-xs" />
+                            <span>Downloading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaDownload className="text-xs" />
+                            <span>Download PDF</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePreviewCandidateAdmitCard(cand)}
+                        disabled={isDownloadingThis}
+                        className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-xs rounded-lg border border-blue-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                        title="View Admit Card Preview"
+                      >
+                        <FaFilePdf className="text-xs" />
+                        <span>View</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filteredCandidatesInModal.length === 0 && (
+                <div className="py-8 text-center text-slate-400 text-xs">
+                  No candidates match the filter keyword "<strong>{candidateFilterText}</strong>".
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 bg-slate-100 border-t border-slate-200 flex justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setCandidatesModalOpen(false)}
+                className="px-4 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-lg transition cursor-pointer"
+              >
+                Close (बंद करें)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* In-Browser Canvas PDF Preview Modal (Matching AdmitCard.jsx) */}
+      {showPdfModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 z-50 animate-fadeIn">
+          <div className="bg-slate-900 rounded-2xl w-full max-w-5xl h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-slate-700">
+            {/* Modal Topbar */}
+            <div className="bg-slate-900 text-white px-5 sm:px-6 py-3.5 flex items-center justify-between gap-3 border-b border-slate-800 shrink-0">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
+                  <FaIdCard />
+                </div>
+                <div className="truncate">
+                  <h3 className="font-bold text-sm sm:text-base truncate">
+                    Admit Card: {activeCandidate?.fullName} ({activeCandidate?.registrationNo})
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    DELED 2026 Official Examination Pass
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons: Print, Download, Close */}
+              <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={triggerPrint}
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white text-xs font-bold rounded-lg border border-slate-700 transition flex items-center gap-1.5 cursor-pointer"
+                  title="Print Admit Card"
+                >
+                  <FaPrint />
+                  <span className="hidden sm:inline">Print</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={triggerDownload}
+                  className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  title="Download PDF File"
+                >
+                  <FaDownload />
+                  <span className="hidden sm:inline">Download PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPdfModal(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg transition cursor-pointer text-base ml-1"
+                  title="Close Preview"
+                >
+                  <FaTimes />
+                </button>
+              </div>
+            </div>
+
+            {/* In-Browser Canvas PDF Viewer with DPI scaling & zoom controls */}
+            <div className="flex-1 overflow-hidden relative">
+              {pdfBlob ? (
+                <PdfViewer pdfBlob={pdfBlob} />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">
+                  Loading preview...
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </Layout>
   );
 }

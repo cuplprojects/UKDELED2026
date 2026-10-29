@@ -157,7 +157,7 @@ export default function AdmitCard() {
       setActiveCandidate(candidate);
       setShowPdfModal(true);
     } catch (err) {
-      let errorText = "Admit Card PDF is not yet available in the storage vault.";
+      let errorText = "Admit Card is not yet available. Please check back later.";
       if (err.response?.data instanceof Blob) {
         try {
           const text = await err.response.data.text();
@@ -166,6 +166,9 @@ export default function AdmitCard() {
         } catch (_) {}
       } else if (err.response?.data?.message) {
         errorText = err.response.data.message;
+      }
+      if (/drive|storage|vault|path|folder|directory|\.pdf|[A-Z]:\\/i.test(errorText)) {
+        errorText = "प्रवेश पत्र अभी उपलब्ध नहीं है। कृपया कुछ समय बाद पुनः प्रयास करें। (Admit Card is not yet available. Please try again later.)";
       }
       setErrorMessage(errorText);
     } finally {
