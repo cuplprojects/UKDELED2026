@@ -100,11 +100,10 @@ namespace DELED.Controllers
                 // If decryption failed, or if decrypted text is not a valid candidate registration number format (6-12 digits)
                 if (string.IsNullOrWhiteSpace(decryptedRegNo) || !Regex.IsMatch(decryptedRegNo.Trim(), @"^\d{6,12}$"))
                 {
-                    return StatusCode(403, new
+                    return NotFound(new
                     {
                         success = false,
-                        isSecurityViolation = true,
-                        message = "Access Denied: Invalid, tampered, or unencrypted verification URL. Direct access using registration number is not permitted. Please scan the official encrypted QR code on the physical Admit Card."
+                        message = "Candidate admit card record not found."
                     });
                 }
 

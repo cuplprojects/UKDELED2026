@@ -11,15 +11,14 @@ import ForgotPassword from './pages/ForgotPassword'
 import VerifyApplication from './pages/VerifyApplication'
 import VerifyAdmitCard from './pages/VerifyAdmitCard'
 import AdmitCard from './pages/AdmitCard'
+import PageNotFound from './pages/PageNotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
-import Maintenance from './pages/Maintenance'
-import { useEffect } from 'react'
 import './App.css'
 
 function App() {
   return (
-    <Router basename="/">
+    <Router basename="/admtonl">
       <ScrollToTop />
       <Routes>
         {/* <Route path="/under-maintenance" element={<Maintenance />} /> */}
@@ -71,6 +70,9 @@ function App() {
         <Route path="/admit-card" element={<AdmitCard />} />
         <Route path="/download-admit-card" element={<AdmitCard />} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+        
+        {/* Fallback 404 Route */}
+        <Route path="*" element={<PageNotFound />} />
       </Routes>
     </Router>
   )
