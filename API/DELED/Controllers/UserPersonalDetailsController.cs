@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -60,139 +61,284 @@ namespace DELED.Controllers
                     return NotFound(new { success = false, message = "Candidate registration record not found." });
                 }
 
-                var latestPayment = await _context.PaymentTransactions
-                    .Where(p => p.UserId == user.UserId && p.Status == "SUCCESS")
-                    .OrderByDescending(p => p.UpdatedOn)
-                    .FirstOrDefaultAsync();
-
-                var completeDetails = await (from usr in _context.Users
-                                             
-                                             join personal in _context.UserPersonalDetails
-                                             on usr.UserId equals personal.UserId into userPersonal
-                                             from personal in userPersonal.DefaultIfEmpty()
-                                             
-                                             join exam in _context.ExamTypes
-                                             on (personal != null ? personal.ExamTypeId : 0) equals exam.Id into examGroup
-                                             from exam in examGroup.DefaultIfEmpty()
-                                             
-                                             join city1 in _context.ExamCity
-                                             on (personal != null ? personal.ExamCity1 : 0) equals city1.CityId into city1Group
-                                             from city1 in city1Group.DefaultIfEmpty()
-                                             
-                                             join city2 in _context.ExamCity
-                                             on (personal != null ? personal.ExamCity2 : 0) equals city2.CityId into city2Group
-                                             from city2 in city2Group.DefaultIfEmpty()
-                                             
-                                             join state in _context.State
-                                             on (personal != null ? personal.StateId : 0) equals state.Id into stateGroup
-                                             from state in stateGroup.DefaultIfEmpty()
-                                             
-                                             join dist in _context.City
-                                             on (personal != null ? personal.District : 0) equals dist.Id into distGroup
-                                             from dist in distGroup.DefaultIfEmpty()
-                                             
-                                             where usr.UserId == user.UserId
-                                             select new UserCompleteDetailsDTO
-                                              {
-                                                  UserId = usr.UserId,
-                                                  FullName = usr.FullName,
-                                                  FatherName = usr.FatherName,
-                                                  PhoneNumber = usr.PhoneNumber,
-                                                  Email = usr.Email,
-                                                  CreatedOn = usr.CreatedOn,
-                                                  IsOTPVerified = usr.IsOTPVerified,
-                                                  RegistrationNo = usr.RegistrationNo,
-                                                  IsPaymentCompleted = false,
-                                                  PaymentDate = null,
-
-                                                  PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
-                                                  ExamTypeId = personal != null ? (int?)personal.ExamTypeId : null,
-                                                  ApplicationFor = exam != null ? exam.Name : "",
-                                                  AppliedCategory = personal != null ? personal.AppliedCategory : null,
-                                                  GraduationCourse = personal != null ? personal.GraduationCourse : null,
-                                                  GraduationUniversity = personal != null ? personal.GraduationUniversity : null,
-                                                  GraduationDate = personal != null ? personal.GraduationDate : null,
-                                                  ApplicantName = usr.FullName,
-                                                  Gender = personal != null ? personal.Gender : "",
-                                                  DOB = personal != null ? personal.DOB : null,
-                                                  MotherName = personal != null ? personal.MotherName : "",
-                                                  HusbandName = personal != null ? personal.HusbandName : null,
-                                                  Category = personal != null ? personal.Category : "",
-                                                  SubCategory = personal != null ? personal.SubCategory : "",
-                                                  RetirementDate = personal != null ? personal.RetirementDate : null,
-                                                  SportsType = personal != null ? personal.SportsType : null,
-                                                  IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
-                                                  DisabilityType = personal != null ? personal.DisabilityType : null,
-                                                   MultiDisabilityType = personal != null ? personal.MultiDisabilityType : null,
-                                                  ScribeRequired = personal != null && personal.ScribeRequired,
-                                                  ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
-                                                  ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
-                                                  MailingAddress = personal != null ? personal.MailingAddress : "",
-                                                  StateId = personal != null ? personal.StateId : 0,
-                                                  State = state != null ? state.Name : "",
-                                                  DistrictId = personal != null ? personal.District : 0,
-                                                  District = dist != null ? dist.Name : "",
-                                                  PinCode = personal != null ? personal.PinCode : "",
-                                                  IdentityProof = personal != null ? personal.IdentityProof : "",
-                                                  IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
-                                                  PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
-                                                  PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
-                                                  PersonalDetailsIsActive = personal != null && personal.IsActive,
-                                                  TransactionId = null,
-                                                  TransactionDate = null,
-                                                  TransactionAmount = null,
-                                                  TransactionStatus = null,
-                                              }).FirstOrDefaultAsync();
-
-                if (completeDetails == null)
-                {
-                    return NotFound(new { success = false, message = "Candidate details not found." });
-                }
-
-                if (latestPayment != null)
-                {
-                    completeDetails.TransactionId = latestPayment.AtomTxnId;
-                    completeDetails.TransactionDate = latestPayment.UpdatedOn;
-                    completeDetails.TransactionAmount = latestPayment.Amount;
-                    completeDetails.TransactionStatus = latestPayment.Status;
-                }
-
-                if (user.IsPaymentCompleted || (latestPayment != null && latestPayment.Status == "SUCCESS"))
-                {
-                    completeDetails.IsPaymentCompleted = true;
-                    completeDetails.PaymentDate = user.PaymentDate ?? latestPayment?.UpdatedOn;
-                }
-
-                var maxStep = await _context.UserStepProgresses
-                    .Where(s => s.UserId == user.UserId)
-                    .OrderByDescending(s => s.StepNumber)
-                    .Select(s => s.StepNumber)
-                    .FirstOrDefaultAsync();
-
-                completeDetails.CompletedStep = maxStep;
-
-                var uploads = await _context.Uploads.FirstOrDefaultAsync(u => u.UserId == user.UserId);
-                string encryptedToken = _securityService.EncryptUrlSafe(user.RegistrationNo);
-
-                return Ok(new
-                {
-                    success = true,
-                    data = completeDetails,
-                    uploads = uploads != null ? new
-                    {
-                        photoFile = uploads.PhotoFile,
-                        signatureFile = uploads.SignatureFile,
-                        thumbImp = uploads.ThumbImp
-                    } : null,
-                    encryptedToken = encryptedToken,
-                    verificationUrl = $"https://ukdeled.com/verify?token={encryptedToken}",
-                    registrationNo = user.RegistrationNo
-                });
+                return await BuildApplicantDetailsResult(user, !string.IsNullOrEmpty(decrypted) ? cleanInput : null);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { success = false, message = $"Error: {ex.Message}" });
             }
+        }
+
+        // =========================================================================
+        // GET: api/UserPersonalDetails/verify-admit-card/{token}
+        // STRICT ADMIT CARD VERIFICATION:
+        // Decryption is mandatory. Direct access by registration number is forbidden.
+        // Tampered or modified tokens are rejected with HTTP 403 Forbidden.
+        // =========================================================================
+        [AllowAnonymous]
+        [HttpGet("verify-admit-card/{token}")]
+        public async Task<IActionResult> VerifyAdmitCardByToken(string token)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    return BadRequest(new { success = false, message = "Verification token is required." });
+                }
+
+                string cleanToken = token.Trim();
+
+                // 1. STRICT ENCRYPTED TOKEN DECRYPTION
+                // Direct registration numbers (e.g., 26200001, 26200002) will FAIL AES decryption
+                // because they do not have the required 16-byte random IV or valid AES-256-CBC ciphertext.
+                string? decryptedRegNo = _securityService.DecryptUrlSafe(cleanToken);
+                if (string.IsNullOrEmpty(decryptedRegNo))
+                {
+                    decryptedRegNo = _securityService.Decrypt(cleanToken);
+                }
+
+                // If decryption failed, or if decrypted text is not a valid candidate registration number format (6-12 digits)
+                if (string.IsNullOrWhiteSpace(decryptedRegNo) || !Regex.IsMatch(decryptedRegNo.Trim(), @"^\d{6,12}$"))
+                {
+                    return StatusCode(403, new
+                    {
+                        success = false,
+                        isSecurityViolation = true,
+                        message = "Access Denied: Invalid, tampered, or unencrypted verification URL. Direct access using registration number is not permitted. Please scan the official encrypted QR code on the physical Admit Card."
+                    });
+                }
+
+                // 2. Fetch candidate using the cryptographically verified registration number ONLY
+                string verifiedRegNo = decryptedRegNo.Trim();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.RegistrationNo.ToLower() == verifiedRegNo.ToLower());
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "Candidate record not found for the decrypted verification token." });
+                }
+
+                return await BuildApplicantDetailsResult(user, cleanToken);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Admit card verification error: {ex.Message}" });
+            }
+        }
+
+        // =========================================================================
+        // GET: api/UserPersonalDetails/admit-card-token/{registrationNo}
+        // GET: api/UserPersonalDetails/token/{registrationNo}
+        // Helper endpoint to generate the encrypted token and verification URL
+        // =========================================================================
+        [AllowAnonymous]
+        [HttpGet("admit-card-token/{registrationNo}")]
+        [HttpGet("token/{registrationNo}")]
+        public async Task<IActionResult> GetAdmitCardToken(string registrationNo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(registrationNo))
+                {
+                    return BadRequest(new { success = false, message = "Registration number is required." });
+                }
+
+                var cleanReg = registrationNo.Trim();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.RegistrationNo.ToLower() == cleanReg.ToLower());
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "Candidate record not found." });
+                }
+
+                string token = _securityService.EncryptUrlSafe(user.RegistrationNo);
+                return Ok(new
+                {
+                    success = true,
+                    registrationNo = user.RegistrationNo,
+                    token = token,
+                    verifyPath = $"/verify-admit-card/{token}",
+                    verifyUrl = $"/verify-admit-card/{token}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        private async Task<IActionResult> BuildApplicantDetailsResult(UserRegistration user, string? existingToken = null)
+        {
+            var latestPayment = await _context.PaymentTransactions
+                .Where(p => p.UserId == user.UserId && p.Status == "SUCCESS")
+                .OrderByDescending(p => p.UpdatedOn)
+                .FirstOrDefaultAsync();
+
+            var completeDetails = await (from usr in _context.Users
+                                         join personal in _context.UserPersonalDetails
+                                         on usr.UserId equals personal.UserId into userPersonal
+                                         from personal in userPersonal.DefaultIfEmpty()
+
+                                         join exam in _context.ExamTypes
+                                         on (personal != null ? personal.ExamTypeId : 0) equals exam.Id into examGroup
+                                         from exam in examGroup.DefaultIfEmpty()
+
+                                         join city1 in _context.ExamCity
+                                         on (personal != null ? personal.ExamCity1 : 0) equals city1.CityId into city1Group
+                                         from city1 in city1Group.DefaultIfEmpty()
+
+                                         join city2 in _context.ExamCity
+                                         on (personal != null ? personal.ExamCity2 : 0) equals city2.CityId into city2Group
+                                         from city2 in city2Group.DefaultIfEmpty()
+
+                                         join state in _context.State
+                                         on (personal != null ? personal.StateId : 0) equals state.Id into stateGroup
+                                         from state in stateGroup.DefaultIfEmpty()
+
+                                         join dist in _context.City
+                                         on (personal != null ? personal.District : 0) equals dist.Id into distGroup
+                                         from dist in distGroup.DefaultIfEmpty()
+
+                                         where usr.UserId == user.UserId
+                                         select new UserCompleteDetailsDTO
+                                         {
+                                             UserId = usr.UserId,
+                                             FullName = usr.FullName,
+                                             FatherName = usr.FatherName,
+                                             PhoneNumber = usr.PhoneNumber,
+                                             Email = usr.Email,
+                                             CreatedOn = usr.CreatedOn,
+                                             IsOTPVerified = usr.IsOTPVerified,
+                                             RegistrationNo = usr.RegistrationNo,
+                                             IsPaymentCompleted = false,
+                                             PaymentDate = null,
+
+                                             PersonalDetailId = personal != null ? (int?)personal.PersonalDetailId : null,
+                                             ExamTypeId = personal != null ? (int?)personal.ExamTypeId : null,
+                                             ApplicationFor = exam != null ? exam.Name : "",
+                                             AppliedCategory = personal != null ? personal.AppliedCategory : null,
+                                             GraduationCourse = personal != null ? personal.GraduationCourse : null,
+                                             GraduationUniversity = personal != null ? personal.GraduationUniversity : null,
+                                             GraduationDate = personal != null ? personal.GraduationDate : null,
+                                             ApplicantName = usr.FullName,
+                                             Gender = personal != null ? personal.Gender : "",
+                                             DOB = personal != null ? personal.DOB : null,
+                                             MotherName = personal != null ? personal.MotherName : "",
+                                             HusbandName = personal != null ? personal.HusbandName : null,
+                                             Category = personal != null ? personal.Category : "",
+                                             SubCategory = personal != null ? personal.SubCategory : "",
+                                             RetirementDate = personal != null ? personal.RetirementDate : null,
+                                             SportsType = personal != null ? personal.SportsType : null,
+                                             IsPhysicallyHandicapped = personal != null && personal.IsPhysicallyHandicapped,
+                                             DisabilityType = personal != null ? personal.DisabilityType : null,
+                                             MultiDisabilityType = personal != null ? personal.MultiDisabilityType : null,
+                                             ScribeRequired = personal != null && personal.ScribeRequired,
+                                             ExamCity1 = city1 != null ? city1.CityCode.ToString() + "/" + city1.CityName : "",
+                                             ExamCity2 = city2 != null ? city2.CityCode.ToString() + "/" + city2.CityName : "",
+                                             MailingAddress = personal != null ? personal.MailingAddress : "",
+                                             StateId = personal != null ? personal.StateId : 0,
+                                             State = state != null ? state.Name : "",
+                                             DistrictId = personal != null ? personal.District : 0,
+                                             District = dist != null ? dist.Name : "",
+                                             PinCode = personal != null ? personal.PinCode : "",
+                                             IdentityProof = personal != null ? personal.IdentityProof : "",
+                                             IdentityProofNo = personal != null ? personal.IdentityProofNo : "",
+                                             PersonalDetailsCreatedOn = personal != null ? (DateTime?)personal.CreatedOn : null,
+                                             PersonalDetailsUpdatedOn = personal != null ? personal.UpdatedOn : null,
+                                             PersonalDetailsIsActive = personal != null && personal.IsActive,
+                                             TransactionId = null,
+                                             TransactionDate = null,
+                                             TransactionAmount = null,
+                                             TransactionStatus = null,
+                                         }).FirstOrDefaultAsync();
+
+            if (completeDetails == null)
+            {
+                return NotFound(new { success = false, message = "Candidate details not found." });
+            }
+
+            if (latestPayment != null)
+            {
+                completeDetails.TransactionId = latestPayment.AtomTxnId;
+                completeDetails.TransactionDate = latestPayment.UpdatedOn;
+                completeDetails.TransactionAmount = latestPayment.Amount;
+                completeDetails.TransactionStatus = latestPayment.Status;
+            }
+
+            if (user.IsPaymentCompleted || (latestPayment != null && latestPayment.Status == "SUCCESS"))
+            {
+                completeDetails.IsPaymentCompleted = true;
+                completeDetails.PaymentDate = user.PaymentDate ?? latestPayment?.UpdatedOn;
+            }
+
+            var maxStep = await _context.UserStepProgresses
+                .Where(s => s.UserId == user.UserId)
+                .OrderByDescending(s => s.StepNumber)
+                .Select(s => s.StepNumber)
+                .FirstOrDefaultAsync();
+
+            completeDetails.CompletedStep = maxStep;
+
+            var uploads = await _context.Uploads.FirstOrDefaultAsync(u => u.UserId == user.UserId);
+            var allotment = await _context.Allotments.FirstOrDefaultAsync(a => a.UserId == user.UserId);
+            string? assignedCityDisplay = null;
+            string? assignedCentreDisplay = null;
+
+            if (allotment != null)
+            {
+                completeDetails.RollNumber = allotment.RollNumber;
+
+                assignedCityDisplay = allotment.AssignedCity;
+                if (!string.IsNullOrEmpty(allotment.AssignedCity))
+                {
+                    var matchedExamCity = await _context.ExamCity.FirstOrDefaultAsync(c => c.CityCode == allotment.AssignedCity);
+                    if (matchedExamCity != null)
+                    {
+                        assignedCityDisplay = $"{matchedExamCity.CityCode}/{matchedExamCity.CityName.ToUpper()}";
+                    }
+                }
+                completeDetails.AssignedCity = assignedCityDisplay;
+
+                assignedCentreDisplay = allotment.AssignedCentre;
+                if (!string.IsNullOrEmpty(allotment.AssignedCentre) &&
+                    int.TryParse(allotment.AssignedCity, out int cityCodeNum) &&
+                    int.TryParse(allotment.AssignedCentre, out int centreCodeNum))
+                {
+                    var matchedCentre = await _context.Centres.FirstOrDefaultAsync(c => c.CityCode == cityCodeNum && c.CentreCode == centreCodeNum);
+                    if (matchedCentre != null && !string.IsNullOrWhiteSpace(matchedCentre.CentreName))
+                    {
+                        assignedCentreDisplay = $"{allotment.AssignedCentre} - {matchedCentre.CentreName}";
+                    }
+                }
+                completeDetails.AssignedCentre = assignedCentreDisplay;
+            }
+
+            string token = !string.IsNullOrWhiteSpace(existingToken) ? existingToken : _securityService.EncryptUrlSafe(user.RegistrationNo);
+
+            return Ok(new
+            {
+                success = true,
+                data = completeDetails,
+                rollNumber = allotment != null ? allotment.RollNumber : (int?)null,
+                allotment = allotment != null ? new
+                {
+                    rollNumber = allotment.RollNumber,
+                    assignedCity = allotment.AssignedCity,
+                    assignedCityDisplay = assignedCityDisplay,
+                    assignedCentre = allotment.AssignedCentre,
+                    assignedCentreDisplay = assignedCentreDisplay,
+                    roomNumber = allotment.RoomNumber,
+                    seatRow = allotment.SeatRow,
+                    seatNumber = allotment.SeatNumber
+                } : null,
+                uploads = uploads != null ? new
+                {
+                    photoFile = uploads.PhotoFile,
+                    signatureFile = uploads.SignatureFile,
+                    thumbImp = uploads.ThumbImp
+                } : null,
+                encryptedToken = token,
+                verificationUrl = $"https://ukdeled.com/verify?token={token}",
+                verifyAdmitCardUrl = $"/verify-admit-card/{token}",
+                registrationNo = user.RegistrationNo
+            });
         }
 
         // GET: api/UserPersonalDetails/complete/me

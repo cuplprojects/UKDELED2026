@@ -22,5 +22,6 @@ namespace DELED.Models
         public string? Dob { get; set; }
         public string HomeDistrict { get; set; } = string.Empty;
         public string District { get; set; } = string.Empty;
+        public int? RollNumber { get; set; }
     }
 }

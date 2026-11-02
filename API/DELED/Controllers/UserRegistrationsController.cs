@@ -1391,11 +1391,55 @@ namespace DELED.Controllers
                 completeDetails.CompletedStep = maxStep;
 
                 var uploads = await _context.Uploads.FirstOrDefaultAsync(u => u.UserId == user.UserId);
+                var allotment = await _context.Allotments.FirstOrDefaultAsync(a => a.UserId == user.UserId);
+                string? assignedCityDisplay = null;
+                string? assignedCentreDisplay = null;
+
+                if (allotment != null)
+                {
+                    completeDetails.RollNumber = allotment.RollNumber;
+
+                    assignedCityDisplay = allotment.AssignedCity;
+                    if (!string.IsNullOrEmpty(allotment.AssignedCity))
+                    {
+                        var matchedExamCity = await _context.ExamCity.FirstOrDefaultAsync(c => c.CityCode == allotment.AssignedCity);
+                        if (matchedExamCity != null)
+                        {
+                            assignedCityDisplay = $"{matchedExamCity.CityCode}/{matchedExamCity.CityName.ToUpper()}";
+                        }
+                    }
+                    completeDetails.AssignedCity = assignedCityDisplay;
+
+                    assignedCentreDisplay = allotment.AssignedCentre;
+                    if (!string.IsNullOrEmpty(allotment.AssignedCentre) &&
+                        int.TryParse(allotment.AssignedCity, out int cityCodeNum) &&
+                        int.TryParse(allotment.AssignedCentre, out int centreCodeNum))
+                    {
+                        var matchedCentre = await _context.Centres.FirstOrDefaultAsync(c => c.CityCode == cityCodeNum && c.CentreCode == centreCodeNum);
+                        if (matchedCentre != null && !string.IsNullOrWhiteSpace(matchedCentre.CentreName))
+                        {
+                            assignedCentreDisplay = $"{allotment.AssignedCentre} - {matchedCentre.CentreName}";
+                        }
+                    }
+                    completeDetails.AssignedCentre = assignedCentreDisplay;
+                }
 
                 return Ok(new
                 {
                     success = true,
                     data = completeDetails,
+                    rollNumber = allotment != null ? allotment.RollNumber : (int?)null,
+                    allotment = allotment != null ? new
+                    {
+                        rollNumber = allotment.RollNumber,
+                        assignedCity = allotment.AssignedCity,
+                        assignedCityDisplay = assignedCityDisplay,
+                        assignedCentre = allotment.AssignedCentre,
+                        assignedCentreDisplay = assignedCentreDisplay,
+                        roomNumber = allotment.RoomNumber,
+                        seatRow = allotment.SeatRow,
+                        seatNumber = allotment.SeatNumber
+                    } : null,
                     uploads = uploads != null ? new
                     {
                         photoFile = uploads.PhotoFile,

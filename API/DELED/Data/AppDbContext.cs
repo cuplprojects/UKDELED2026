@@ -95,5 +95,7 @@ namespace DELED.Data
         public DbSet<BulkEmailRecipient> BulkEmailRecipients { get; set; }
         public DbSet<CandidateCorrectionLog> CandidateCorrectionLogs { get; set; }
         public DbSet<ACDlogger> ACDloggers { get; set; }
+        public DbSet<Allotment> Allotments { get; set; }
+        public DbSet<Centre> Centres { get; set; }
     }
 }

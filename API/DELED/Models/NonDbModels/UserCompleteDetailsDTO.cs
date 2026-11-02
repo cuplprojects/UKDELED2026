@@ -11,6 +11,9 @@ namespace DELED.Models.NonDbModels
         public DateTime CreatedOn { get; set; }
         public bool IsOTPVerified { get; set; }
         public string RegistrationNo { get; set; } = "";
+        public int? RollNumber { get; set; }
+        public string? AssignedCity { get; set; }
+        public string? AssignedCentre { get; set; }
 
         // User Personal Details (Mapped to the 29 target columns)
         public int? PersonalDetailId { get; set; }
