@@ -531,7 +531,7 @@ namespace DELED.Controllers
                 {
                     success = false,
                     registrationNo = cleanRegNo,
-                    message = $"Admit card PDF file ({targetFileName}) is not yet available in the mapped Z: drive storage folder (Z:\\UKDELED2026\\Admit Card)."
+                    message = "Admit Card is not yet available. Please check back later or contact the examination authority."
                 });
             }
 
