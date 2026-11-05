@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { FaHome, FaDownload, FaExternalLinkAlt, FaUser, FaPowerOff, FaIdCard } from "react-icons/fa";
+import { FaHome, FaDownload, FaExternalLinkAlt, FaUser, FaPowerOff, FaIdCard, FaChair } from "react-icons/fa";
 import { useAuthStore } from "../stores/authStore";
 import { api } from "../stores/apiStore";
 
@@ -29,6 +29,7 @@ export default function Navbar() {
   }, [location.pathname]);
 
   const isHome = location.pathname === "/" || location.pathname === "/application";
+  const isSeatMatrix = location.pathname === "/seat-matrix" || location.pathname === "/seatmatrix";
 
   const handleLogout = () => {
     logout();
@@ -39,7 +40,7 @@ export default function Navbar() {
 
   return (
     <nav className="bg-blue-600 px-4 sm:px-8 py-2 flex items-center justify-between gap-4 text-white text-sm md:text-base font-bold w-full select-none shadow-xs">
-      {/* Left Side: HOME, INFORMATION BROCHURE, UBSE WEBSITE, ADMIT CARD (only when active) */}
+      {/* Left Side: HOME, INFORMATION BROCHURE, UBSE WEBSITE, SEAT MATRIX, ADMIT CARD */}
       <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
         <button
           onClick={() => navigate(isAuthenticated ? "/application" : "/")}
@@ -68,6 +69,16 @@ export default function Navbar() {
           <FaExternalLinkAlt className="w-3.5 h-3.5 text-white" />
           <span>UBSE WEBSITE</span>
         </a>
+        <div className="w-px h-5 bg-white/30"></div>
+        <button
+          onClick={() => navigate("/seat-matrix")}
+          className={`flex items-center gap-2 px-3.5 py-1.5 hover:bg-blue-700 transition whitespace-nowrap cursor-pointer rounded-xs ${
+            isSeatMatrix ? "bg-blue-700" : ""
+          }`}
+        >
+          <FaChair className="w-4 h-4 text-white" />
+          <span>SEAT MATRIX</span>
+        </button>
         {isAdmitCardOpen && (
           <>
             <div className="w-px h-5 bg-white/30"></div>
@@ -104,4 +115,3 @@ export default function Navbar() {
     </nav>
   );
 }
-

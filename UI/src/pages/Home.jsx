@@ -17,7 +17,8 @@ import {
   FaTimes,
   FaFilter,
   FaCheckCircle,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaChair
 } from "react-icons/fa";
 
 export default function Home() {
@@ -1028,6 +1029,17 @@ export default function Home() {
                     </button>
                   </div>
                 )}
+
+                <div className="text-center pt-2.5 pb-1 border-t border-gray-150">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/seat-matrix")}
+                    className="inline-flex items-center gap-2 text-sm sm:text-base font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer transition mb-2"
+                  >
+                    <FaChair className="w-4 h-4 text-amber-600" />
+                    <span>Seat Matrix / परीक्षा कक्ष व्यवस्था</span>
+                  </button>
+                </div>
 
                 <div className="text-center pt-2 sm:pt-3">
                   <button

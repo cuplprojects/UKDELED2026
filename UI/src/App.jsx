@@ -11,6 +11,7 @@ import ForgotPassword from './pages/ForgotPassword'
 import VerifyApplication from './pages/VerifyApplication'
 import VerifyAdmitCard from './pages/VerifyAdmitCard'
 import AdmitCard from './pages/AdmitCard'
+import SeatMatrix from './pages/SeatMatrix'
 import PageNotFound from './pages/PageNotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
@@ -69,6 +70,12 @@ function App() {
         />
         <Route path="/admit-card" element={<AdmitCard />} />
         <Route path="/download-admit-card" element={<AdmitCard />} />
+
+        {/* Seat Matrix Routes */}
+        <Route path="/seat-matrix" element={<SeatMatrix />} />
+        <Route path="/seatmatrix" element={<SeatMatrix />} />
+        <Route path="/seat-allotment" element={<SeatMatrix />} />
+
         <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
         
         {/* Fallback 404 Route */}
