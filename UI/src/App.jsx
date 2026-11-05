@@ -71,10 +71,8 @@ function App() {
         <Route path="/admit-card" element={<AdmitCard />} />
         <Route path="/download-admit-card" element={<AdmitCard />} />
 
-        {/* Seat Matrix Routes */}
-        <Route path="/seat-matrix" element={<SeatMatrix />} />
-        <Route path="/seatmatrix" element={<SeatMatrix />} />
-        <Route path="/seat-allotment" element={<SeatMatrix />} />
+        {/* Secure Seat Matrix Route (Direct URL access only - No public buttons) */}
+        <Route path="/exam-seat-matrix-2026-mgmt" element={<SeatMatrix />} />
 
         <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
         

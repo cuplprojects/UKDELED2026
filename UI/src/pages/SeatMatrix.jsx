@@ -19,7 +19,9 @@ import {
   FaArrowRight,
   FaInfoCircle,
   FaUndo,
-  FaTh
+  FaTh,
+  FaWheelchair,
+  FaPenFancy
 } from "react-icons/fa";
 
 export default function SeatMatrix() {
@@ -1099,19 +1101,44 @@ export default function SeatMatrix() {
                                     </p>
 
                                     {/* Meta Info Badges */}
-                                    <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-600 gap-1">
-                                      <span className="font-mono font-medium text-gray-600 truncate">
-                                        {cand.registrationNo}
-                                      </span>
-                                      {cand.category && (
-                                        <span
-                                          className="font-bold text-blue-900 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded truncate max-w-[130px]"
-                                          title={cand.category}
-                                        >
-                                          {cand.category}
-                                        </span>
-                                      )}
-                                    </div>
+                                    {(() => {
+                                      const candIsPH = Boolean(cand.isPhysicallyHandicapped ?? cand.IsPhysicallyHandicapped);
+                                      const candIsScribe = Boolean(cand.scribeRequired ?? cand.ScribeRequired);
+                                      const candDisability = cand.disabilityType || cand.DisabilityType || "";
+                                      return (
+                                        <div className="mt-2.5 pt-2 border-t border-gray-100 flex items-center justify-between text-[10px] text-gray-600 gap-1 flex-wrap">
+                                          <span className="font-mono font-medium text-gray-600 truncate">
+                                            {cand.registrationNo}
+                                          </span>
+                                          <div className="flex items-center gap-1">
+                                            {candIsPH && (
+                                              <span
+                                                className="font-black text-[9px] bg-purple-100 text-purple-800 border border-purple-200 px-1 py-0.2 rounded flex items-center gap-0.5"
+                                                title={`PH: ${candDisability || "Yes"}`}
+                                              >
+                                                <FaWheelchair className="w-2.5 h-2.5" /> PH
+                                              </span>
+                                            )}
+                                            {candIsScribe && (
+                                              <span
+                                                className="font-black text-[9px] bg-rose-100 text-rose-800 border border-rose-200 px-1 py-0.2 rounded flex items-center gap-0.5"
+                                                title="Scribe Required"
+                                              >
+                                                <FaPenFancy className="w-2.5 h-2.5" /> Scribe
+                                              </span>
+                                            )}
+                                            {cand.category && (
+                                              <span
+                                                className="font-bold text-blue-900 bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded truncate max-w-[110px]"
+                                                title={cand.category}
+                                              >
+                                                {cand.category}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      );
+                                    })()}
                                   </div>
                                 );
                               })}
@@ -1159,7 +1186,34 @@ export default function SeatMatrix() {
                         <td className="py-2.5 px-3 text-center text-gray-500 font-mono">{rowNumber}</td>
                         <td className="py-2.5 px-3 font-mono font-black text-blue-900">{cand.rollNumber}</td>
                         <td className="py-2.5 px-3 font-mono text-gray-600">{cand.registrationNo}</td>
-                        <td className="py-2.5 px-3 font-bold text-gray-900">{cand.fullName}</td>
+                        <td className="py-2.5 px-3 font-bold text-gray-900">
+                          {(() => {
+                            const isCandPH = Boolean(cand.isPhysicallyHandicapped ?? cand.IsPhysicallyHandicapped);
+                            const isCandScribe = Boolean(cand.scribeRequired ?? cand.ScribeRequired);
+                            const candDis = cand.disabilityType || cand.DisabilityType || "";
+                            return (
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span>{cand.fullName}</span>
+                                {isCandPH && (
+                                  <span
+                                    className="font-black text-[9px] bg-purple-100 text-purple-800 border border-purple-200 px-1 py-0.2 rounded inline-flex items-center gap-0.5"
+                                    title={`PH: ${candDis || "Yes"}`}
+                                  >
+                                    <FaWheelchair className="w-2.5 h-2.5" /> PH
+                                  </span>
+                                )}
+                                {isCandScribe && (
+                                  <span
+                                    className="font-black text-[9px] bg-rose-100 text-rose-800 border border-rose-200 px-1 py-0.2 rounded inline-flex items-center gap-0.5"
+                                    title="Scribe Required"
+                                  >
+                                    <FaPenFancy className="w-2.5 h-2.5" /> Scribe
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </td>
                         <td className="py-2.5 px-3 text-gray-600">{cand.fatherName}</td>
                         <td className="py-2.5 px-3 text-gray-700">{cand.cityName || cand.cityCode}</td>
                         <td className="py-2.5 px-3 text-gray-700 max-w-[200px] truncate" title={cand.centreName}>
@@ -1280,31 +1334,100 @@ export default function SeatMatrix() {
                   </div>
                 </div>
 
-                {/* Candidate Info Grid */}
-                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium">Registration Number:</span>
-                    <span className="font-mono font-bold text-gray-800">{selectedCandidate.registrationNo}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium">Father's Name:</span>
-                    <span className="font-bold text-gray-800">{selectedCandidate.fatherName}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-500 font-medium">Category / Gender:</span>
-                    <span className="font-bold text-gray-800">
-                      {selectedCandidate.category || "General"} / {selectedCandidate.gender || "N/A"}
-                    </span>
-                  </div>
-                  <div className="pt-2 border-t border-gray-200">
-                    <span className="text-gray-500 font-medium block mb-0.5">Exam Centre:</span>
-                    <span className="font-bold text-gray-900 block">{selectedCandidate.centreName}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500 font-medium block mb-0.5">Exam City:</span>
-                    <span className="font-bold text-gray-900 block">{selectedCandidate.cityName}</span>
-                  </div>
-                </div>
+                {/* Special Assistance Banner (PH / Scribe) */}
+                {(() => {
+                  const candIsPH = Boolean(selectedCandidate.isPhysicallyHandicapped ?? selectedCandidate.IsPhysicallyHandicapped);
+                  const candIsScribe = Boolean(selectedCandidate.scribeRequired ?? selectedCandidate.ScribeRequired);
+                  const candDisability = selectedCandidate.disabilityType || selectedCandidate.DisabilityType || "";
+                  const candMultiDisability = selectedCandidate.multiDisabilityType || selectedCandidate.MultiDisabilityType || "";
+
+                  return (
+                    <>
+                      {(candIsPH || candIsScribe) && (
+                        <div className="bg-purple-50 border border-purple-300 rounded-xl p-3.5 flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-purple-200 flex items-center justify-center shrink-0 text-purple-800">
+                            <FaWheelchair className="w-4 h-4" />
+                          </div>
+                          <div className="flex-1 space-y-1">
+                            <h4 className="font-extrabold text-xs text-purple-950 uppercase tracking-wide">
+                              Special Assistance Candidate / दिव्यांग परीक्षार्थी
+                            </h4>
+                            <div className="flex flex-wrap gap-2 text-xs pt-0.5">
+                              {candIsPH && (
+                                <span className="bg-purple-100 text-purple-900 border border-purple-200 px-2 py-0.5 rounded font-bold">
+                                  PH: {candDisability || "Yes"}
+                                  {candMultiDisability ? ` (${candMultiDisability})` : ""}
+                                </span>
+                              )}
+                              {candIsScribe && (
+                                <span className="bg-rose-100 text-rose-900 border border-rose-300 px-2 py-0.5 rounded font-black flex items-center gap-1">
+                                  <FaPenFancy className="w-3 h-3 text-rose-700" />
+                                  Scribe Required / लेखक आवश्यक
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Candidate Info Grid */}
+                      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 space-y-2.5 text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 font-medium">Registration Number:</span>
+                          <span className="font-mono font-bold text-gray-800">{selectedCandidate.registrationNo}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 font-medium">Father's Name:</span>
+                          <span className="font-bold text-gray-800">{selectedCandidate.fatherName}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 font-medium">Category / Gender:</span>
+                          <span className="font-bold text-gray-800">
+                            {selectedCandidate.category || "General"} / {selectedCandidate.gender || "N/A"}
+                          </span>
+                        </div>
+
+                        {/* PH & Scribe Info */}
+                        <div className="pt-2 border-t border-gray-200 flex items-center justify-between">
+                          <span className="text-gray-500 font-medium">Physically Handicapped (PH):</span>
+                          {candIsPH ? (
+                            <span className="font-bold text-purple-800 bg-purple-100 border border-purple-200 px-2 py-0.5 rounded">
+                              YES {candDisability ? `— ${candDisability}` : ""}
+                            </span>
+                          ) : (
+                            <span className="font-semibold text-gray-600">No</span>
+                          )}
+                        </div>
+
+                        {candMultiDisability && (
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-500 font-medium">Multi-Disability Type:</span>
+                            <span className="font-bold text-purple-900">{candMultiDisability}</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 font-medium">Scribe Required:</span>
+                          {candIsScribe ? (
+                            <span className="font-black text-rose-800 bg-rose-100 border border-rose-300 px-2 py-0.5 rounded inline-flex items-center gap-1">
+                              <FaPenFancy className="w-2.5 h-2.5 text-rose-600" /> YES (Required / आवश्यक)
+                            </span>
+                          ) : (
+                            <span className="font-semibold text-gray-600">No</span>
+                          )}
+                        </div>
+                        <div className="pt-2 border-t border-gray-200">
+                          <span className="text-gray-500 font-medium block mb-0.5">Exam Centre:</span>
+                          <span className="font-bold text-gray-900 block">{selectedCandidate.centreName}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 font-medium block mb-0.5">Exam City:</span>
+                          <span className="font-bold text-gray-900 block">{selectedCandidate.cityName}</span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Modal Footer */}

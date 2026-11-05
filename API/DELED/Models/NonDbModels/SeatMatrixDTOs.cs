@@ -53,6 +53,10 @@ namespace DELED.Models.NonDbModels
         public string? Category { get; set; }
         public string? SubCategory { get; set; }
         public string? AppliedCategory { get; set; }
+        public bool IsPhysicallyHandicapped { get; set; }
+        public string? DisabilityType { get; set; }
+        public string? MultiDisabilityType { get; set; }
+        public bool ScribeRequired { get; set; }
         public string CityCode { get; set; } = string.Empty;
         public string CityName { get; set; } = string.Empty;
         public string CentreCode { get; set; } = string.Empty;
