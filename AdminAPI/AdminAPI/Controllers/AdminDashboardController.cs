@@ -902,6 +902,296 @@ namespace DELED.Controllers
                 return StatusCode(500, new { success = false, message = $"Error: {ex.Message}" });
             }
         }
+
+        // ==========================================
+        // ADMIT CARD ENDPOINTS
+        // ==========================================
+
+        [HttpGet("admin/admit-card-download-count")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAdmitCardDownloadCount()
+        {
+            try
+            {
+                var count = await _context.ACDloggers
+                    .Select(a => a.UserId)
+                    .Distinct()
+                    .CountAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    count = count,
+                    countFormatted = count.ToString("D4"),
+                    admitCardDownloaded = count.ToString("D4")
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("admin/admit-card-download-report")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAdmitCardDownloadReport(
+            [FromQuery] string? startDate = null,
+            [FromQuery] string? endDate = null)
+        {
+            try
+            {
+                DateTime start = DateTime.MinValue;
+                DateTime end = DateTime.MaxValue;
+
+                // Parse start date
+                if (!string.IsNullOrWhiteSpace(startDate))
+                {
+                    string[] dateFormats = new[]
+                    {
+                        "yyyy-MM-dd",
+                        "dd-MM-yyyy",
+                        "dd/MM/yyyy",
+                        "MM/dd/yyyy",
+                        "yyyy/MM/dd"
+                    };
+
+                    if (DateTime.TryParseExact(startDate.Trim(), dateFormats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedStart))
+                    {
+                        start = parsedStart.Date;
+                    }
+                }
+
+                // Parse end date
+                if (!string.IsNullOrWhiteSpace(endDate))
+                {
+                    string[] dateFormats = new[]
+                    {
+                        "yyyy-MM-dd",
+                        "dd-MM-yyyy",
+                        "dd/MM/yyyy",
+                        "MM/dd/yyyy",
+                        "yyyy/MM/dd"
+                    };
+
+                    if (DateTime.TryParseExact(endDate.Trim(), dateFormats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime parsedEnd))
+                    {
+                        end = parsedEnd.Date.AddDays(1).AddSeconds(-1);
+                    }
+                }
+
+                // Get download logs within date range
+                var logs = await _context.ACDloggers
+                    .Where(l => l.DownloadTime >= start && l.DownloadTime <= end)
+                    .OrderByDescending(l => l.DownloadTime)
+                    .ToListAsync();
+
+                // Group by date for statistics
+                var dateWiseStats = logs
+                    .GroupBy(l => l.DownloadTime.Date)
+                    .OrderByDescending(g => g.Key)
+                    .Select(g => new
+                    {
+                        date = g.Key.ToString("yyyy-MM-dd"),
+                        dateFormatted = g.Key.ToString("dd-MM-yyyy"),
+                        totalDownloads = g.Count(),
+                        uniqueUsers = g.Select(l => l.UserId).Distinct().Count()
+                    })
+                    .ToList();
+
+                // Overall statistics
+                var totalDownloads = logs.Count;
+                var uniqueUsers = logs.Select(l => l.UserId).Distinct().Count();
+                var totalExamTypes = logs.Select(l => l.ExamTypeId).Distinct().Count();
+
+                // Today's download count (IST)
+                var todayIST = DateTime.UtcNow.AddHours(5).AddMinutes(30).Date;
+                var todayDownloads = await _context.ACDloggers
+                    .CountAsync(l => l.DownloadTime >= todayIST && l.DownloadTime < todayIST.AddDays(1));
+
+                return Ok(new
+                {
+                    success = true,
+                    summary = new
+                    {
+                        totalDownloads,
+                        uniqueUsers,
+                        totalExamTypes,
+                        todayDownloads,
+                        todayCount = todayDownloads,
+                        startDate = start.ToString("yyyy-MM-dd"),
+                        endDate = end.ToString("yyyy-MM-dd")
+                    },
+                    dateWiseStats,
+                    totalRecords = logs.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("admin/admit-card-search/{registrationNo}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetAdmitCardSearchByRegNo(string registrationNo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(registrationNo))
+                {
+                    return BadRequest(new { success = false, message = "Registration number is required." });
+                }
+
+                var cleanRegNo = registrationNo.Trim().ToLower();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.RegistrationNo.ToLower() == cleanRegNo);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "Candidate registration number not found." });
+                }
+
+                var personal = await _context.UserPersonalDetails.FirstOrDefaultAsync(pd => pd.UserId == user.UserId);
+                var downloadHistory = await _context.ACDloggers
+                    .Where(l => l.UserId == user.UserId)
+                    .OrderByDescending(l => l.DownloadTime)
+                    .ToListAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        userId = user.UserId,
+                        registrationNo = user.RegistrationNo,
+                        fullName = user.FullName,
+                        phoneNumber = user.PhoneNumber,
+                        email = user.Email,
+                        isPaymentCompleted = user.IsPaymentCompleted,
+                        personalDetails = personal != null ? new
+                        {
+                            gender = personal.Gender,
+                            dob = personal.DOB?.ToString("yyyy-MM-dd"),
+                            category = personal.Category,
+                            subCategory = personal.SubCategory
+                        } : null,
+                        downloadHistory = downloadHistory.Select(h => new
+                        {
+                            downloadId = h.ACDid,
+                            downloadTime = h.DownloadTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                            ipAddress = h.IpAddress,
+                            isLogin = h.isloggin == 1 ? "Yes" : "No"
+                        }).ToList(),
+                        totalDownloads = downloadHistory.Count
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
+
+        [HttpGet("admin/render-admit-card/{registrationNo}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RenderAdmitCardByRegNo(string registrationNo)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(registrationNo))
+                {
+                    return BadRequest(new { success = false, message = "Registration number is required." });
+                }
+
+                var cleanRegNo = registrationNo.Trim().ToLower();
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.RegistrationNo.ToLower() == cleanRegNo);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "Candidate registration number not found." });
+                }
+
+                var personal = await _context.UserPersonalDetails.FirstOrDefaultAsync(pd => pd.UserId == user.UserId);
+                var upload = await _context.Uploads.FirstOrDefaultAsync(u => u.UserId == user.UserId);
+
+                string? pdfPath = null;
+                string regNo = user.RegistrationNo ?? registrationNo.Trim();
+                cleanRegNo = regNo.Trim();
+
+                string configuredPath = _configuration["AdmitCardFilePath"] ?? _configuration["AdmitCardPath"] ?? _configuration["FilePath"] ?? @"Z:\UKDELED2026\Admit Card";
+
+                string[] candidateFileNames = new[]
+                {
+                    $"{cleanRegNo}.pdf",
+                    $"{cleanRegNo.ToUpper()}.pdf",
+                    $"{cleanRegNo.ToLower()}.pdf",
+                    cleanRegNo
+                };
+
+                string[] baseDirectories = new[]
+                {
+                    @"Z:\UKDELED2026\Admit Card",
+                    @"Z:\UKDELED2026",
+                    @"Z:\UKDELED2026\AdmitCard",
+                    @"Z:\Admit Card",
+                    @"Z:\AdmitCard",
+                    @"Z:\",
+                    configuredPath,
+                    @"\\192.168.1.25\e\UKDELED2026\Admit Card",
+                    @"\\192.168.1.25\e\UKDELED2026",
+                    @"\\192.168.1.16\dev\UKDELED2026\Admit Card",
+                    @"\\192.168.1.16\dev\UKDELED2026",
+                    @"\\192.168.1.25\e\UKDELED2026\AdmitCard",
+                    @"\\192.168.1.16\dev\UKDELED2026\AdmitCard",
+                    @"Z:\admitcard\admitcard\AdmitCardGenerator\Output",
+                    System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "AdmitCards"),
+                    System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "AdmitCards"),
+                    @"s:\DELED\AdmitCards"
+                };
+
+                var searchLocations = new List<string>();
+                foreach (var dir in baseDirectories.Distinct())
+                {
+                    if (string.IsNullOrWhiteSpace(dir)) continue;
+                    foreach (var fn in candidateFileNames)
+                    {
+                        searchLocations.Add(System.IO.Path.Combine(dir, fn));
+                        searchLocations.Add(System.IO.Path.Combine(dir, "Admit Card", fn));
+                        searchLocations.Add(System.IO.Path.Combine(dir, "AdmitCard", fn));
+                    }
+                }
+
+                foreach (var path in searchLocations.Distinct())
+                {
+                    try
+                    {
+                        if (System.IO.File.Exists(path))
+                        {
+                            pdfPath = path;
+                            break;
+                        }
+                    }
+                    catch { }
+                }
+
+                if (string.IsNullOrEmpty(pdfPath))
+                {
+                    return NotFound(new { success = false, message = $"Admit card PDF file not found on Z: drive for registration number {cleanRegNo}. (Searched in Z:\\UKDELED2026\\Admit Card\\{cleanRegNo}.pdf)" });
+                }
+
+                try
+                {
+                    byte[] fileBytes = await System.IO.File.ReadAllBytesAsync(pdfPath);
+                    Response.Headers["Content-Disposition"] = $"inline; filename=\"{cleanRegNo}_AdmitCard.pdf\"";
+                    return File(fileBytes, "application/pdf");
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { success = false, message = $"Error reading PDF file from Z: drive: {ex.Message}" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = $"Error: {ex.Message}" });
+            }
+        }
     }
 
     public class UpdateApplicantRequest
