@@ -537,7 +537,8 @@ namespace DELED.Controllers
 
             var fileBytes = await System.IO.File.ReadAllBytesAsync(matchedFilePath);
             var downloadName = $"AdmitCard_{cleanRegNo}.pdf";
-            return File(fileBytes, "application/pdf", downloadName);
+            Response.Headers["Content-Disposition"] = $"inline; filename=\"{downloadName}\"";
+            return File(fileBytes, "application/pdf");
         }
 
         // ==========================================

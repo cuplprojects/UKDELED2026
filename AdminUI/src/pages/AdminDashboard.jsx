@@ -301,6 +301,361 @@ export default function AdminDashboard() {
   const [newTimelineDate, setNewTimelineDate] = useState("");
   const [newTimelineSubLabel, setNewTimelineSubLabel] = useState("");
 
+  // Admit Card Report States
+  const [admitCardStartDate, setAdmitCardStartDate] = useState("");
+  const [admitCardEndDate, setAdmitCardEndDate] = useState("");
+  const [admitCardReportData, setAdmitCardReportData] = useState(null);
+  const [admitCardReportLoading, setAdmitCardReportLoading] = useState(false);
+  const [admitCardStats, setAdmitCardStats] = useState({
+    totalDownloads: 0,
+    uniqueUsers: 0,
+    totalExamTypes: 0
+  });
+  const [dateWiseStats, setDateWiseStats] = useState([]);
+
+  // Admit Card Search States
+  const [admitCardSearchRegNo, setAdmitCardSearchRegNo] = useState("");
+  const [admitCardSearchResult, setAdmitCardSearchResult] = useState(null);
+  const [admitCardSearchLoading, setAdmitCardSearchLoading] = useState(false);
+  const [admitCardSearchError, setAdmitCardSearchError] = useState("");
+  const [downloadingAdmitCardPdf, setDownloadingAdmitCardPdf] = useState(false);
+  const [admitCardPdfUrl, setAdmitCardPdfUrl] = useState(null);
+  const [loadingAdmitCardPreview, setLoadingAdmitCardPreview] = useState(false);
+  const [admitCardPdfError, setAdmitCardPdfError] = useState("");
+
+  const fetchAdmitCardReport = async (start = admitCardStartDate, end = admitCardEndDate, silent = false) => {
+    setAdmitCardReportLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (start) params.append("startDate", start);
+      if (end) params.append("endDate", end);
+
+      const response = await api.get(`/api/UserRegistrations/admin/admit-card-download-report?${params.toString()}`);
+      if (response.data && response.data.success) {
+        setAdmitCardStats(response.data.summary || {});
+        setDateWiseStats(response.data.dateWiseStats || []);
+        setAdmitCardReportData(response.data);
+        notification.success({
+          message: "Report Loaded",
+          description: `Found ${response.data.summary?.totalDownloads || 0} downloads ${start || end ? "in the selected period" : "(All Records)"}.`
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching admit card report:", error);
+      notification.error({
+        message: "Fetch Error",
+        description: "Failed to load admit card download report."
+      });
+    } finally {
+      setAdmitCardReportLoading(false);
+    }
+  };
+
+  const handleResetAdmitCardFilter = () => {
+    setAdmitCardStartDate("");
+    setAdmitCardEndDate("");
+    fetchAdmitCardReport("", "", false);
+  };
+
+  useEffect(() => {
+    if (activeTab === "admitCardReport") {
+      fetchAdmitCardReport(admitCardStartDate, admitCardEndDate, true);
+    }
+  }, [activeTab]);
+
+  const handleExportAdmitCardReportPDF = () => {
+    if (!admitCardReportData || !dateWiseStats || dateWiseStats.length === 0) {
+      notification.warning({
+        message: "No Data",
+        description: "No admit card download data available to export."
+      });
+      return;
+    }
+
+    const printWindow = window.open("", "", "width=1000,height=800");
+    if (!printWindow) {
+      notification.error({
+        message: "Pop-up Blocked",
+        description: "Please allow pop-ups for this site to export the PDF."
+      });
+      return;
+    }
+
+    const totalDownloads = admitCardStats.totalDownloads || 0;
+    const uniqueUsers = admitCardStats.uniqueUsers || 0;
+    const todayCount = admitCardStats.todayDownloads !== undefined
+      ? admitCardStats.todayDownloads
+      : (admitCardStats.todayCount !== undefined
+        ? admitCardStats.todayCount
+        : (dateWiseStats.find(d => {
+            const now = new Date();
+            const todayUTC = now.toISOString().split("T")[0];
+            const todayIST = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split("T")[0];
+            return d.date === todayIST || d.date === todayUTC;
+          })?.totalDownloads || 0));
+
+    const filterInfo = (admitCardStartDate || admitCardEndDate)
+      ? `Filter Period: ${formatDateToDDMMYYYY(admitCardStartDate) || "Start"} to ${formatDateToDDMMYYYY(admitCardEndDate) || "End"}`
+      : "Consolidated Report (All-Time)";
+
+    const logoHtml = userApi.defaults.baseURL
+      ? `<img src="${userApi.defaults.baseURL}/Logo/ubse_white.jpg" alt="Logo" class="logo" onerror="this.style.display='none'">`
+      : '';
+
+    const dateRowsHtml = dateWiseStats.map((row, idx) => `
+      <tr>
+        <td style="text-align: center;">${idx + 1}</td>
+        <td>${row.dateFormatted || formatDateToDDMMYYYY(row.date)}</td>
+        <td style="text-align: center; font-weight: bold; color: #1e3a8a;">${row.totalDownloads || 0}</td>
+        <td style="text-align: center; font-weight: bold; color: #065f46;">${row.uniqueUsers || 0}</td>
+      </tr>
+    `).join('');
+
+    const htmlDoc = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admit Card Download Report - DELED 2026</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; padding: 15mm; line-height: 1.4; background: white; color: #333; }
+    @page { size: A4; margin: 10mm; }
+    @media print { 
+      body { margin: 0; padding: 10mm; } 
+      .no-print { display: none !important; }
+    }
+    
+    .header { text-align: center; border-bottom: 2px solid #334155; padding-bottom: 12px; margin-bottom: 20px; }
+    .header table { width: 100%; border: none; border-collapse: collapse; }
+    .header td { border: none; padding: 4px; }
+    .logo { width: 70px; height: 70px; object-fit: contain; }
+    .header h2 { font-size: 16px; font-weight: bold; color: #1e293b; margin: 0; }
+    .header h3 { font-size: 14px; font-weight: bold; color: #334155; margin: 4px 0; }
+    .header p { font-size: 11px; color: #64748b; margin-top: 4px; }
+    
+    .report-meta { display: flex; justify-content: space-between; font-size: 11px; color: #475569; margin-bottom: 15px; background: #f8fafc; padding: 8px 12px; border-radius: 6px; border: 1px solid #e2e8f0; }
+    
+    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 25px; }
+    .summary-card { padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; }
+    .summary-label { font-size: 10px; font-weight: bold; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 4px; }
+    .summary-value { font-size: 20px; font-weight: bold; color: #1e293b; }
+    
+    .section-title { font-size: 12px; font-weight: bold; color: #1e293b; text-transform: uppercase; margin-bottom: 8px; border-left: 3px solid #dc2626; padding-left: 8px; }
+    
+    table.data-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 25px; }
+    table.data-table th { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-weight: bold; color: #334155; }
+    table.data-table td { border: 1px solid #cbd5e1; padding: 8px; color: #475569; }
+    table.data-table tr.total-row { font-weight: bold; background: #f8fafc; }
+    table.data-table tr.total-row td { color: #1e293b; border-top: 2px solid #94a3b8; }
+    
+    .footer { text-align: center; font-size: 10px; color: #64748b; margin-top: 30px; border-top: 1px solid #e2e8f0; padding-top: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- TOOLBAR -->
+  <div class="no-print" style="background: #f8f9fa; padding: 12px 20px; display: flex; justify-content: flex-end; gap: 12px; border-bottom: 1px solid #e2e8f0; margin-bottom: 20px; font-family: Arial, sans-serif; font-size: 14px;">
+    <button onclick="window.print()" style="padding: 8px 16px; background: #dc2626; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 13px;">
+      🖨️ Print / Save PDF
+    </button>
+    <button onclick="window.close()" style="padding: 8px 16px; background: #64748b; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); font-size: 13px;">
+      Close
+    </button>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <table>
+      <tr>
+        <td style="width: 15%; text-align: left; vertical-align: middle;">
+          ${logoHtml}
+        </td>
+        <td style="width: 85%; text-align: left; padding-left: 10px;">
+          <h2>उत्तराखण्ड विद्यालयी शिक्षा परिषद् रामनगर (नैनीताल)</h2>
+          <h3>द्विवर्षीय डी०एल०एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h3>
+          <p style="font-size: 13px; font-weight: bold; color: #dc2626; margin-top: 5px;">ADMIT CARD DOWNLOAD REPORT</p>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- METADATA -->
+  <div class="report-meta">
+    <span><strong>Report Range:</strong> ${filterInfo}</span>
+    <span><strong>Generated On:</strong> ${new Date().toLocaleString()}</span>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="summary-grid">
+    <div class="summary-card">
+      <span class="summary-label">Total Downloads</span>
+      <span class="summary-value">${String(totalDownloads).padStart(4, "0")}</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Unique Users</span>
+      <span class="summary-value">${String(uniqueUsers).padStart(4, "0")}</span>
+    </div>
+    <div class="summary-card">
+      <span class="summary-label">Today Count</span>
+      <span class="summary-value">${String(todayCount).padStart(4, "0")}</span>
+    </div>
+  </div>
+
+  <!-- DATE WISE STATISTICS REPORT -->
+  <div class="section-title">Date Wise Download Statistics</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="text-align: center; width: 80px;">Sr. No.</th>
+        <th>Date</th>
+        <th style="text-align: center;">Total Downloads</th>
+        <th style="text-align: center;">Unique Users</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${dateRowsHtml}
+      <tr class="total-row">
+        <td></td>
+        <td>TOTAL</td>
+        <td style="text-align: center; font-size: 12px; color: #1e3a8a;">${totalDownloads}</td>
+        <td style="text-align: center; font-size: 12px; color: #065f46;">${uniqueUsers}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    This is a system generated report from UKDELED Examination Portal. Printed on ${new Date().toLocaleString()}.
+  </div>
+
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 500);
+    };
+  </script>
+</body>
+</html>`;
+
+    printWindow.document.write(htmlDoc);
+    printWindow.document.close();
+  };
+
+  const handleAdmitCardSearch = async (e) => {
+    if (e) e.preventDefault();
+    if (!admitCardSearchRegNo.trim()) {
+      notification.warning({
+        message: "Input Required",
+        description: "Please enter a registration number."
+      });
+      return;
+    }
+
+    setAdmitCardSearchLoading(true);
+    setAdmitCardSearchError("");
+    try {
+      const response = await api.get(
+        `/api/UserRegistrations/admin/admit-card-search/${encodeURIComponent(admitCardSearchRegNo.trim())}`
+      );
+      if (response.data && response.data.success) {
+        setAdmitCardSearchResult(response.data.data);
+        fetchAdmitCardPdfPreview(response.data.data.registrationNo);
+        notification.success({
+          message: "Candidate Found",
+          description: `${response.data.data.fullName} - Total Downloads: ${response.data.data.totalDownloads}`
+        });
+      }
+    } catch (error) {
+      const errMsg = error.response?.data?.message || "Candidate not found.";
+      setAdmitCardSearchError(errMsg);
+      setAdmitCardSearchResult(null);
+      if (admitCardPdfUrl) {
+        URL.revokeObjectURL(admitCardPdfUrl);
+        setAdmitCardPdfUrl(null);
+      }
+      notification.error({
+        message: "Search Error",
+        description: errMsg
+      });
+    } finally {
+      setAdmitCardSearchLoading(false);
+    }
+  };
+
+  const fetchAdmitCardPdfPreview = async (regNo) => {
+    if (!regNo) return;
+    setLoadingAdmitCardPreview(true);
+    setAdmitCardPdfError("");
+    if (admitCardPdfUrl) {
+      URL.revokeObjectURL(admitCardPdfUrl);
+      setAdmitCardPdfUrl(null);
+    }
+    try {
+      const response = await api.get(
+        `/api/UserRegistrations/admin/render-admit-card/${encodeURIComponent(regNo)}`,
+        { responseType: "blob" }
+      );
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      setAdmitCardPdfUrl(url);
+    } catch (err) {
+      console.error("Error loading admit card preview from AdminAPI:", err);
+      let fallbackSuccess = false;
+      if (userApi && userApi.defaults.baseURL) {
+        try {
+          const userRes = await userApi.get(
+            `/api/AdmitCard/render/${encodeURIComponent(regNo)}?isLogin=true`,
+            { responseType: "blob" }
+          );
+          const blob = new Blob([userRes.data], { type: "application/pdf" });
+          const url = URL.createObjectURL(blob);
+          setAdmitCardPdfUrl(url);
+          fallbackSuccess = true;
+        } catch (uErr) {
+          console.error("Fallback to userApi failed:", uErr);
+        }
+      }
+      if (!fallbackSuccess) {
+        const errorMsg = err.response?.data?.message || "Admit Card PDF file could not be found on Z: drive.";
+        setAdmitCardPdfError(errorMsg);
+      }
+    } finally {
+      setLoadingAdmitCardPreview(false);
+    }
+  };
+
+  const downloadAdmitCardPdf = async (regNo) => {
+    setDownloadingAdmitCardPdf(true);
+    try {
+      const response = await api.get(
+        `/api/UserRegistrations/admin/render-admit-card/${encodeURIComponent(regNo)}`,
+        { responseType: "blob" }
+      );
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${regNo}_AdmitCard.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      notification.success({
+        message: "Downloaded",
+        description: "Admit card PDF downloaded successfully."
+      });
+    } catch (error) {
+      console.error("Download error:", error);
+      notification.error({
+        message: "Download Error",
+        description: error.response?.data?.message || "Failed to download admit card."
+      });
+    } finally {
+      setDownloadingAdmitCardPdf(false);
+    }
+  };
+
   const handleAddTimeline = (e) => {
     if (e) e.preventDefault();
     const key = newTimelineKey.trim().toLowerCase();
@@ -2044,6 +2399,8 @@ export default function AdminDashboard() {
               { id: "dashboard", label: "Dashboard", icon: FaChartBar },
               { id: "reviewPaid", label: "Review Paid Application", icon: FaCheckCircle },
               { id: "submission", label: "Submission Report", icon: FaFileAlt },
+              { id: "admitCardReport", label: "Admit Card Report", icon: FaFilePdf },
+              { id: "admitCardSearch", label: "Admit Card Search", icon: FaIdCard },
               { id: "email", label: "Email Report", icon: FaEnvelope },
               { id: "update", label: "Update / Correction", icon: FaUserEdit },
               { id: "payment", label: "Payment Status", icon: FaCreditCard },
@@ -2109,6 +2466,7 @@ export default function AdminDashboard() {
         <div className="p-8 space-y-8 overflow-y-auto flex-1">
 
           {/* STATS PANEL */}
+          {!activeTab.startsWith("admitCard") && (
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
             {/* Stat Box 1 */}
@@ -2145,6 +2503,7 @@ export default function AdminDashboard() {
             </div>
 
           </section>
+          )}
 
           {/* MAIN DYNAMIC CONTENT */}
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -3657,6 +4016,378 @@ export default function AdminDashboard() {
                     />
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* Admit Card Report Tab */}
+            {activeTab === "admitCardReport" && (
+              <div className="p-8 space-y-6">
+                <div className="border-b border-slate-100 pb-4 flex flex-wrap justify-between items-center gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                      <FaFilePdf className="text-red-500" /> Admit Card Download Report
+                    </h3>
+                    <p className="text-xs text-slate-400 font-normal mt-0.5">View date-wise statistics of admit card downloads.</p>
+                  </div>
+                  <button
+                    onClick={handleExportAdmitCardReportPDF}
+                    disabled={!admitCardReportData || dateWiseStats.length === 0}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-slate-300 text-white rounded-xl text-sm font-bold tracking-wide transition shadow-sm cursor-pointer disabled:cursor-not-allowed select-none"
+                    title="Download or Print PDF Report"
+                  >
+                    <FaDownload className="w-3.5 h-3.5" />
+                    <span>Download PDF Report</span>
+                  </button>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-lg p-6 space-y-4">
+                  <h4 className="text-sm font-semibold text-slate-700">Date Range Filter</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-2">Start Date (YYYY-MM-DD)</label>
+                      <input
+                        type="date"
+                        value={admitCardStartDate}
+                        onChange={(e) => setAdmitCardStartDate(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-2">End Date (YYYY-MM-DD)</label>
+                      <input
+                        type="date"
+                        value={admitCardEndDate}
+                        onChange={(e) => setAdmitCardEndDate(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <button
+                        onClick={() => fetchAdmitCardReport(admitCardStartDate, admitCardEndDate)}
+                        disabled={admitCardReportLoading}
+                        className="flex-1 px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        {admitCardReportLoading ? (
+                          <>
+                            <FaSpinner className="animate-spin" /> Loading...
+                          </>
+                        ) : (
+                          <>
+                            <FaSearch /> Filter Report
+                          </>
+                        )}
+                      </button>
+                      {(admitCardStartDate || admitCardEndDate) && (
+                        <button
+                          onClick={handleResetAdmitCardFilter}
+                          disabled={admitCardReportLoading}
+                          className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-semibold rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-1 cursor-pointer whitespace-nowrap"
+                          title="Clear date filter to show all data"
+                        >
+                          <FaSync className="w-3.5 h-3.5" /> Show All
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {admitCardReportData && (
+                  <div className="space-y-6">
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-6">
+                        <h5 className="text-xs font-semibold text-blue-700 uppercase mb-2">Total Downloads</h5>
+                        <p className="text-3xl font-bold text-blue-900">{String(admitCardStats.totalDownloads || 0).padStart(4, "0")}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-6">
+                        <h5 className="text-xs font-semibold text-green-700 uppercase mb-2">Unique Users</h5>
+                        <p className="text-3xl font-bold text-green-900">{String(admitCardStats.uniqueUsers || 0).padStart(4, "0")}</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-lg p-6">
+                        <h5 className="text-xs font-semibold text-purple-700 uppercase mb-2">Today Count</h5>
+                        <p className="text-3xl font-bold text-purple-900">
+                          {String(
+                            admitCardStats.todayDownloads !== undefined
+                              ? admitCardStats.todayDownloads
+                              : (admitCardStats.todayCount !== undefined
+                                ? admitCardStats.todayCount
+                                : (dateWiseStats.find(d => {
+                                    const now = new Date();
+                                    const todayUTC = now.toISOString().split("T")[0];
+                                    const todayIST = new Date(now.getTime() + (5.5 * 60 * 60 * 1000)).toISOString().split("T")[0];
+                                    return d.date === todayIST || d.date === todayUTC;
+                                  })?.totalDownloads || 0))
+                          ).padStart(4, "0")}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Date Wise Statistics Table */}
+                    <div className="border border-slate-200 rounded-lg overflow-hidden">
+                      <div className="bg-slate-50 px-6 py-3 border-b border-slate-200 flex justify-between items-center">
+                        <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">Date Wise Statistics Table</span>
+                        <button
+                          onClick={handleExportAdmitCardReportPDF}
+                          disabled={!admitCardReportData || dateWiseStats.length === 0}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                        >
+                          <FaFilePdf className="w-3.5 h-3.5" /> Export PDF
+                        </button>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-100 border-b border-slate-200">
+                          <tr>
+                            <th className="px-6 py-3 text-left font-semibold text-slate-700">Date</th>
+                            <th className="px-6 py-3 text-center font-semibold text-slate-700">Total Downloads</th>
+                            <th className="px-6 py-3 text-center font-semibold text-slate-700">Unique Users</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200">
+                          {dateWiseStats && dateWiseStats.length > 0 ? (
+                            dateWiseStats.map((stat, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50 transition">
+                                <td className="px-6 py-3 text-slate-800">{stat.dateFormatted || stat.date}</td>
+                                <td className="px-6 py-3 text-center font-semibold text-slate-900">{stat.totalDownloads}</td>
+                                <td className="px-6 py-3 text-center font-semibold text-slate-900">{stat.uniqueUsers}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="3" className="px-6 py-8 text-center text-slate-400 text-sm">
+                                No download data available for the selected period.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {!admitCardReportData && !admitCardReportLoading && (
+                  <div className="bg-slate-50 border border-dashed border-slate-300 rounded-lg p-12 text-center">
+                    <FaFileAlt className="text-4xl text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-400 text-sm">No admit card download records available.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Admit Card Search Tab */}
+            {activeTab === "admitCardSearch" && (
+              <div className="p-8 space-y-6">
+                <div className="border-b border-slate-100 pb-4">
+                  <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                    <FaIdCard className="text-blue-600" /> Admit Card Candidate Search
+                  </h3>
+                  <p className="text-xs text-slate-400 font-normal mt-0.5">Search for candidates and view their admit card download history.</p>
+                </div>
+
+                <form onSubmit={handleAdmitCardSearch} className="bg-slate-50 border border-slate-200 rounded-lg p-6 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-2">Registration Number</label>
+                      <input
+                        type="text"
+                        placeholder="e.g., DELED0001"
+                        value={admitCardSearchRegNo}
+                        onChange={(e) => setAdmitCardSearchRegNo(e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div className="flex items-end gap-2">
+                      <button
+                        type="submit"
+                        disabled={admitCardSearchLoading}
+                        className="w-full px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {admitCardSearchLoading ? (
+                          <>
+                            <FaSpinner className="animate-spin" /> Searching...
+                          </>
+                        ) : (
+                          <>
+                            <FaSearch /> Search
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+
+                {admitCardSearchResult && (
+                  <div className="space-y-6">
+                    {/* Candidate Details Card */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                      <h4 className="text-sm font-semibold text-blue-900 mb-4">Candidate Details</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="font-semibold text-slate-700">Registration No:</span>
+                          <p className="text-slate-900 font-mono">{admitCardSearchResult.registrationNo}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-700">Full Name:</span>
+                          <p className="text-slate-900">{admitCardSearchResult.fullName}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-700">Phone:</span>
+                          <p className="text-slate-900">{admitCardSearchResult.phoneNumber || "N/A"}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-700">Email:</span>
+                          <p className="text-slate-900">{admitCardSearchResult.email || "N/A"}</p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-700">Payment Status:</span>
+                          <p className={`font-semibold ${admitCardSearchResult.isPaymentCompleted ? 'text-green-700' : 'text-red-700'}`}>
+                            {admitCardSearchResult.isPaymentCompleted ? "✓ PAID" : "✗ UNPAID"}
+                          </p>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-700">Total Downloads:</span>
+                          <p className="text-slate-900 font-semibold">{admitCardSearchResult.totalDownloads}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Download History */}
+                    {admitCardSearchResult.downloadHistory && admitCardSearchResult.downloadHistory.length > 0 && (
+                      <div className="border border-slate-200 rounded-lg overflow-hidden">
+                        <h4 className="bg-slate-100 px-6 py-3 font-semibold text-slate-800">Download History</h4>
+                        <table className="w-full text-sm">
+                          <thead className="bg-slate-50 border-b border-slate-200">
+                            <tr>
+                              <th className="px-6 py-3 text-left font-semibold text-slate-700">Download Date & Time</th>
+                              <th className="px-6 py-3 text-left font-semibold text-slate-700">IP Address</th>
+                              <th className="px-6 py-3 text-center font-semibold text-slate-700">Logged In</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-200">
+                            {admitCardSearchResult.downloadHistory.map((download, idx) => (
+                              <tr key={idx} className="hover:bg-slate-50 transition">
+                                <td className="px-6 py-3 text-slate-800">{download.downloadTime}</td>
+                                <td className="px-6 py-3 font-mono text-slate-700">{download.ipAddress || "N/A"}</td>
+                                <td className="px-6 py-3 text-center">
+                                  <span className={`px-2 py-1 text-xs font-semibold rounded ${download.isLogin === "Yes" ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                    {download.isLogin}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+
+                    {/* Admit Card Viewer (From Z: Drive) */}
+                    <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                      <div className="bg-slate-900 text-white px-6 py-4 flex flex-wrap justify-between items-center gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <FaFilePdf className="text-red-400 text-xl" />
+                          <div>
+                            <h4 className="font-bold text-base tracking-wide">
+                              Candidate Admit Card
+                            </h4>
+                            <p className="text-xs text-slate-400">
+                              Registration No: <strong className="text-white">{admitCardSearchResult.registrationNo}</strong> &bull; {admitCardSearchResult.fullName}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {admitCardPdfUrl && (
+                            <a
+                              href={admitCardPdfUrl}
+                              download={`${admitCardSearchResult.registrationNo}_AdmitCard.pdf`}
+                              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                              title="Download PDF file"
+                            >
+                              <FaDownload className="w-3 h-3" /> Download PDF
+                            </a>
+                          )}
+                          {admitCardPdfUrl && (
+                            <button
+                              onClick={() => {
+                                const iframe = document.getElementById("admitCardPreviewIframe");
+                                if (iframe && iframe.contentWindow) {
+                                  iframe.contentWindow.focus();
+                                  iframe.contentWindow.print();
+                                } else {
+                                  window.open(admitCardPdfUrl, "_blank");
+                                }
+                              }}
+                              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
+                              title="Print Admit Card"
+                            >
+                              <FaPrint className="w-3 h-3" /> Print
+                            </button>
+                          )}
+                          <button
+                            onClick={() => fetchAdmitCardPdfPreview(admitCardSearchResult.registrationNo)}
+                            disabled={loadingAdmitCardPreview}
+                            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Reload from Z: drive"
+                          >
+                            <FaSync className={`w-3 h-3 ${loadingAdmitCardPreview ? "animate-spin text-white" : ""}`} /> Reload
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-slate-100 min-h-[500px] flex items-center justify-center">
+                        {loadingAdmitCardPreview ? (
+                          <div className="py-24 flex flex-col items-center justify-center gap-3">
+                            <FaSpinner className="animate-spin text-4xl text-slate-600" />
+                            <span className="text-sm font-bold text-slate-700">
+                              Loading Admit Card from Z: drive...
+                            </span>
+                            <span className="text-xs text-slate-500 font-mono">
+                              Z:\UKDELED2026\Admit Card\{admitCardSearchResult.registrationNo}.pdf
+                            </span>
+                          </div>
+                        ) : admitCardPdfUrl ? (
+                          <iframe
+                            id="admitCardPreviewIframe"
+                            src={admitCardPdfUrl}
+                            className="w-full h-[900px] border border-slate-300 rounded-xl bg-white shadow-md"
+                            title={`Admit Card - ${admitCardSearchResult.registrationNo}`}
+                          />
+                        ) : (
+                          <div className="py-16 px-6 text-center max-w-md mx-auto space-y-3">
+                            <div className="w-16 h-16 mx-auto rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-2xl">
+                              <FaExclamationTriangle />
+                            </div>
+                            <h5 className="text-base font-bold text-slate-800">Admit Card File Not Found</h5>
+                            <p className="text-xs text-slate-600 leading-relaxed">
+                              {admitCardPdfError || "The admit card PDF could not be loaded from Z: drive."}
+                            </p>
+                            <div className="p-3 bg-slate-200/70 rounded-lg text-left text-xs font-mono text-slate-700 break-all">
+                              Expected: Z:\UKDELED2026\Admit Card\{admitCardSearchResult.registrationNo}.pdf
+                            </div>
+                            <button
+                              onClick={() => fetchAdmitCardPdfPreview(admitCardSearchResult.registrationNo)}
+                              className="mt-2 px-5 py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition inline-flex items-center gap-2 cursor-pointer shadow-sm"
+                            >
+                              <FaSync className="w-3 h-3" /> Retry Loading from Z: Drive
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {admitCardSearchError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <FaExclamationTriangle className="text-4xl text-red-400 mx-auto mb-3" />
+                    <p className="text-red-800 font-semibold">{admitCardSearchError}</p>
+                  </div>
+                )}
+
+                {!admitCardSearchResult && !admitCardSearchError && !admitCardSearchLoading && (
+                  <div className="bg-slate-50 border border-dashed border-slate-300 rounded-lg p-12 text-center">
+                    <FaIdCard className="text-4xl text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-400 text-sm">Enter a registration number and click "Search" to find candidate and view download history.</p>
+                  </div>
+                )}
               </div>
             )}
 
