@@ -129,6 +129,7 @@ export default function VerifyAdmitCard() {
 
         setCandidateData({
           ...payload,
+          registrationNo: payload.registrationNo || res.data.registrationNo || "",
           rollNumber: rollNo,
           assignedCity: assignedCityVal,
           assignedCentre: assignedCentreVal,
@@ -270,23 +271,23 @@ export default function VerifyAdmitCard() {
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse text-xs sm:text-sm">
                       <tbody>
-                        {/* Row 1: Roll Number & Candidate's Name */}
+                        {/* Row 1: Registration Number & Roll Number */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
+                          <td className="w-[18%] bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Registration No. (पंजीकरण संख्या):
+                          </td>
+                          <td className="w-[23%] p-2.5 sm:p-3 font-mono font-black text-blue-700 text-sm sm:text-base border-r border-slate-200 align-middle">
+                            {candidateData.registrationNo || "N/A"}
+                          </td>
                           <td className="w-[18%] bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Roll Number (अनुक्रमांक):
                           </td>
                           <td className="w-[23%] p-2.5 sm:p-3 font-mono font-black text-blue-700 text-sm sm:text-base border-r border-slate-200 align-middle">
                             {candidateData.rollNumber || "N/A"}
                           </td>
-                          <td className="w-[18%] bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Candidate's Name (अभ्यर्थी का नाम):
-                          </td>
-                          <td className="w-[23%] p-2.5 sm:p-3 font-black text-slate-900 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.applicantName || candidateData.fullName || "N/A"}
-                          </td>
                           {/* Right Hand Column: Photo & Signature spanning all rows */}
                           <td
-                            rowSpan={6}
+                            rowSpan={5}
                             className="w-[18%] min-w-[150px] p-3 text-center align-middle bg-slate-50/70 border-l border-slate-200"
                           >
                             <div className="flex flex-col items-center justify-center gap-3">
@@ -337,23 +338,39 @@ export default function VerifyAdmitCard() {
                           </td>
                         </tr>
 
-                        {/* Row 2: Father's Name & Mother's Name */}
+                        {/* Row 2: Candidate's Name & Father's Name */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
+                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Candidate's Name (अभ्यर्थी का नाम):
+                          </td>
+                          <td className="p-2.5 sm:p-3 font-black text-slate-900 uppercase border-r border-slate-200 align-middle">
+                            {candidateData.applicantName || candidateData.fullName || "N/A"}
+                          </td>
                           <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Father's Name (पिता का नाम):
                           </td>
                           <td className="p-2.5 sm:p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
                             {candidateData.fatherName || "N/A"}
                           </td>
+                        </tr>
+
+                        {/* Row 3: Assigned City & Assigned Centre */}
+                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
                           <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Mother's Name (माता का नाम):
+                            Assigned City (आवंटित शहर):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.motherName || "N/A"}
+                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase font-mono text-sm border-r border-slate-200 align-middle">
+                            {candidateData.assignedCity || candidateData.allotment?.assignedCityDisplay || candidateData.allotment?.assignedCity || "N/A"}
+                          </td>
+                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Assigned Centre (आवंटित केन्द्र):
+                          </td>
+                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 leading-snug border-r border-slate-200 align-middle">
+                            {candidateData.assignedCentre || candidateData.allotment?.assignedCentreDisplay || candidateData.allotment?.assignedCentre || "N/A"}
                           </td>
                         </tr>
 
-                        {/* Row 3: Date of Birth & Gender */}
+                        {/* Row 4: Date of Birth & Gender */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
                           <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Date of Birth (जन्म तिथि):
@@ -369,8 +386,8 @@ export default function VerifyAdmitCard() {
                           </td>
                         </tr>
 
-                        {/* Row 4: Category & Applied Exam */}
-                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
+                        {/* Row 5: Category & ID Proof with ID Number in one cell */}
+                        <tr className="hover:bg-slate-50/40 transition-colors">
                           <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Category (श्रेणी):
                           </td>
@@ -378,42 +395,28 @@ export default function VerifyAdmitCard() {
                             {candidateData.category || "GENERAL"}
                           </td>
                           <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Applied Exam (परीक्षा):
+                            ID Proof & No. (पहचान पत्र एवं संख्या):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-blue-900 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.applicationFor || "D.El.Ed. Entrance Exam 2026"}
-                          </td>
-                        </tr>
-
-                        {/* Row 5: ID Proof & ID Number */}
-                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            ID Proof (पहचान पत्र):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.identityProof || "Aadhaar Card / Official ID"}
-                          </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            ID Number (पहचान पत्र संख्या):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-mono font-black text-blue-900 border-r border-slate-200 align-middle">
-                            {candidateData.identityProofNo || "N/A"}
-                          </td>
-                        </tr>
-
-                        {/* Row 6: Assigned City & Assigned Centre */}
-                        <tr className="hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Assigned City (आवंटित शहर):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase font-mono text-sm border-r border-slate-200 align-middle">
-                            {candidateData.assignedCity || candidateData.allotment?.assignedCityDisplay || candidateData.allotment?.assignedCity || "N/A"}
-                          </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Assigned Centre (आवंटित केन्द्र):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 leading-snug border-r border-slate-200 align-middle">
-                            {candidateData.assignedCentre || candidateData.allotment?.assignedCentreDisplay || candidateData.allotment?.assignedCentre || "N/A"}
+                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 border-r border-slate-200 align-middle">
+                            {candidateData.identityProof ? (
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="uppercase text-slate-800 font-bold">
+                                  {candidateData.identityProof}
+                                </span>
+                                {candidateData.identityProofNo && (
+                                  <>
+                                    <span className="text-slate-400 font-normal">/</span>
+                                    <span className="font-mono font-black text-blue-900 tracking-wider">
+                                      {candidateData.identityProofNo}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="font-mono font-black text-blue-900">
+                                {candidateData.identityProofNo || "N/A"}
+                              </span>
+                            )}
                           </td>
                         </tr>
                       </tbody>
