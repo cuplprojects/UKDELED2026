@@ -11,6 +11,7 @@ import {
 import Layout from "../components/Layout";
 import PageNotFound from "./PageNotFound";
 import { api } from "../stores/apiStore";
+import { formatDateToDDMMYYYY } from "../utils/dateUtils";
 
 export default function VerifyAdmitCard() {
   const { token: routeToken, registrationNo: routeRegNo } = useParams();
@@ -66,15 +67,7 @@ export default function VerifyAdmitCard() {
   };
 
   // Format Date of Birth (YYYY-MM-DD -> DD-MM-YYYY)
-  const formatDob = (dobStr) => {
-    if (!dobStr) return "N/A";
-    const clean = dobStr.split("T")[0];
-    const parts = clean.split("-");
-    if (parts.length === 3) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-    return dobStr;
-  };
+  const formatDob = (dobStr) => formatDateToDDMMYYYY(dobStr) || "N/A";
 
   // Format Current Live IST Timestamp
   const getLiveIstTimestamp = () => {
@@ -230,190 +223,248 @@ export default function VerifyAdmitCard() {
           )}
 
           {/* Verified Candidate Sheet */}
-          {!loading && candidateData && (
+          {!loading && candidateData && (() => {
+            const candidateNameVal = candidateData.applicantName || candidateData.fullName || "N/A";
+            const rollNumberVal = candidateData.rollNumber || "N/A";
+            const registrationNoVal = candidateData.registrationNo || "N/A";
+            const assignedCityVal = candidateData.assignedCity || candidateData.allotment?.assignedCityDisplay || candidateData.allotment?.assignedCity || "N/A";
+            const assignedCentreVal = candidateData.assignedCentre || candidateData.allotment?.assignedCentreDisplay || candidateData.allotment?.assignedCentre || "N/A";
+
+            const mobileDetailRows = [
+              { label: "Candidate's Name (अभ्यर्थी का नाम)", value: candidateNameVal, valueClass: "font-black text-slate-900 uppercase text-sm" },
+              { label: "Roll Number (अनुक्रमांक)", value: rollNumberVal, valueClass: "font-mono font-black text-blue-700 text-base" },
+              { label: "Registration Number (पंजीकरण संख्या)", value: registrationNoVal, valueClass: "font-mono font-black text-indigo-800 text-sm" },
+              { label: "Father's Name (पिता का नाम)", value: candidateData.fatherName || "N/A", valueClass: "font-bold text-slate-800 uppercase" },
+              { label: "Mother's Name (माता का नाम)", value: candidateData.motherName || "N/A", valueClass: "font-bold text-slate-800 uppercase" },
+              { label: "Date of Birth (जन्म तिथि)", value: formatDob(candidateData.dob || candidateData.DOB), valueClass: "font-bold text-slate-800" },
+              { label: "Gender (लिंग)", value: candidateData.gender || "N/A", valueClass: "font-bold text-slate-800 uppercase" },
+              { label: "Category (श्रेणी)", value: candidateData.category || "GENERAL", valueClass: "font-bold text-slate-900 uppercase" },
+              { label: "Applied Exam (परीक्षा)", value: candidateData.applicationFor || "D.El.Ed. Entrance Exam 2026", valueClass: "font-bold text-blue-900 uppercase" },
+              { label: "ID Proof (पहचान पत्र)", value: candidateData.identityProof || "Aadhaar Card / Official ID", valueClass: "font-bold text-slate-900 uppercase" },
+              { label: "ID Number (पहचान पत्र संख्या)", value: candidateData.identityProofNo || "N/A", valueClass: "font-mono font-black text-blue-900 break-all" },
+              { label: "Assigned City (आवंटित शहर)", value: assignedCityVal, valueClass: "font-bold text-slate-900 uppercase font-mono" },
+              { label: "Assigned Centre (आवंटित केन्द्र)", value: assignedCentreVal, valueClass: "font-bold text-slate-900 leading-snug" }
+            ];
+
+            const renderPhotoBox = () => (
+              <div className="inline-flex flex-col border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs bg-white">
+                <div className="w-28 h-36 bg-white flex items-center justify-center">
+                  {photoUrl && !photoError ? (
+                    <img
+                      src={photoUrl}
+                      alt="Candidate Photograph"
+                      className="w-full h-full object-cover"
+                      onError={handlePhotoError}
+                    />
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center gap-1 p-2">
+                      <FaUserCheck className="w-8 h-8 text-slate-300" />
+                      <span className="text-[10px] font-bold">Photo on Record</span>
+                    </div>
+                  )}
+                </div>
+                <span className="bg-blue-900 text-white text-[10px] font-extrabold uppercase py-1 px-2 text-center tracking-wider">
+                  PHOTO
+                </span>
+              </div>
+            );
+
+            const renderSignatureBox = () => (
+              <div className="inline-flex flex-col border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs bg-white">
+                <div className="w-36 h-16 bg-white flex items-center justify-center p-1.5">
+                  {signatureUrl && !signatureError ? (
+                    <img
+                      src={signatureUrl}
+                      alt="Candidate Signature"
+                      className="w-full h-full object-contain"
+                      onError={handleSignatureError}
+                    />
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center gap-0.5">
+                      <FaSignature className="w-6 h-6 text-slate-300" />
+                      <span className="text-[10px] font-bold">Signature on Record</span>
+                    </div>
+                  )}
+                </div>
+                <span className="bg-blue-900 text-white text-[9px] font-extrabold uppercase py-1 px-2 text-center tracking-wider">
+                  SIGNATURE
+                </span>
+              </div>
+            );
+
+            return (
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
               {/* Verified Status Bar (Card Header matching theme blue) */}
-              <div className="bg-blue-600 text-white px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+              <div className="bg-blue-600 text-white px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 shadow-xs">
                 <div className="flex items-center gap-3">
                   <span className="w-8 h-8 bg-white text-blue-600 rounded-full flex items-center justify-center shadow-xs shrink-0">
                     <FaCheck className="w-4 h-4 stroke-[3]" />
                   </span>
                   <div>
-                    <h2 className="text-sm sm:text-base font-black tracking-wide uppercase flex items-center gap-2">
+                    <h2 className="text-sm sm:text-base font-black tracking-wide uppercase flex flex-wrap items-center gap-x-2">
                       <span>Candidate Details</span>
                       <span className="hidden sm:inline-block text-blue-200">|</span>
                       <span className="text-xs sm:text-sm font-bold text-blue-100">अभ्यर्थी विवरण</span>
                     </h2>
                   </div>
                 </div>
-                <div className="text-[11px] sm:text-xs font-bold text-white bg-blue-700 px-3.5 py-1.5 rounded-full border border-blue-400/40 flex items-center gap-1.5 shrink-0 shadow-xs">
-                  <FaShieldAlt className="w-3.5 h-3.5 text-blue-200" />
-                  <span>Verified On: {verificationTime || getLiveIstTimestamp()}</span>
+                <div className="text-[11px] sm:text-xs font-bold text-white bg-blue-700 px-3 py-1.5 rounded-full border border-blue-400/40 flex items-center gap-1.5 shrink-0 shadow-xs max-w-full">
+                  <FaShieldAlt className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+                  <span className="truncate">Verified On: {verificationTime || getLiveIstTimestamp()}</span>
                 </div>
               </div>
 
               {/* Main Candidate Content */}
-              <div className="p-4 sm:p-6">
+              <div className="p-3 sm:p-6">
                 <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs bg-white">
                   {/* Table Sub-Header */}
-                  <div className="bg-slate-100 px-4 sm:px-5 py-2.5 border-b border-slate-200 flex items-center justify-between">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                      <FaUserCheck className="w-4 h-4 text-blue-700" />
-                      <span>CANDIDATE DETAILS (अभ्यर्थी का विवरण)</span>
+                  <div className="bg-slate-100 px-3 sm:px-5 py-2.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
+                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2 min-w-0">
+                      <FaUserCheck className="w-4 h-4 text-blue-700 shrink-0" />
+                      <span className="break-words">CANDIDATE DETAILS (अभ्यर्थी का विवरण)</span>
                     </h3>
-                    <span className="text-[10px] sm:text-xs font-extrabold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200">
+                    <span className="text-[10px] sm:text-xs font-extrabold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200 shrink-0">
                       UK D.El.Ed 2026
                     </span>
                   </div>
 
-                  {/* Synchronized Table Layout */}
-                  <div className="overflow-x-auto">
+                  {/* Mobile Responsive Layout (No Horizontal Scroll): Photo -> Signature -> Name -> Roll No -> Reg No -> Other Details */}
+                  <div className="block md:hidden">
+                    <div className="p-4 bg-slate-50/70 border-b border-slate-200 flex flex-col items-center justify-center gap-3">
+                      {renderPhotoBox()}
+                      {renderSignatureBox()}
+                    </div>
+                    <div className="divide-y divide-slate-200">
+                      {mobileDetailRows.map((item, idx) => (
+                        <div key={idx} className="px-3.5 py-2.5 flex flex-col gap-0.5">
+                          <span className="text-[11px] font-semibold text-slate-500">
+                            {item.label}:
+                          </span>
+                          <span className={`text-xs break-words ${item.valueClass}`}>
+                            {item.value}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Desktop Synchronized Table Layout */}
+                  <div className="hidden md:block">
                     <table className="w-full border-collapse text-xs sm:text-sm">
                       <tbody>
-                        {/* Row 1: Roll Number & Candidate's Name */}
+                        {/* Row 1: Candidate's Name & Roll Number */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="w-[18%] bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Roll Number (अनुक्रमांक):
-                          </td>
-                          <td className="w-[23%] p-2.5 sm:p-3 font-mono font-black text-blue-700 text-sm sm:text-base border-r border-slate-200 align-middle">
-                            {candidateData.rollNumber || "N/A"}
-                          </td>
-                          <td className="w-[18%] bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                          <td className="w-[18%] bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Candidate's Name (अभ्यर्थी का नाम):
                           </td>
-                          <td className="w-[23%] p-2.5 sm:p-3 font-black text-slate-900 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.applicantName || candidateData.fullName || "N/A"}
+                          <td className="w-[23%] p-3 font-black text-slate-900 uppercase border-r border-slate-200 align-middle">
+                            {candidateNameVal}
+                          </td>
+                          <td className="w-[18%] bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Roll Number (अनुक्रमांक):
+                          </td>
+                          <td className="w-[23%] p-3 font-mono font-black text-blue-700 text-base border-r border-slate-200 align-middle">
+                            {rollNumberVal}
                           </td>
                           {/* Right Hand Column: Photo & Signature spanning all rows */}
                           <td
-                            rowSpan={6}
-                            className="w-[18%] min-w-[150px] p-3 text-center align-middle bg-slate-50/70 border-l border-slate-200"
+                            rowSpan={7}
+                            className="w-[18%] min-w-[165px] p-3 text-center align-middle bg-slate-50/70 border-l border-slate-200"
                           >
-                            <div className="flex flex-col items-center justify-center gap-3">
-                              {/* Photo */}
-                              <div className="text-center">
-                                <div className="w-28 h-36 bg-white border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs flex items-center justify-center relative">
-                                  {photoUrl && !photoError ? (
-                                    <img
-                                      src={photoUrl}
-                                      alt="Candidate Photograph"
-                                      className="w-full h-full object-cover"
-                                      onError={handlePhotoError}
-                                    />
-                                  ) : (
-                                    <div className="text-slate-400 flex flex-col items-center gap-1 p-2">
-                                      <FaUserCheck className="w-8 h-8 text-slate-300" />
-                                      <span className="text-[10px] font-bold">Photo on Record</span>
-                                    </div>
-                                  )}
-                                  <span className="absolute bottom-0 inset-x-0 bg-blue-900/80 text-white text-[9px] font-extrabold uppercase py-0.5 text-center">
-                                    PHOTO
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Signature (just below photo) */}
-                              <div className="text-center">
-                                <div className="w-32 h-16 bg-white border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs flex items-center justify-center p-1.5 relative">
-                                  {signatureUrl && !signatureError ? (
-                                    <img
-                                      src={signatureUrl}
-                                      alt="Candidate Signature"
-                                      className="w-full h-full object-contain"
-                                      onError={handleSignatureError}
-                                    />
-                                  ) : (
-                                    <div className="text-slate-400 flex flex-col items-center gap-0.5">
-                                      <FaSignature className="w-6 h-6 text-slate-300" />
-                                      <span className="text-[10px] font-bold">Signature on Record</span>
-                                    </div>
-                                  )}
-                                  <span className="absolute bottom-0 inset-x-0 bg-blue-900/80 text-white text-[8px] font-extrabold uppercase py-0.5 text-center">
-                                    SIGNATURE
-                                  </span>
-                                </div>
-                              </div>
+                            <div className="flex flex-col items-center justify-center gap-3.5">
+                              {renderPhotoBox()}
+                              {renderSignatureBox()}
                             </div>
                           </td>
                         </tr>
 
-                        {/* Row 2: Father's Name & Mother's Name */}
+                        {/* Row 2: Registration Number & Applied Exam */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Father's Name (पिता का नाम):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Registration Number (पंजीकरण संख्या):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.fatherName || "N/A"}
+                          <td className="p-3 font-mono font-black text-indigo-800 border-r border-slate-200 align-middle">
+                            {registrationNoVal}
                           </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Mother's Name (माता का नाम):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.motherName || "N/A"}
-                          </td>
-                        </tr>
-
-                        {/* Row 3: Date of Birth & Gender */}
-                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Date of Birth (जन्म तिथि):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 border-r border-slate-200 align-middle">
-                            {formatDob(candidateData.dob || candidateData.DOB)}
-                          </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Gender (लिंग):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.gender || "N/A"}
-                          </td>
-                        </tr>
-
-                        {/* Row 4: Category & Applied Exam */}
-                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Category (श्रेणी):
-                          </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.category || "GENERAL"}
-                          </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Applied Exam (परीक्षा):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-blue-900 uppercase border-r border-slate-200 align-middle">
+                          <td className="p-3 font-bold text-blue-900 uppercase border-r border-slate-200 align-middle">
                             {candidateData.applicationFor || "D.El.Ed. Entrance Exam 2026"}
                           </td>
                         </tr>
 
-                        {/* Row 5: ID Proof & ID Number */}
+                        {/* Row 3: Father's Name & Mother's Name */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            ID Proof (पहचान पत्र):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Father's Name (पिता का नाम):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.identityProof || "Aadhaar Card / Official ID"}
+                          <td className="p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
+                            {candidateData.fatherName || "N/A"}
                           </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            ID Number (पहचान पत्र संख्या):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Mother's Name (माता का नाम):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-mono font-black text-blue-900 border-r border-slate-200 align-middle">
-                            {candidateData.identityProofNo || "N/A"}
+                          <td className="p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
+                            {candidateData.motherName || "N/A"}
                           </td>
                         </tr>
 
-                        {/* Row 6: Assigned City & Assigned Centre */}
-                        <tr className="hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                        {/* Row 4: Date of Birth & Gender */}
+                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Date of Birth (जन्म तिथि):
+                          </td>
+                          <td className="p-3 font-bold text-slate-800 border-r border-slate-200 align-middle">
+                            {formatDob(candidateData.dob || candidateData.DOB)}
+                          </td>
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Gender (लिंग):
+                          </td>
+                          <td className="p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
+                            {candidateData.gender || "N/A"}
+                          </td>
+                        </tr>
+
+                        {/* Row 5: Category & ID Proof */}
+                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            Category (श्रेणी):
+                          </td>
+                          <td className="p-3 font-bold text-slate-900 uppercase border-r border-slate-200 align-middle">
+                            {candidateData.category || "GENERAL"}
+                          </td>
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            ID Proof (पहचान पत्र):
+                          </td>
+                          <td className="p-3 font-bold text-slate-900 uppercase border-r border-slate-200 align-middle">
+                            {candidateData.identityProof || "Aadhaar Card / Official ID"}
+                          </td>
+                        </tr>
+
+                        {/* Row 6: ID Number & Assigned City */}
+                        <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                            ID Number (पहचान पत्र संख्या):
+                          </td>
+                          <td className="p-3 font-mono font-black text-blue-900 border-r border-slate-200 align-middle">
+                            {candidateData.identityProofNo || "N/A"}
+                          </td>
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Assigned City (आवंटित शहर):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase font-mono text-sm border-r border-slate-200 align-middle">
-                            {candidateData.assignedCity || candidateData.allotment?.assignedCityDisplay || candidateData.allotment?.assignedCity || "N/A"}
+                          <td className="p-3 font-bold text-slate-900 uppercase font-mono text-sm border-r border-slate-200 align-middle">
+                            {assignedCityVal}
                           </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                        </tr>
+
+                        {/* Row 7: Assigned Centre */}
+                        <tr className="hover:bg-slate-50/40 transition-colors">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
                             Assigned Centre (आवंटित केन्द्र):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 leading-snug border-r border-slate-200 align-middle">
-                            {candidateData.assignedCentre || candidateData.allotment?.assignedCentreDisplay || candidateData.allotment?.assignedCentre || "N/A"}
+                          <td colSpan={3} className="p-3 font-bold text-slate-900 leading-snug border-r border-slate-200 align-middle">
+                            {assignedCentreVal}
                           </td>
                         </tr>
                       </tbody>
@@ -422,7 +473,8 @@ export default function VerifyAdmitCard() {
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
         </div>
       </div>
