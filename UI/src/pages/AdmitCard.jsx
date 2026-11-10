@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import PdfViewer from "../components/PdfViewer";
+import DobInput from "../components/DobInput";
+import { formatDateToDDMMYYYY } from "../utils/dateUtils";
 import { api } from "../stores/apiStore";
 import {
   FaSearch,
@@ -241,18 +243,18 @@ export default function AdmitCard() {
 
   return (
     <Layout className="min-h-screen flex flex-col bg-slate-50 font-sans">
-      <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-8">
+      <main className="flex-1 max-w-6xl w-full mx-auto p-3 sm:p-6 md:p-8">
         
         {/* Page Top Banner */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white p-6 sm:p-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5 sm:mb-6">
+          <div className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white p-4 sm:p-6 md:p-8">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
               <div>
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 text-blue-100 text-xs font-bold uppercase tracking-wider mb-2">
                   <FaIdCard className="w-3.5 h-3.5" />
                   <span>DELED 2026 Examination Pass</span>
                 </div>
-                <h1 className="text-2xl sm:text-3xl font-black tracking-tight">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight">
                   Download Examination Admit Card (प्रवेश पत्र)
                 </h1>
                 <p className="text-blue-100 text-xs sm:text-sm mt-1 max-w-2xl font-medium">
@@ -355,10 +357,10 @@ export default function AdmitCard() {
           </div>
         ) : (
           /* Main Grid: Form + Search/Disambiguation Results */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
             
             {/* Left Column: Search Credentials Card (5 Cols) */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col justify-between transition lg:col-span-5">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col justify-between transition lg:col-span-5">
             <div>
               <div className="flex items-center gap-2.5 pb-4 border-b border-slate-100 mb-5">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold ${
@@ -401,12 +403,12 @@ export default function AdmitCard() {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Date of Birth (DOB) <span className="text-red-500">*</span>
                   </label>
-                  <input
-                    type="date"
+                  <DobInput
                     required
+                    disabled={loading}
                     value={formData.dob}
-                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition cursor-pointer"
+                    onChange={(isoDob) => setFormData({ ...formData, dob: isoDob })}
+                    className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition"
                   />
                 </div>
 
@@ -415,8 +417,8 @@ export default function AdmitCard() {
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                     Security Captcha <span className="text-red-500">*</span>
                   </label>
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="px-5 py-2 bg-gradient-to-r from-slate-800 to-slate-900 text-emerald-400 font-mono font-black text-lg tracking-widest rounded-lg select-none shadow-inner border border-slate-700">
+                  <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                    <div className="px-4 sm:px-5 py-2 bg-gradient-to-r from-slate-800 to-slate-900 text-emerald-400 font-mono font-black text-base sm:text-lg tracking-widest rounded-lg select-none shadow-inner border border-slate-700">
                       {captchaCode}
                     </div>
                     <button
@@ -430,8 +432,10 @@ export default function AdmitCard() {
                   </div>
                   <input
                     type="text"
+                    inputMode="numeric"
                     required
                     maxLength={5}
+                    placeholder="Enter Captcha"
                     value={captchaInput}
                     onChange={(e) => setCaptchaInput(e.target.value)}
                     className="w-full px-3.5 py-2.5 bg-white border border-gray-300 rounded-lg text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 outline-none transition"
@@ -442,7 +446,7 @@ export default function AdmitCard() {
                 <button
                   type="submit"
                   disabled={loading || downloading || !timeline.isOpen}
-                  className={`w-full mt-2 py-3 text-white font-extrabold text-sm rounded-xl transition shadow-md flex items-center justify-center gap-2 ${
+                  className={`w-full mt-2 px-4 py-3 text-white font-extrabold text-sm rounded-xl transition shadow-md flex items-center justify-center gap-2 text-center leading-snug ${
                     timeline.isOpen
                       ? "bg-blue-600 hover:bg-blue-700 hover:shadow-lg cursor-pointer"
                       : "bg-slate-400 cursor-not-allowed opacity-60"
@@ -472,7 +476,7 @@ export default function AdmitCard() {
           </div>
 
           {/* Right Column: Disambiguation Panel & Candidate Cards (7 Cols) */}
-          <div className="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+          <div className="lg:col-span-7 bg-white rounded-2xl shadow-sm border border-slate-200 p-4 sm:p-6 flex flex-col">
             
             {/* Header + Count Badge */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 mb-4">
@@ -571,7 +575,7 @@ export default function AdmitCard() {
                         </p>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-1">
                           <span>
-                            <span className="font-semibold text-slate-400">DOB:</span> {cand.dob || "N/A"}
+                            <span className="font-semibold text-slate-400">DOB:</span> {formatDateToDDMMYYYY(cand.dob) || "N/A"}
                           </span>
                           {(cand.district || cand.homeDistrict) && (
                             <span>
@@ -625,9 +629,9 @@ export default function AdmitCard() {
       {/* In-Browser Canvas PDF Preview Modal */}
       {showPdfModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 z-50 animate-fadeIn">
-          <div className="bg-slate-900 rounded-2xl w-full max-w-5xl h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-slate-700">
+          <div className="bg-slate-900 rounded-xl sm:rounded-2xl w-full max-w-5xl h-[95dvh] sm:h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-slate-700">
             {/* Modal Topbar */}
-            <div className="bg-slate-900 text-white px-5 sm:px-6 py-3.5 flex items-center justify-between gap-3 border-b border-slate-800">
+            <div className="bg-slate-900 text-white px-3 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-3 border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
                   <FaIdCard />
