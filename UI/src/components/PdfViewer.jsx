@@ -56,6 +56,18 @@ export default function PdfViewer({ pdfBlob, pdfUrl }) {
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setPageNum(1);
+
+        // Auto-fit PDF width on mobile/narrow viewports
+        if (containerRef.current) {
+          const firstPage = await doc.getPage(1);
+          const unscaledViewport = firstPage.getViewport({ scale: 1.0 });
+          const containerWidth = containerRef.current.clientWidth - 24;
+          if (containerWidth > 0 && unscaledViewport.width > 0 && containerWidth < unscaledViewport.width * 1.15) {
+            const fitScale = Math.min(Math.max(containerWidth / unscaledViewport.width, 0.45), 1.15);
+            setScale(Math.round(fitScale * 100) / 100);
+          }
+        }
+
         setLoading(false);
       } catch (err) {
         if (!isMounted) return;
@@ -238,11 +250,11 @@ export default function PdfViewer({ pdfBlob, pdfUrl }) {
       {/* Canvas Viewport Container */}
       <div
         ref={containerRef}
-        className="flex-1 overflow-auto p-4 sm:p-6 flex items-start justify-center bg-slate-950/90 relative"
+        className="flex-1 overflow-auto p-2.5 sm:p-6 flex items-start bg-slate-950/90 relative"
       >
         {/* Loading State */}
         {loading && (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400 mx-auto">
             <FaSyncAlt className="w-8 h-8 text-blue-500 animate-spin mb-3" />
             <p className="text-sm font-semibold">Parsing Admit Card PDF...</p>
           </div>
@@ -250,14 +262,14 @@ export default function PdfViewer({ pdfBlob, pdfUrl }) {
 
         {/* Error State */}
         {error && (
-          <div className="p-6 bg-red-950/60 border border-red-700 text-red-200 rounded-2xl max-w-md text-center flex flex-col items-center my-auto">
+          <div className="p-6 bg-red-950/60 border border-red-700 text-red-200 rounded-2xl max-w-md text-center flex flex-col items-center my-auto mx-auto">
             <FaExclamationTriangle className="text-red-400 text-2xl mb-2" />
             <p className="text-sm font-bold">{error}</p>
           </div>
         )}
 
         {/* Crisp High-DPI PDF Canvas */}
-        <div className={`relative transition-all duration-150 shadow-2xl rounded-sm overflow-hidden bg-white ${loading || error ? "hidden" : "block"}`}>
+        <div className={`relative mx-auto transition-all duration-150 shadow-2xl rounded-sm overflow-hidden bg-white ${loading || error ? "hidden" : "block"}`}>
           {renderLoading && (
             <div className="absolute inset-0 bg-slate-900/20 backdrop-blur-[1px] flex items-center justify-center z-10">
               <FaSyncAlt className="w-6 h-6 text-blue-600 animate-spin" />

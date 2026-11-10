@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../stores/authStore";
 import Layout from "../components/Layout";
 import PdfViewer from "../components/PdfViewer";
+import DobInput from "../components/DobInput";
+import { formatDateToDDMMYYYY } from "../utils/dateUtils";
 import { api } from "../stores/apiStore";
 import {
   FaEye,
@@ -678,10 +680,10 @@ export default function Home() {
       <main className="flex-1 w-full p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-5 md:space-y-6">
         
         {/* Top Section - Interactive Dashboard Style Layout Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-12 gap-4 sm:gap-5 md:gap-6 w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 md:gap-6 w-full">
           
           {/* Welcome & Timelines Card (Stretches across columns 1-8 on large screens) */}
-          <div className="lg:col-span-2 xl:col-span-8 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-150 overflow-hidden flex flex-col">
+          <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-150 overflow-hidden flex flex-col">
             <div className="bg-gradient-to-r from-blue-700 to-blue-600 text-white p-4 sm:p-5 md:p-6">
               <h2 className="text-xl sm:text-2xl md:text-3xl font-black mb-1.5 leading-tight">द्विवर्षीय डी० एल० एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026</h2>
               <p className="text-blue-100 text-sm sm:text-base md:text-[17px] font-semibold">
@@ -772,8 +774,8 @@ export default function Home() {
           </div>
 
           {/* Login / Download Admit Card Container */}
-          <div className="lg:col-span-1 xl:col-span-4 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col justify-between">
-            <div className="bg-blue-600 text-white px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between font-bold text-base sm:text-lg md:text-xl border-b border-blue-700">
+          <div className="lg:col-span-5 xl:col-span-4 bg-white rounded-lg sm:rounded-xl shadow-md border border-gray-200 overflow-hidden flex flex-col justify-between">
+            <div className="bg-blue-600 text-white px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between font-bold text-sm sm:text-base md:text-lg border-b border-blue-700">
               <span className="flex items-center gap-2.5 min-w-0">
                 {loginMode === "admitCard" ? (
                   <>
@@ -827,13 +829,12 @@ export default function Home() {
                   <label className="block text-xs sm:text-sm md:text-[14.5px] font-bold text-gray-700 mb-1.5 uppercase tracking-wide">
                     Date of Birth (जन्म तिथि)<span className="text-red-600 font-bold">*</span>
                   </label>
-                  <input
-                    type="date"
+                  <DobInput
                     required
                     disabled={admitLoading}
                     value={admitFormData.dob}
-                    onChange={(e) => setAdmitFormData({ ...admitFormData, dob: e.target.value })}
-                    className="w-full px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition font-semibold cursor-pointer"
+                    onChange={(isoDob) => setAdmitFormData({ ...admitFormData, dob: isoDob })}
+                    className="w-full px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition font-semibold"
                   />
                 </div>
 
@@ -851,20 +852,22 @@ export default function Home() {
                       placeholder="Captcha"
                       required
                       disabled={admitLoading}
-                      className="flex-1 min-w-0 px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
+                      className="flex-1 min-w-[110px] px-3.5 py-2.5 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm sm:text-base outline-hidden transition"
                     />
-                    <div className="bg-blue-200 border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-base sm:text-xl tracking-wider font-black text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
-                      {captchaVal}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className="bg-blue-200 border border-blue-300 select-none px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg font-mono text-base sm:text-xl tracking-wider font-black text-blue-900 line-through decoration-double decoration-blue-800 shrink-0">
+                        {captchaVal}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={generateCaptcha}
+                        title="Reload Captcha"
+                        disabled={admitLoading}
+                        className="p-2.5 sm:p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-sm transition flex items-center justify-center shrink-0 cursor-pointer"
+                      >
+                        <FaSyncAlt className="w-4 h-4 text-gray-600" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={generateCaptcha}
-                      title="Reload Captcha"
-                      disabled={admitLoading}
-                      className="p-2.5 sm:p-3 border border-gray-300 rounded-lg hover:bg-gray-100 text-sm transition flex items-center justify-center shrink-0 cursor-pointer"
-                    >
-                      <FaSyncAlt className="w-4 h-4 text-gray-600" />
-                    </button>
                   </div>
                 </div>
 
@@ -873,9 +876,9 @@ export default function Home() {
                   <button
                     type="submit"
                     disabled={admitLoading}
-                    className="w-full py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer disabled:opacity-50"
+                    className="w-full px-3 py-2.5 sm:py-3 bg-blue-700 hover:bg-blue-800 text-white rounded-lg font-bold text-xs sm:text-sm md:text-[15px] tracking-wide transition shadow-md hover:shadow-lg uppercase flex items-center justify-center gap-2 text-center leading-snug cursor-pointer disabled:opacity-50"
                   >
-                    <FaDownload className="w-4 h-4 text-white" />
+                    <FaDownload className="w-4 h-4 text-white shrink-0" />
                     <span>{admitLoading ? "Downloading Admit Card..." : "Download Admit Card (प्रवेश पत्र डाउनलोड करें)"}</span>
                   </button>
                 </div>
@@ -891,7 +894,7 @@ export default function Home() {
                       setCaptchaInput("");
                       generateCaptcha();
                     }}
-                    className="bg-transparent border-0 p-0 text-sm sm:text-base font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer transition flex items-center justify-center gap-1.5 mx-auto"
+                    className="bg-transparent border-0 p-0 text-xs sm:text-sm md:text-base font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer transition inline-flex flex-wrap items-center justify-center gap-1.5 mx-auto text-center"
                   >
                     <span>← Back to Applicant Login (लॉगिन पर वापस जाएँ)</span>
                   </button>
@@ -1250,7 +1253,7 @@ export default function Home() {
                       </p>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 pt-0.5">
                         <span>
-                          <span className="font-semibold text-slate-400">DOB:</span> {cand.dob || admitFormData.dob}
+                          <span className="font-semibold text-slate-400">DOB:</span> {formatDateToDDMMYYYY(cand.dob || admitFormData.dob) || "N/A"}
                         </span>
                         {(cand.district || cand.homeDistrict) && (
                           <span>
@@ -1260,12 +1263,12 @@ export default function Home() {
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex items-center gap-2">
+                    <div className="shrink-0 flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
                       <button
                         type="button"
                         onClick={() => handleDownloadCandidateAdmitCard(cand)}
                         disabled={isDownloadingThis}
-                        className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="flex-1 sm:flex-initial px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-lg shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                         title="Download Admit Card PDF"
                       >
                         {isDownloadingThis ? (
@@ -1284,7 +1287,7 @@ export default function Home() {
                         type="button"
                         onClick={() => handlePreviewCandidateAdmitCard(cand)}
                         disabled={isDownloadingThis}
-                        className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-xs rounded-lg border border-blue-200 transition flex items-center justify-center gap-1 cursor-pointer"
+                        className="flex-1 sm:flex-initial px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-extrabold text-xs rounded-lg border border-blue-200 transition flex items-center justify-center gap-1 cursor-pointer"
                         title="View Admit Card Preview"
                       >
                         <FaFilePdf className="text-xs" />
@@ -1319,9 +1322,9 @@ export default function Home() {
       {/* In-Browser Canvas PDF Preview Modal (Matching AdmitCard.jsx) */}
       {showPdfModal && (
         <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 z-50 animate-fadeIn">
-          <div className="bg-slate-900 rounded-2xl w-full max-w-5xl h-[94vh] flex flex-col overflow-hidden shadow-2xl border border-slate-700">
+          <div className="bg-slate-900 rounded-xl sm:rounded-2xl w-full max-w-5xl h-[95dvh] sm:h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-slate-700">
             {/* Modal Topbar */}
-            <div className="bg-slate-900 text-white px-5 sm:px-6 py-3.5 flex items-center justify-between gap-3 border-b border-slate-800 shrink-0">
+            <div className="bg-slate-900 text-white px-3 sm:px-6 py-3 sm:py-3.5 flex items-center justify-between gap-2 sm:gap-3 border-b border-slate-800 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0">
                   <FaIdCard />
