@@ -309,6 +309,12 @@ namespace DELED.Controllers
                 completeDetails.AssignedCentre = assignedCentreDisplay;
             }
 
+            // Mask ID Proof Number for admit card verification (show only last 4 digits, mask remaining)
+            if (completeDetails != null && !string.IsNullOrWhiteSpace(completeDetails.IdentityProofNo))
+            {
+                completeDetails.IdentityProofNo = MaskIdCardNumber(completeDetails.IdentityProofNo);
+            }
+
             string token = !string.IsNullOrWhiteSpace(existingToken) ? existingToken : _securityService.EncryptUrlSafe(user.RegistrationNo);
 
             return Ok(new
@@ -316,6 +322,8 @@ namespace DELED.Controllers
                 success = true,
                 data = completeDetails,
                 rollNumber = allotment != null ? allotment.RollNumber : (int?)null,
+                maskedIdentityProofNo = completeDetails?.IdentityProofNo,
+                identityProofNo = completeDetails?.IdentityProofNo,
                 allotment = allotment != null ? new
                 {
                     rollNumber = allotment.RollNumber,
@@ -338,6 +346,49 @@ namespace DELED.Controllers
                 verifyAdmitCardUrl = $"/verify-admit-card/{token}",
                 registrationNo = user.RegistrationNo
             });
+        }
+
+        /// <summary>
+        /// Masks all characters except the last 4 alphanumeric characters with 'X'
+        /// Example: "123456789012" -> "XXXXXXXX9012"
+        /// Example: "1234 5678 9012" -> "XXXX XXXX 9012"
+        /// Example: "ABCDE1234F" -> "XXXXXX234F"
+        /// </summary>
+        private static string MaskIdCardNumber(string? idNumber)
+        {
+            if (string.IsNullOrWhiteSpace(idNumber))
+                return "";
+
+            string trimmed = idNumber.Trim();
+            if (trimmed.Length <= 4)
+                return trimmed;
+
+            // Count alphanumeric characters
+            int alphanumericCount = 0;
+            for (int i = 0; i < trimmed.Length; i++)
+            {
+                if (char.IsLetterOrDigit(trimmed[i]))
+                    alphanumericCount++;
+            }
+
+            if (alphanumericCount <= 4)
+                return trimmed;
+
+            char[] chars = trimmed.ToCharArray();
+            int seenFromEnd = 0;
+            for (int i = chars.Length - 1; i >= 0; i--)
+            {
+                if (char.IsLetterOrDigit(chars[i]))
+                {
+                    seenFromEnd++;
+                    if (seenFromEnd > 4)
+                    {
+                        chars[i] = 'X';
+                    }
+                }
+            }
+
+            return new string(chars);
         }
 
         // GET: api/UserPersonalDetails/complete/me
