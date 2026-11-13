@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { Spin } from "antd";
 import {
@@ -6,11 +6,14 @@ import {
   FaIdCard,
   FaUserCheck,
   FaCheck,
-  FaSignature
+  FaSignature,
+  FaQrcode
 } from "react-icons/fa";
+import { QRCodeSVG as QRCode } from "qrcode.react";
 import Layout from "../components/Layout";
 import PageNotFound from "./PageNotFound";
 import { api } from "../stores/apiStore";
+import { formatDateToDDMMYYYY } from "../utils/dateUtils";
 
 export default function VerifyAdmitCard() {
   const { token: routeToken, registrationNo: routeRegNo } = useParams();
@@ -44,6 +47,7 @@ export default function VerifyAdmitCard() {
   const [signatureCandidates, setSignatureCandidates] = useState([]);
   const [verificationTime, setVerificationTime] = useState("");
   const [isNotFound, setIsNotFound] = useState(false);
+  const [showRawData, setShowRawData] = useState(false);
 
   // Helper to generate candidate static URLs with automatic fallback (/photos, /uploads, etc.)
   const generateAssetCandidates = (rawPath, defaultFolder) => {
@@ -66,15 +70,7 @@ export default function VerifyAdmitCard() {
   };
 
   // Format Date of Birth (YYYY-MM-DD -> DD-MM-YYYY)
-  const formatDob = (dobStr) => {
-    if (!dobStr) return "N/A";
-    const clean = dobStr.split("T")[0];
-    const parts = clean.split("-");
-    if (parts.length === 3) {
-      return `${parts[2]}-${parts[1]}-${parts[0]}`;
-    }
-    return dobStr;
-  };
+  const formatDob = (dobStr) => formatDateToDDMMYYYY(dobStr) || "N/A";
 
   // Format Current Live IST Timestamp
   const getLiveIstTimestamp = () => {
@@ -194,9 +190,9 @@ export default function VerifyAdmitCard() {
   }
 
   return (
-    <Layout>
+    <Layout hideHeader hideNavbar>
       <div className="min-h-screen bg-slate-100 py-6 sm:py-10 px-3 sm:px-6 lg:px-8 font-sans">
-        <div className="max-w-4xl mx-auto space-y-5">
+        <div className="w-full max-w-screen-2xl mx-auto space-y-5">
 
           {/* Loading State */}
           {loading && (
@@ -231,189 +227,246 @@ export default function VerifyAdmitCard() {
           )}
 
           {/* Verified Candidate Sheet */}
-          {!loading && candidateData && (
+          {!loading && candidateData && (() => {
+            const candidateNameVal = candidateData.applicantName || candidateData.fullName || "N/A";
+            const rollNumberVal = candidateData.rollNumber || "N/A";
+            const registrationNoVal = candidateData.registrationNo || "N/A";
+            const assignedCityVal = candidateData.assignedCity || candidateData.allotment?.assignedCityDisplay || candidateData.allotment?.assignedCity || "N/A";
+            const assignedCentreVal = candidateData.assignedCentre || candidateData.allotment?.assignedCentreDisplay || candidateData.allotment?.assignedCentre || "N/A";
+
+            const staticQrData = [
+              `Roll No: ${rollNumberVal}`,
+              `Candidate Name: ${candidateNameVal}`,
+              `Father's Name: ${candidateData.fatherName || "N/A"}`,
+              `Date of Birth: ${formatDob(candidateData.dob || candidateData.DOB)}`,
+              `Assigned Centre: ${assignedCentreVal}`
+            ].join("\n");
+
+            const renderPhotoBox = () => (
+              <div className="inline-flex flex-col border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs bg-white">
+                <div className="w-24 h-32 sm:w-28 sm:h-36 bg-white flex items-center justify-center">
+                  {photoUrl && !photoError ? (
+                    <img
+                      src={photoUrl}
+                      alt="Candidate Photograph"
+                      className="w-full h-full object-cover"
+                      onError={handlePhotoError}
+                    />
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center gap-1 p-2">
+                      <FaUserCheck className="w-7 h-7 sm:w-8 sm:h-8 text-slate-300" />
+                      <span className="text-[9px] sm:text-[10px] font-bold text-center">Photo on Record</span>
+                    </div>
+                  )}
+                </div>
+                <span className="bg-blue-900 text-white text-[9px] sm:text-[10px] font-extrabold uppercase py-1 px-2 text-center tracking-wider">
+                  PHOTO
+                </span>
+              </div>
+            );
+
+            const renderSignatureBox = () => (
+              <div className="inline-flex flex-col border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs bg-white">
+                <div className="w-28 h-14 sm:w-36 sm:h-16 bg-white flex items-center justify-center p-1.5">
+                  {signatureUrl && !signatureError ? (
+                    <img
+                      src={signatureUrl}
+                      alt="Candidate Signature"
+                      className="w-full h-full object-contain"
+                      onError={handleSignatureError}
+                    />
+                  ) : (
+                    <div className="text-slate-400 flex flex-col items-center gap-0.5">
+                      <FaSignature className="w-5 h-5 sm:w-6 sm:h-6 text-slate-300" />
+                      <span className="text-[9px] sm:text-[10px] font-bold text-center">Signature on Record</span>
+                    </div>
+                  )}
+                </div>
+                <span className="bg-blue-900 text-white text-[9px] font-extrabold uppercase py-1 px-2 text-center tracking-wider">
+                  SIGNATURE
+                </span>
+              </div>
+            );
+
+            return (
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
-              {/* Verified Status Bar (Card Header matching theme blue) */}
-              <div className="bg-blue-600 text-white px-5 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+              {/* Verified Status Bar */}
+              <div className="bg-blue-600 text-white px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 shadow-xs">
                 <div className="flex items-center gap-3">
                   <span className="w-8 h-8 bg-white text-blue-600 rounded-full flex items-center justify-center shadow-xs shrink-0">
                     <FaCheck className="w-4 h-4 stroke-[3]" />
                   </span>
                   <div>
-                    <h2 className="text-sm sm:text-base font-black tracking-wide uppercase flex items-center gap-2">
+                    <h2 className="text-sm sm:text-base font-black tracking-wide uppercase flex flex-wrap items-center gap-x-2">
                       <span>Candidate Details</span>
                       <span className="hidden sm:inline-block text-blue-200">|</span>
                       <span className="text-xs sm:text-sm font-bold text-blue-100">अभ्यर्थी विवरण</span>
+                      <span className="text-[10px] sm:text-xs font-black text-blue-900 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200 shrink-0">
+                        UK D.El.Ed 2026
+                      </span>
                     </h2>
                   </div>
                 </div>
-                <div className="text-[11px] sm:text-xs font-bold text-white bg-blue-700 px-3.5 py-1.5 rounded-full border border-blue-400/40 flex items-center gap-1.5 shrink-0 shadow-xs">
-                  <FaShieldAlt className="w-3.5 h-3.5 text-blue-200" />
-                  <span>Verified On: {verificationTime || getLiveIstTimestamp()}</span>
+                <div className="text-[11px] sm:text-xs font-bold text-white bg-blue-700 px-3 py-1.5 rounded-full border border-blue-400/40 flex items-center gap-1.5 shrink-0 shadow-xs max-w-full">
+                  <FaShieldAlt className="w-3.5 h-3.5 text-blue-200 shrink-0" />
+                  <span className="truncate">Verified On: {verificationTime || getLiveIstTimestamp()}</span>
                 </div>
               </div>
 
               {/* Main Candidate Content */}
-              <div className="p-4 sm:p-6">
+              <div className="p-3 sm:p-6">
                 <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs bg-white">
-                  {/* Table Sub-Header */}
-                  <div className="bg-slate-100 px-4 sm:px-5 py-2.5 border-b border-slate-200 flex items-center justify-between">
-                    <h3 className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
-                      <FaUserCheck className="w-4 h-4 text-blue-700" />
-                      <span>CANDIDATE DETAILS (अभ्यर्थी का विवरण)</span>
-                    </h3>
-                    <span className="text-[10px] sm:text-xs font-extrabold text-blue-800 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200">
-                      UK D.El.Ed 2026
-                    </span>
+                  {/* ── MOBILE layout (< md = < 768px) ── */}
+                  <div className="block md:hidden">
+                    {/* Photo + Signature: side by side, centered */}
+                    <div className="flex flex-row items-end justify-center gap-3 py-3 border-b border-slate-200 bg-slate-50/60">
+                      {renderPhotoBox()}
+                      {renderSignatureBox()}
+                    </div>
+
+                    {/* Detail rows: label left, value right */}
+                    {[
+                      { label: "Candidate Name (नाम):", value: candidateNameVal, valClass: "font-black text-slate-900 uppercase" },
+                      { label: "Father's Name (पिता):", value: candidateData.fatherName || "N/A", valClass: "font-bold text-slate-800 uppercase" },
+                      { label: "Reg. No. (पंजीकरण):", value: registrationNoVal, valClass: "font-mono font-black text-indigo-800" },
+                      { label: "Roll No. (अनुक्रमांक):", value: rollNumberVal, valClass: "font-mono font-black text-blue-700" },
+                      { label: "Assigned City (शहर):", value: assignedCityVal, valClass: "font-bold text-slate-900 uppercase font-mono" },
+                      { label: "Assigned Centre (केन्द्र):", value: assignedCentreVal, valClass: "font-bold text-slate-900 leading-snug" },
+                      { label: "Date of Birth (जन्म तिथि):", value: formatDob(candidateData.dob || candidateData.DOB), valClass: "font-bold text-slate-800" },
+                      { label: "Gender (लिंग):", value: candidateData.gender || "N/A", valClass: "font-bold text-slate-800 uppercase" },
+                      { label: "Category (श्रेणी):", value: candidateData.category || "GENERAL", valClass: "font-bold text-slate-900 uppercase" },
+                      {
+                        label: "ID Proof & No.:",
+                        valClass: "font-bold text-slate-900 uppercase",
+                        renderValue: () => candidateData.identityProof ? (
+                          <>
+                            {candidateData.identityProof}
+                            {candidateData.identityProofNo && (
+                              <span className="font-mono font-black text-blue-900 tracking-wider normal-case">
+                                {" "}({candidateData.identityProofNo})
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="font-mono font-black text-blue-900 break-all">
+                            {candidateData.identityProofNo || "N/A"}
+                          </span>
+                        )
+                      }
+                    ].map(({ label, value, valClass, renderValue }, i, arr) => (
+                      <div
+                        key={label}
+                        className={`flex items-start gap-2 px-3 py-2 text-[11px] ${i < arr.length - 1 ? "border-b border-slate-200" : ""} ${i % 2 === 0 ? "" : "bg-slate-50/40"}`}
+                      >
+                        <span className="shrink-0 w-[46%] font-semibold text-slate-500 leading-snug">{label}</span>
+                        <span className={`flex-1 min-w-0 break-words ${valClass}`}>
+                          {renderValue ? renderValue() : value}
+                        </span>
+                      </div>
+                    ))}
                   </div>
 
-                  {/* Synchronized Table Layout */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-xs sm:text-sm">
+                  {/* ── DESKTOP table (≥ md = ≥ 768px) ── */}
+                  <div className="hidden md:block w-full">
+                    <table className="w-full border-collapse text-xs md:text-sm table-auto">
                       <tbody>
-                        {/* Row 1: Registration Number & Roll Number */}
+                        {/* Row 1: Candidate Name | Father's Name | Photo+Sig (rowspan 5) */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="w-[18%] bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Registration No. (पंजीकरण संख्या):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap w-[18%]">
+                            Candidate Name (नाम):
                           </td>
-                          <td className="w-[23%] p-2.5 sm:p-3 font-mono font-black text-blue-700 text-sm sm:text-base border-r border-slate-200 align-middle">
-                            {candidateData.registrationNo || "N/A"}
+                          <td className="p-3 font-black text-slate-900 uppercase border-r border-slate-200 align-middle w-[25%] break-words">
+                            {candidateNameVal}
                           </td>
-                          <td className="w-[18%] bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Roll Number (अनुक्रमांक):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap w-[18%]">
+                            Father's Name (पिता):
                           </td>
-                          <td className="w-[23%] p-2.5 sm:p-3 font-mono font-black text-blue-700 text-sm sm:text-base border-r border-slate-200 align-middle">
-                            {candidateData.rollNumber || "N/A"}
+                          <td className="p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle w-[25%] break-words">
+                            {candidateData.fatherName || "N/A"}
                           </td>
-                          {/* Right Hand Column: Photo & Signature spanning all rows */}
+                          {/* Photo & Signature — side by side — spanning all 5 rows */}
                           <td
                             rowSpan={5}
-                            className="w-[18%] min-w-[150px] p-3 text-center align-middle bg-slate-50/70 border-l border-slate-200"
+                            className="p-3 text-center align-middle bg-slate-50/70 border-l border-slate-200 w-[14%] min-w-[180px]"
                           >
-                            <div className="flex flex-col items-center justify-center gap-3">
-                              {/* Photo */}
-                              <div className="text-center">
-                                <div className="w-28 h-36 bg-white border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs flex items-center justify-center relative">
-                                  {photoUrl && !photoError ? (
-                                    <img
-                                      src={photoUrl}
-                                      alt="Candidate Photograph"
-                                      className="w-full h-full object-cover"
-                                      onError={handlePhotoError}
-                                    />
-                                  ) : (
-                                    <div className="text-slate-400 flex flex-col items-center gap-1 p-2">
-                                      <FaUserCheck className="w-8 h-8 text-slate-300" />
-                                      <span className="text-[10px] font-bold">Photo on Record</span>
-                                    </div>
-                                  )}
-                                  <span className="absolute bottom-0 inset-x-0 bg-blue-900/80 text-white text-[9px] font-extrabold uppercase py-0.5 text-center">
-                                    PHOTO
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Signature (just below photo) */}
-                              <div className="text-center">
-                                <div className="w-32 h-16 bg-white border-2 border-slate-300 rounded-lg overflow-hidden shadow-xs flex items-center justify-center p-1.5 relative">
-                                  {signatureUrl && !signatureError ? (
-                                    <img
-                                      src={signatureUrl}
-                                      alt="Candidate Signature"
-                                      className="w-full h-full object-contain"
-                                      onError={handleSignatureError}
-                                    />
-                                  ) : (
-                                    <div className="text-slate-400 flex flex-col items-center gap-0.5">
-                                      <FaSignature className="w-6 h-6 text-slate-300" />
-                                      <span className="text-[10px] font-bold">Signature on Record</span>
-                                    </div>
-                                  )}
-                                  <span className="absolute bottom-0 inset-x-0 bg-blue-900/80 text-white text-[8px] font-extrabold uppercase py-0.5 text-center">
-                                    SIGNATURE
-                                  </span>
-                                </div>
-                              </div>
+                            <div className="flex flex-row items-end justify-center gap-3">
+                              {renderPhotoBox()}
+                              {renderSignatureBox()}
                             </div>
                           </td>
                         </tr>
 
-                        {/* Row 2: Candidate's Name & Father's Name */}
+                        {/* Row 2: Registration No. | Roll Number */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Candidate's Name (अभ्यर्थी का नाम):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
+                            Reg. No. (पंजीकरण):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-black text-slate-900 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.applicantName || candidateData.fullName || "N/A"}
+                          <td className="p-3 font-mono font-black text-indigo-800 border-r border-slate-200 align-middle break-words">
+                            {registrationNoVal}
                           </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Father's Name (पिता का नाम):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
+                            Roll No. (अनुक्रमांक):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
-                            {candidateData.fatherName || "N/A"}
+                          <td className="p-3 font-mono font-black text-blue-700 border-r border-slate-200 align-middle break-words">
+                            {rollNumberVal}
                           </td>
                         </tr>
 
-                        {/* Row 3: Assigned City & Assigned Centre */}
+                        {/* Row 3: Assigned City | Assigned Centre */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Assigned City (आवंटित शहर):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
+                            Assigned City (शहर):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase font-mono text-sm border-r border-slate-200 align-middle">
-                            {candidateData.assignedCity || candidateData.allotment?.assignedCityDisplay || candidateData.allotment?.assignedCity || "N/A"}
+                          <td className="p-3 font-bold text-slate-900 uppercase font-mono border-r border-slate-200 align-middle break-words">
+                            {assignedCityVal}
                           </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            Assigned Centre (आवंटित केन्द्र):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
+                            Assigned Centre (केन्द्र):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 leading-snug border-r border-slate-200 align-middle">
-                            {candidateData.assignedCentre || candidateData.allotment?.assignedCentreDisplay || candidateData.allotment?.assignedCentre || "N/A"}
+                          <td className="p-3 font-bold text-slate-900 leading-snug border-r border-slate-200 align-middle break-words">
+                            {assignedCentreVal}
                           </td>
                         </tr>
 
-                        {/* Row 4: Date of Birth & Gender */}
+                        {/* Row 4: Date of Birth | Gender */}
                         <tr className="border-b border-slate-200 hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
                             Date of Birth (जन्म तिथि):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 border-r border-slate-200 align-middle">
+                          <td className="p-3 font-bold text-slate-800 border-r border-slate-200 align-middle break-words">
                             {formatDob(candidateData.dob || candidateData.DOB)}
                           </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
                             Gender (लिंग):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle">
+                          <td className="p-3 font-bold text-slate-800 uppercase border-r border-slate-200 align-middle break-words">
                             {candidateData.gender || "N/A"}
                           </td>
                         </tr>
 
-                        {/* Row 5: Category & ID Proof with ID Number in one cell */}
+                        {/* Row 5: Category | ID Proof & ID Number (combined) */}
                         <tr className="hover:bg-slate-50/40 transition-colors">
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
                             Category (श्रेणी):
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 uppercase border-r border-slate-200 align-middle">
+                          <td className="p-3 font-bold text-slate-900 uppercase border-r border-slate-200 align-middle break-words">
                             {candidateData.category || "GENERAL"}
                           </td>
-                          <td className="bg-slate-50 p-2.5 sm:p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle">
-                            ID Proof & No. (पहचान पत्र एवं संख्या):
+                          <td className="bg-slate-50 p-3 font-semibold text-slate-600 border-r border-slate-200 align-middle whitespace-nowrap">
+                            ID Proof &amp; No.:
                           </td>
-                          <td className="p-2.5 sm:p-3 font-bold text-slate-900 border-r border-slate-200 align-middle">
+                          <td className="p-3 font-bold text-slate-900 border-r border-slate-200 align-middle break-words">
                             {candidateData.identityProof ? (
-                              <div className="flex flex-wrap items-center gap-1.5">
-                                <span className="uppercase text-slate-800 font-bold">
-                                  {candidateData.identityProof}
-                                </span>
+                              <span className="uppercase text-slate-800">
+                                {candidateData.identityProof}
                                 {candidateData.identityProofNo && (
-                                  <>
-                                    <span className="text-slate-400 font-normal">/</span>
-                                    <span className="font-mono font-black text-blue-900 tracking-wider">
-                                      {candidateData.identityProofNo}
-                                    </span>
-                                  </>
+                                  <span className="font-mono font-black text-blue-900 tracking-wider normal-case">
+                                    {" "}({candidateData.identityProofNo})
+                                  </span>
                                 )}
-                              </div>
+                              </span>
                             ) : (
-                              <span className="font-mono font-black text-blue-900">
+                              <span className="font-mono font-black text-blue-900 break-all">
                                 {candidateData.identityProofNo || "N/A"}
                               </span>
                             )}
@@ -423,9 +476,63 @@ export default function VerifyAdmitCard() {
                     </table>
                   </div>
                 </div>
+
+                {/* ── Official Static Verification QR Section ── */}
+                <div className="mt-4 sm:mt-6 p-4 sm:p-5 bg-gradient-to-r from-slate-50 via-blue-50/25 to-slate-50 border border-slate-200 rounded-xl shadow-xs">
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+                    {/* QR Code Graphic Box */}
+                    <div className="inline-flex flex-col items-center bg-white border-2 border-slate-300 rounded-xl p-3 shadow-xs shrink-0">
+                      <QRCode
+                        value={staticQrData}
+                        size={120}
+                        level="M"
+                        includeMargin={false}
+                        className="w-28 h-28 sm:w-32 sm:h-32"
+                      />
+                      <span className="bg-blue-900 text-white text-[9px] font-extrabold uppercase py-0.5 px-2.5 rounded-sm tracking-wider mt-2 flex items-center gap-1 shadow-xs">
+                        <FaQrcode className="w-2.5 h-2.5" />
+                        STATIC DATA QR
+                      </span>
+                    </div>
+
+                    {/* QR Description & Offline Info */}
+                    <div className="flex-1 text-center sm:text-left space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <h4 className="text-sm sm:text-base font-extrabold text-slate-800 tracking-wide uppercase">
+                          Official Static Verification QR Code
+                        </h4>
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-300">
+                          Offline Readable
+                        </span>
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-600 leading-relaxed max-w-2xl">
+                        Scan this QR code with any smartphone camera, Google Lens, or barcode scanner to view candidate credentials instantly in static plain text format without requiring internet access.
+                      </p>
+
+                      <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowRawData((prev) => !prev)}
+                          className="text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-100/70 hover:bg-blue-100 px-2.5 py-1 rounded-md border border-blue-200 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <FaQrcode className="w-3 h-3 text-blue-600" />
+                          {showRawData ? "Hide Scanned Text Preview" : "Preview Scanned Static Text"}
+                        </button>
+                      </div>
+
+                      {/* Collapsible Scanned Text Preview */}
+                      {showRawData && (
+                        <div className="mt-3 p-3 bg-slate-900 text-emerald-400 font-mono text-[11px] sm:text-xs rounded-lg overflow-x-auto whitespace-pre leading-relaxed shadow-inner border border-slate-700 text-left">
+                          {staticQrData}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
         </div>
       </div>

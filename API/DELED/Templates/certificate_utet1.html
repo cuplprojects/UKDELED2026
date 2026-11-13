@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <title>UTET-I Certificate - उत्तराखंड अध्यापक पात्रता परीक्षा (प्रथम)</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #e2e8f0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+    .certificate-sheet {
+      position: relative;
+      width: 800px;
+      height: 1131px;
+      background-color: #ffffff;
+      background-size: 100% 100%;
+      background-repeat: no-repeat;
+      background-position: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      overflow: hidden;
+    }
+    .page-front {
+      background-image: url('../certificates/utet_page_1.png');
+    }
+    .page-back {
+      background-image: url('../certificates/utet_page_2.png');
+    }
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0;
+      }
+      body {
+        background: transparent !important;
+        padding: 0 !important;
+        gap: 0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .certificate-sheet {
+        width: 210mm !important;
+        height: 297mm !important;
+        box-shadow: none !important;
+        page-break-after: always;
+        page-break-inside: avoid;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+    .print-actions {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .btn {
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .btn-print { background-color: #2563eb; }
+    .btn-print:hover { background-color: #1d4ed8; }
+    .btn-download { background-color: #059669; }
+    .btn-download:hover { background-color: #047857; }
+  </style>
+</head>
+<body>
+
+  <div class="print-actions no-print">
+    <button class="btn btn-print" onclick="window.print()">🖨️ Print Certificate (दोनों पृष्ठ प्रिंट करें)</button>
+  </div>
+
+  <!-- Page 1: Front Side with Candidate Details and Marks -->
+  <div class="certificate-sheet page-front">
+    <div style="height:195px; padding-right:100px; padding-top:90px; box-sizing:border-box; font-weight:bold; font-family:Arial;">
+      <table style="width: 100%; border-collapse: collapse; border-spacing:0;" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+          <td align="left" style="padding-left:140px;"><b>$$SrNo$$</b></td>
+          <td align="left" style="text-align:right;"><b>$$CertNo$$</b></td>
+        </tr>
+      </table>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; border-spacing:0;" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="left" style="padding-left:120px;">
+          <img src="$$QRCode$$" width="130" height="130" style="border:none;" alt="QR Code" />
+        </td>
+        <td align="left" style="width:250px; padding-top:10px;">
+          <img src="$$Photo$$" width="135" height="160" style="border:none; background:#fff; padding:5px; object-fit:cover;" alt="Photo" />
+        </td>
+      </tr>
+    </table>
+
+    <div style="height:150px;">&nbsp;</div>
+
+    <table style="width: 100%; border-collapse: collapse; border-spacing:0;" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td width="50%">&nbsp;</td>
+        <td width="50%">&nbsp;</td>
+      </tr>
+      <tr><td colspan="2" style="padding-left:460px; font-size:20px; font-weight:bold; font-family:Arial;">$$name$$</td></tr>
+      <tr><td colspan="2" style="padding-top:28px; padding-left:290px; font-size:20px; font-weight:bold; font-family:Arial;">$$fname$$</td></tr>
+      <tr>
+        <td style="padding-top:35px; padding-left:195px; font-size:20px; font-weight:bold; font-family:Arial;">$$RollNo$$</td>
+        <td style="padding-top:15px; padding-left:100px; font-size:20px; font-weight:bold; font-family:Arial;">$$cat$$</td>
+      </tr>
+      <tr>
+        <td style="padding-top:40px; padding-left:240px; font-size:20px; font-weight:bold; font-family:Arial;">$$Trn_Name$$</td>
+        <td style="padding-top:20px; padding-left:110px; font-size:20px; font-weight:bold; font-family:Arial;">$$sub_category$$</td>
+      </tr>
+    </table>
+
+    <div style="height:200px;">&nbsp;</div>
+
+    <table style="width: 100%; border-collapse:collapse; border-spacing:0; font-family:Arial, Helvetica, sans-serif; font-size:14px; font-weight:bold;" border="0" cellpadding="0" cellspacing="0">
+      <tr>
+        <td style="vertical-align:middle; text-align:left; height:45px;">&nbsp;</td>
+        <td width="100px" style="vertical-align:middle; text-align:center;">&nbsp;</td>
+        <td width="130px" style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$S1_RIGHT$$</td>
+        <td width="220px" style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$S1_WORD$$</td>
+        <td width="90px" style="vertical-align:middle; text-align:center;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td style="vertical-align:middle; text-align:left; padding-left:250px; font-size:17px; font-weight:bold; font-family:Arial;">($$LANG1$$)</td>
+        <td style="vertical-align:middle; text-align:left; height:45px;">&nbsp;</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$S2_RIGHT$$</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$S2_WORD$$</td>
+        <td style="vertical-align:middle; text-align:center;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td style="vertical-align:middle; text-align:left; padding-left:250px; font-size:17px; font-weight:bold; font-family:Arial;">($$LANG2$$)</td>
+        <td style="vertical-align:middle; text-align:left; height:50px;">&nbsp;</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$S3_RIGHT$$</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$S3_WORD$$</td>
+        <td style="vertical-align:middle; text-align:center;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td style="vertical-align:middle; text-align:left; padding-left:140px; font-size:15px; font-weight:bold; font-family:Arial; height:40px;">
+          <span style="font-family:Arial; font-size:15px;">$$SUBJECT_HIND$$</span><br />$$SUBJECT$$
+        </td>
+        <td style="vertical-align:middle; text-align:center;">&nbsp;</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$SUB_MARK$$</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$SUB_WORD$$</td>
+        <td style="vertical-align:middle; text-align:center;">&nbsp;</td>
+      </tr>
+      <tr>
+        <td style="vertical-align:middle; text-align:center; height:50px;">&nbsp;</td>
+        <td style="vertical-align:middle; text-align:center;">&nbsp;</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$TOTAL$$</td>
+        <td style="vertical-align:middle; text-align:center; font-size:20px; font-weight:bold; font-family:Arial;">$$TOTAL_WORD$$</td>
+        <td style="vertical-align:middle; text-align:center;">&nbsp;</td>
+      </tr>
+    </table>
+
+    <div style="height:90px;">&nbsp;</div>
+    <div style="padding-left:210px; font-size:20px; font-weight:bold; font-family:Arial;">$$Date$$</div>
+    <div style="padding-left:100px; box-sizing:border-box;">$$remark$$</div>
+  </div>
+
+  <!-- Page 2: Back Side with Important Instructions -->
+  <div class="certificate-sheet page-back"></div>
+
+</body>
+</html>
