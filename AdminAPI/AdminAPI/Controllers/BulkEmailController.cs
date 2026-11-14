@@ -359,6 +359,56 @@ Last date for photo correction / फोटो संशोधन की अं�
         }
 
         /// <summary>
+        /// Generates the HTML template for DELED 2026 Admit Card Live announcement
+        /// </summary>
+        public static string GenerateAdmitCardLiveEmailTemplate(string name, string registrationNumber)
+        {
+            return $@"
+                <div style=""font-family: Arial, sans-serif; background-color: #FFFDE4; border: 1px solid #ddd; padding: 25px; max-width: 650px; margin: 0 auto; color: #333;"">
+                    <table style=""width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 2px solid #006400; padding-bottom: 15px;"">
+                        <tr>
+                            <td style=""width: 90px; vertical-align: middle;"">
+                                <img src=""https://ukdeled.com/API/Logo/ubse_white.jpg"" alt=""Logo"" style=""width: 80px; height: 80px; border-radius: 50%; display: block;"" />
+                            </td>
+                            <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
+                                <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
+                                <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखण्ड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखण्ड</h2>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style=""text-align: center; margin-bottom: 20px;"">
+                        <h3 style=""color: #006400; font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">DELED 2026 - ADMIT CARD IS LIVE / प्रवेश पत्र जारी</h3>
+                    </div>
+
+                    <div style=""font-size: 14px; line-height: 1.6; margin-bottom: 25px;"">
+                        <p style=""margin: 0 0 15px 0;"">Dear <strong>{name}</strong>,</p>
+                            <p style=""margin: 0 0 10px 0;"">उत्तराखण्ड द्विवर्षीय डी० एल० एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026 (परीक्षा तिथि दिनांक 18 नवम्बर 2026 को निर्धारित) हेतु प्रवेश पत्र (Admit Card) आधिकारिक पोर्टल <a href=""https://www.ukdeled.com"" style=""color: blue; font-weight: bold; text-decoration: underline;"">ukdeled.com</a> से डाउनलोड करे</p>
+
+                        <div style=""margin: 20px 0; font-size: 15px; line-height: 1.8; background-color: #f7fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0;"">
+                            <p style=""margin: 0 0 6px 0;""><strong>Candidate Name (अभ्यर्थी का नाम) :</strong> <strong style=""font-size: 16px; color: #000;"">{name}</strong></p>
+                            <p style=""margin: 0 0 6px 0;""><strong>Registration No. (पंजीकरण सं०) :</strong> <strong style=""font-size: 16px; color: #000;"">{registrationNumber}</strong></p>
+                            <p style=""margin: 0 0 6px 0;""><strong>Date of Examination (परीक्षा तिथि) :</strong> <strong style=""font-size: 16px; color: red;"">18 November 2026</strong></p>
+                            <p style=""margin: 0 0 6px 0;""><strong>Official Website to Download :</strong> <a href=""https://www.ukdeled.com"" style=""font-size: 16px; color: blue; font-weight: bold; text-decoration: underline;"">ukdeled.com</a></p>
+                        </div>
+
+                        <div style=""background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 12px 15px; margin: 15px 0; font-size: 13px; line-height: 1.6; color: #7f1d1d;"">
+                            <p style=""margin: 0 0 6px 0; font-weight: bold;"">⚠️ महत्वपूर्ण निर्देश (Important Instructions):</p>
+                            <p style=""margin: 0 0 4px 0;"">1. प्रवेश पत्र डाक द्वारा अलग से नहीं भेजा जाएगा (Admit Cards will not be sent separately by post).</p>
+                            <p style=""margin: 0;"">2. परीक्षा केंद्र पर मुद्रित प्रवेश पत्र (Admit Card) के साथ एक मूल वैध फोटो पहचान पत्र (जैसे आधार कार्ड, वोटर आईडी आदि) लाना अनिवार्य है।</p>
+                        </div>
+                    </div>
+
+                    <div style=""font-size: 13px; line-height: 1.5; color: #333; font-weight: bold;"">
+                        <p style=""margin: 0 0 4px 0;"">Regards / सादर,</p>
+                         <p style=""margin: 0 0 4px 0;"">UKDELED Helpdesk Team,</p>
+                        <p style=""margin: 0 0 4px 0;"">उत्तराखण्ड विद्यालयी शिक्षा परिषद् (UBSE),</p>
+                        <p style=""margin: 0;"">रामनगर (नैनीताल)</p>
+                    </div>
+                </div>";
+        }
+
+        /// <summary>
         /// Retrieves the fee pending email HTML template with placeholders
         /// </summary>
         [HttpGet("template/fee-pending")]
@@ -423,19 +473,47 @@ Last date for photo correction / फोटो संशोधन की अं�
         }
 
         /// <summary>
+        /// Retrieves the Admit Card Live email HTML template with placeholders
+        /// </summary>
+        [HttpGet("template/admit-card-live")]
+        public IActionResult GetAdmitCardLiveTemplate()
+        {
+            string defaultSubject = "DELED 2026 - Admit Card is Live / प्रवेश पत्र जारी (Admit Card is Live)";
+            string sampleTemplateHtml = GenerateAdmitCardLiveEmailTemplate("{Name}", "{RegistrationNumber}");
+            return Ok(new
+            {
+                subject = defaultSubject,
+                template = sampleTemplateHtml,
+                placeholders = new[] { "{Name}", "{RegistrationNumber}" }
+            });
+        }
+
+        /// <summary>
         /// Sends bulk email to all recipients in the database table
         /// </summary>
         [HttpPost("send")]
         public async Task<IActionResult> SendBulkEmail([FromBody] BulkEmailRequest request, [FromQuery] bool downloadPdf = false)
         {
-            if (request == null)
-            {
-                return BadRequest(new { message = "Invalid request." });
-            }
+            return await ProcessBulkEmailSending(null, null, request, downloadPdf);
+        }
 
-            if (!request.UseFeePendingTemplate && !request.UseProfilePictureCorrectionTemplate && !request.UseScribeTemplate && !request.UseScribeHindiOnlyTemplate && (string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Body)))
+        private async Task<IActionResult> ProcessBulkEmailSending(
+            Func<string, string, string>? templateGenerator,
+            string? overrideSubject,
+            BulkEmailRequest? request,
+            bool downloadPdf = false)
+        {
+            if (templateGenerator == null)
             {
-                return BadRequest(new { message = "Subject and Body are required when not using a predefined template." });
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Invalid request." });
+                }
+
+                if (!request.UseFeePendingTemplate && !request.UseProfilePictureCorrectionTemplate && !request.UseScribeTemplate && !request.UseScribeHindiOnlyTemplate && (string.IsNullOrWhiteSpace(request.Subject) || string.IsNullOrWhiteSpace(request.Body)))
+                {
+                    return BadRequest(new { message = "Subject and Body are required when not using a predefined template." });
+                }
             }
 
             try
@@ -456,15 +534,19 @@ Last date for photo correction / फोटो संशोधन की अं�
                 }
 
                 string defaultSubject;
-                if (request.UseScribeHindiOnlyTemplate)
+                if (!string.IsNullOrWhiteSpace(overrideSubject))
+                {
+                    defaultSubject = overrideSubject;
+                }
+                else if (request != null && request.UseScribeHindiOnlyTemplate)
                 {
                     defaultSubject = "DELED 2026 - श्रुतलेखक हेतु आवश्यक सूचना";
                 }
-                else if (request.UseScribeTemplate)
+                else if (request != null && request.UseScribeTemplate)
                 {
                     defaultSubject = "DELED 2026 - Notice for Scribe / श्रुतलेखक हेतु आवश्यक सूचना";
                 }
-                else if (request.UseProfilePictureCorrectionTemplate)
+                else if (request != null && request.UseProfilePictureCorrectionTemplate)
                 {
                     defaultSubject = "DELED 2026 - Profile Picture Correction Notice";
                 }
@@ -473,11 +555,9 @@ Last date for photo correction / फोटो संशोधन की अं�
                     defaultSubject = "DELED 2026 - Registration Fee Pending Notice";
                 }
 
-                string subject = !string.IsNullOrWhiteSpace(request.Subject)
+                string subject = request != null && !string.IsNullOrWhiteSpace(request.Subject)
                     ? request.Subject
                     : defaultSubject;
-
-                
 
                 string? bccEmails = _configuration["EmailSettings:AdminBccEmails"];
 
@@ -488,26 +568,30 @@ Last date for photo correction / फोटो संशोधन की अं�
                 foreach (var recipient in recipients)
                 {
                     string personalizedBody;
-                    if (request.UseScribeHindiOnlyTemplate)
+                    if (templateGenerator != null)
+                    {
+                        personalizedBody = templateGenerator(recipient.Name, recipient.RegistrationNumber);
+                    }
+                    else if (request != null && request.UseScribeHindiOnlyTemplate)
                     {
                         personalizedBody = GenerateScribeHindiOnlyEmailTemplate(recipient.Name, recipient.RegistrationNumber);
                     }
-                    else if (request.UseScribeTemplate)
+                    else if (request != null && request.UseScribeTemplate)
                     {
                         personalizedBody = GenerateScribeEmailTemplate(recipient.Name, recipient.RegistrationNumber);
                     }
-                    else if (request.UseProfilePictureCorrectionTemplate)
+                    else if (request != null && request.UseProfilePictureCorrectionTemplate)
                     {
                         personalizedBody = GenerateProfilePictureCorrectionEmailTemplate(recipient.Name, recipient.RegistrationNumber);
                     }
-                    else if (request.UseFeePendingTemplate)
+                    else if (request != null && request.UseFeePendingTemplate)
                     {
                         personalizedBody = GenerateFeePendingEmailTemplate(recipient.Name, recipient.RegistrationNumber);
                     }
                     else
                     {
                         // Perform replacement of placeholder tokens if present
-                        personalizedBody = request.Body
+                        personalizedBody = (request?.Body ?? string.Empty)
                             .Replace("{Name}", recipient.Name)
                             .Replace("{RegistrationNumber}", recipient.RegistrationNumber)
                             .Replace("{Email}", recipient.Email)
@@ -856,6 +940,22 @@ Last date for photo correction / फोटो संशोधन की अं�
                 Subject = "DELED 2026 - श्रुतलेखक हेतु आवश्यक सूचना"
             };
             return await SendBulkEmail(req, downloadPdf);
+        }
+
+        /// <summary>
+        /// Dedicated endpoint for sending bulk Admit Card Live notification emails to all recipients.
+        /// Subject and HTML body template are automatically generated by the controller.
+        /// Pass downloadPdf=true to download the generated PDF report directly from Swagger.
+        /// </summary>
+        [HttpPost("send-admit-card-live")]
+        public async Task<IActionResult> SendBulkAdmitCardLiveEmail([FromQuery] bool downloadPdf = false)
+        {
+            return await ProcessBulkEmailSending(
+                GenerateAdmitCardLiveEmailTemplate,
+                "DELED 2026 - Admit Card is Live / प्रवेश पत्र जारी (Admit Card is Live)",
+                null,
+                downloadPdf
+            );
         }
 
         /// <summary>
