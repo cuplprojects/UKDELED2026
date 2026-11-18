@@ -97,5 +97,9 @@ namespace DELED.Data
         public DbSet<ACDlogger> ACDloggers { get; set; }
         public DbSet<Allotment> Allotments { get; set; }
         public DbSet<Centre> Centres { get; set; }
+        public DbSet<CandidateObjection> CandidateObjections { get; set; }
+        public DbSet<ExamBookletAndKey> ExamBookletsAndKeys { get; set; }
+        public DbSet<QuestionBooklet> QuestionBooklets { get; set; }
+        public DbSet<AnswerKey> AnswerKeys { get; set; }
     }
 }
