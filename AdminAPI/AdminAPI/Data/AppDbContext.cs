@@ -111,5 +111,10 @@ namespace DELED.Data
         public DbSet<BulkEmailRecipient> BulkEmailRecipients { get; set; }
         public DbSet<CandidateCorrectionLog> CandidateCorrectionLogs { get; set; }
         public DbSet<ACDlogger> ACDloggers { get; set; }
+        public DbSet<Allotment> Allotments { get; set; }
+        public DbSet<CandidateObjection> CandidateObjections { get; set; }
+        public DbSet<ExamBookletAndKey> ExamBookletsAndKeys { get; set; }
+        public DbSet<QuestionBooklet> QuestionBooklets { get; set; }
+        public DbSet<AnswerKey> AnswerKeys { get; set; }
     }
 }

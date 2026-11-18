@@ -12,6 +12,8 @@ import VerifyApplication from './pages/VerifyApplication'
 import VerifyAdmitCard from './pages/VerifyAdmitCard'
 import AdmitCard from './pages/AdmitCard'
 import SeatMatrix from './pages/SeatMatrix'
+import ObjectionInstructionPage from './pages/ObjectionInstructionPage'
+import ObjectionPage from './pages/ObjectionPage'
 import PageNotFound from './pages/PageNotFound'
 import ProtectedRoute from './components/ProtectedRoute'
 import GuestRoute from './components/GuestRoute'
@@ -70,6 +72,24 @@ function App() {
         />
         <Route path="/admit-card" element={<AdmitCard />} />
         <Route path="/download-admit-card" element={<AdmitCard />} />
+
+        {/* Answer Key Objection Routes */}
+        <Route 
+          path="/objection-instructions" 
+          element={
+            <ProtectedRoute>
+              <ObjectionInstructionPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/objection" 
+          element={
+            <ProtectedRoute>
+              <ObjectionPage />
+            </ProtectedRoute>
+          } 
+        />
 
         {/* Secure Seat Matrix Route (Direct URL access only - No public buttons) */}
         <Route path="/exam-seat-matrix-2026-mgmt" element={<SeatMatrix />} />

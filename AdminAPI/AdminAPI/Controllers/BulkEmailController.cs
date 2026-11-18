@@ -409,6 +409,45 @@ Last date for photo correction / फोटो संशोधन की अं�
         }
 
         /// <summary>
+        /// Generates the HTML template for DELED 2026 Scribe Nodal Notice (श्रुतलेखक - विज्ञप्ति)
+        /// </summary>
+        public static string GenerateScribeNodalEmailTemplate(string name, string registrationNumber)
+        {
+            return $@"
+                <div style=""font-family: Arial, sans-serif; background-color: #FFFDE4; border: 1px solid #ddd; padding: 25px; max-width: 650px; margin: 0 auto; color: #333;"">
+                    <table style=""width: 100%; border-collapse: collapse; margin-bottom: 20px; border-bottom: 2px solid #006400; padding-bottom: 15px;"">
+                        <tr>
+                            <td style=""width: 90px; vertical-align: middle;"">
+                                <img src=""https://ukdeled.com/API/Logo/ubse_white.jpg"" alt=""Logo"" style=""width: 80px; height: 80px; border-radius: 50%; display: block;"" />
+                            </td>
+                            <td style=""vertical-align: middle; text-align: center; padding-left: 10px;"">
+                                <h1 style=""color: #006400; margin: 0; font-size: 20px; font-weight: bold; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">UTTARAKHAND BOARD OF SCHOOL EDUCATION</h1>
+                                <h2 style=""color: #000; margin: 4px 0 0 0; font-size: 14px; font-weight: bold;"">उत्तराखण्ड विद्यालयी शिक्षा परिषद् रामनगर, नैनीताल, उत्तराखण्ड</h2>
+                            </td>
+                        </tr>
+                    </table>
+
+                    <div style=""text-align: center; margin-bottom: 20px;"">
+                        <h3 style=""color: #006400; font-size: 18px; font-weight: bold; margin: 0; text-transform: uppercase; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;"">डी.एल.एड. २०२६ - श्रुतलेखक - विज्ञप्ति</h3>
+                    </div>
+
+                    <div style=""font-size: 14px; line-height: 1.8; color: #000; margin-bottom: 25px;"">
+                        <p style=""margin: 0 0 15px 0; text-align: justify;"">ऐसे दिव्यांग अभ्यर्थी जिनके द्वारा अपने ऑनलाइन आवेदन में श्रुतलेखक का दावा किया गया है, परन्तु परिषद् कार्यालय को श्रुतलेखक सम्बन्धी वांछित अभिलेख यथा श्रुतलेखक के सम्बन्ध में निर्गत परिशिष्ट 4 (I) प्रारूप, श्रुतलेखक से सम्बन्धित परिशिष्ट 4 (II) प्रारूप एवं परिशिष्ट 5 प्रारूप, श्रुतलेखक का आवक्ष फोटो, श्रुतलेखक की उच्चतम शैक्षिक योग्यता सम्बन्धी अभिलेख उपलब्ध नहीं कराये गये हैं तो वे उन्हें आवंटित परीक्षा केन्द्र / नोडल केन्द्र पर एक दिन पूर्व (दिनांक 17 नवम्बर 2026 को) दिव्यांगता सम्बन्धी उक्त वर्णित समस्त प्रमाण पत्र/ प्रपत्र प्रस्तुत करने पर ही उन्हें श्रुतलेखक एवं अन्य सुविधा प्रदान की जा सकेगी. निर्धारित तिथि तक वांछित अभिलेख उपलब्ध कराने वाले दिव्यांगजन अभ्यर्थियों को ही परिषद् द्वारा श्रुतलेखक की अनुमति प्रदान की जाएगी।</p>
+
+                        <p style=""margin: 0 0 15px 0; text-align: justify;"">श्रुतलेखक की शैक्षिक योग्यता उक्त परीक्षा हेतु निर्धारित अनिवार्य शैक्षिक योग्यता से, न्यूनतम 02 अकादमिक वर्ष या अधिकतम 03 अकादमिक वर्ष कम, अर्थात श्रुतलेखक की उच्चतम शैक्षिक योग्यता स्नातक प्रथम वर्ष से अधिक अथवा इण्टरमीडिएट स्तर से न्यून नहीं होनी चाहिए, अर्थात श्रुतलेखक, शैक्षिक सत्र 2025-26 में इण्टरमीडिएट उत्तीर्ण हुआ हो अर्थात वर्तमान सत्र (2026-27) में स्नातक प्रथम वर्ष में अध्ययनरत हो या कक्षा 12 में अध्ययनरत हो.</p>
+
+                        <p style=""margin: 0 0 15px 0; font-weight: bold;"">अधिक जानकारी के लिए कृपया पोर्टल देखें।</p>
+                    </div>
+
+                    <div style=""font-size: 13px; line-height: 1.5; color: #333;"">
+                        <p style=""margin: 0 0 4px 0; font-weight: bold;"">Help Desk</p>
+                        <p style=""margin: 0 0 4px 0;"">द्विवर्षीय डी० एल० एड० (D.El.Ed.) प्रशिक्षण प्रवेश परीक्षा 2026,</p>
+                        <p style=""margin: 0;"">रामनगर (नैनीताल)</p>
+                    </div>
+                </div>";
+        }
+
+        /// <summary>
         /// Retrieves the fee pending email HTML template with placeholders
         /// </summary>
         [HttpGet("template/fee-pending")]
@@ -485,6 +524,23 @@ Last date for photo correction / फोटो संशोधन की अं�
                 subject = defaultSubject,
                 template = sampleTemplateHtml,
                 placeholders = new[] { "{Name}", "{RegistrationNumber}" }
+            });
+        }
+
+        /// <summary>
+        /// Retrieves the Scribe Nodal (श्रुतलेखक - विज्ञप्ति) email HTML template with placeholders
+        /// </summary>
+        [HttpGet("template/scribe-nodal")]
+        [HttpGet("template/scribe-nodel")]
+        public IActionResult GetScribeNodalTemplate()
+        {
+            string defaultSubject = "डी.एल.एड. २०२६ - श्रुतलेखक - विज्ञप्ति";
+            string sampleTemplateHtml = GenerateScribeNodalEmailTemplate("{Name}", "{RegistrationNumber}");
+            return Ok(new
+            {
+                subject = defaultSubject,
+                template = sampleTemplateHtml,
+                placeholders = Array.Empty<string>()
             });
         }
 
@@ -953,6 +1009,23 @@ Last date for photo correction / फोटो संशोधन की अं�
             return await ProcessBulkEmailSending(
                 GenerateAdmitCardLiveEmailTemplate,
                 "DELED 2026 - Admit Card is Live / प्रवेश पत्र जारी (Admit Card is Live)",
+                null,
+                downloadPdf
+            );
+        }
+
+        /// <summary>
+        /// Dedicated endpoint for sending bulk Scribe Nodal notice (श्रुतलेखक - विज्ञप्ति) emails to all recipients.
+        /// Subject and HTML body template are automatically generated by the controller based on UBSE notice.
+        /// Pass downloadPdf=true to download the generated PDF report directly from Swagger.
+        /// </summary>
+        [HttpPost("send-scribe-nodal")]
+        [HttpPost("send-scribe-nodel")]
+        public async Task<IActionResult> SendBulkScribeNodalEmail([FromQuery] bool downloadPdf = false)
+        {
+            return await ProcessBulkEmailSending(
+                GenerateScribeNodalEmailTemplate,
+                "डी.एल.एड. २०२६ - श्रुतलेखक - विज्ञप्ति",
                 null,
                 downloadPdf
             );

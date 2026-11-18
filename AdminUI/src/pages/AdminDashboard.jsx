@@ -44,8 +44,10 @@ import {
   FaArrowRight,
   FaShieldAlt,
   FaBuilding,
-  FaMapMarkerAlt
+  FaMapMarkerAlt,
+  FaQuestionCircle
 } from "react-icons/fa";
+import AdminObjectionTracker from "../components/AdminObjectionTracker";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -2401,6 +2403,7 @@ export default function AdminDashboard() {
               { id: "submission", label: "Submission Report", icon: FaFileAlt },
               { id: "admitCardReport", label: "Admit Card Report", icon: FaFilePdf },
               { id: "admitCardSearch", label: "Admit Card Search", icon: FaIdCard },
+              { id: "objections", label: "Answer Key Objections", icon: FaQuestionCircle },
               { id: "email", label: "Email Report", icon: FaEnvelope },
               { id: "update", label: "Update / Correction", icon: FaUserEdit },
               { id: "payment", label: "Payment Status", icon: FaCreditCard },
@@ -4389,6 +4392,11 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* Answer Key Objections Tab */}
+            {activeTab === "objections" && (
+              <AdminObjectionTracker />
             )}
 
             {/* Change Password Tab */}

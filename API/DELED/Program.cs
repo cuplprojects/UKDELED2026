@@ -30,6 +30,7 @@ builder.Services.AddSingleton<OtpService>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
 builder.Services.AddScoped<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<ISuperimposeService, SuperimposeService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<DatabaseLoggerService>(); // Add database logger
 builder.Services.AddHostedService<EmailSchedulerService>();
