@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
+import { message } from "antd";
 import { api } from "../stores/apiStore";
+import Layout from "../components/Layout";
 import ObjectionRouteGuard from "../components/ObjectionRouteGuard";
 import {
   FaUserGraduate,
@@ -72,7 +74,7 @@ const ObjectionPage = () => {
   const [finalSubmittedOn, setFinalSubmittedOn] = useState(null);
 
   // Form State
-  const [bookletSeries, setBookletSeries] = useState("A");
+  const [bookletSeries, setBookletSeries] = useState("");
   const [questionNo, setQuestionNo] = useState("");
   const [questionError, setQuestionError] = useState("");
   const [selectedOptions, setSelectedOptions] = useState([]);
@@ -87,20 +89,14 @@ const ObjectionPage = () => {
   // UI state
   const [submitting, setSubmitting] = useState(false);
   const [showFinalModal, setShowFinalModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, qNum }
+  const [fileError, setFileError] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [previewDocUrl, setPreviewDocUrl] = useState(null);
 
   // Booklets & Answer Keys State
   const [bookletsInfo, setBookletsInfo] = useState([]);
-  const [bookletModal, setBookletModal] = useState({
-    isOpen: false,
-    title: "",
-    url: null,
-    downloadUrl: "",
-    series: "",
-    type: "",
-  });
 
   const fileInputRef = useRef(null);
 
@@ -146,96 +142,42 @@ const ObjectionPage = () => {
     loadBooklets();
   }, []);
 
-  // View Booklet or Answer Key in Modal
-  const handleViewBookletOrKey = async (series, type) => {
-    try {
-      const isKey = type === "answerkey" || type === "answer";
-      const title = isKey
-        ? `उत्तर कुंजी (Official Answer Key) - सीरीज ${series}`
-        : `प्रश्न पुस्तिका (Question Booklet) - सीरीज ${series}`;
+  // Direct URL for Question Booklet or Answer Key PDF
+  const getBookletUrl = (series, type, download = false) => {
+    const apiBase = import.meta.env.VITE_API_URL || "";
+    const cleanBase = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
+    return `${cleanBase}/api/Objection/booklet-file?series=${encodeURIComponent(series)}&type=${encodeURIComponent(type)}&download=${download}`;
+  };
 
-      const res = await api.get(`/api/Objection/booklet-file?series=${series}&type=${type}&download=false`, {
-        responseType: "blob",
-      });
-      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
-      setBookletModal({
-        isOpen: true,
-        title,
-        url: blobUrl,
-        downloadUrl: `/api/Objection/booklet-file?series=${series}&type=${type}&download=true`,
-        series,
-        type,
-      });
-    } catch (err) {
-      let errMsg = err.message;
-      if (err.response?.data instanceof Blob) {
-        try {
-          const text = await err.response.data.text();
-          const json = JSON.parse(text);
-          if (json?.message) errMsg = json.message;
-        } catch (_) {}
-      } else if (err.response?.data?.message) {
-        errMsg = err.response.data.message;
-      }
-      alert("फाइल लोड करने में असमर्थ (File not available): " + errMsg);
+  // View Booklet or Answer Key directly as PDF on its URL page
+  const handleViewBookletOrKey = (series, type) => {
+    if (!series) {
+      message.warning("Please select a booklet series first.");
+      return;
     }
+    const url = getBookletUrl(series, type, false);
+    window.open(url, "_blank");
   };
 
   // Direct download Booklet or Answer Key
-  const handleDownloadBookletOrKey = async (series, type) => {
-    try {
-      const isKey = type === "answerkey" || type === "answer";
-      const res = await api.get(`/api/Objection/booklet-file?series=${series}&type=${type}&download=true`, {
-        responseType: "blob",
-      });
-      const blobUrl = URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = isKey
-        ? `UKDELED_2026_AnswerKey_Series_${series}.pdf`
-        : `UKDELED_2026_QuestionBooklet_Series_${series}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    } catch (err) {
-      let errMsg = err.message;
-      if (err.response?.data instanceof Blob) {
-        try {
-          const text = await err.response.data.text();
-          const json = JSON.parse(text);
-          if (json?.message) errMsg = json.message;
-        } catch (_) {}
-      } else if (err.response?.data?.message) {
-        errMsg = err.response.data.message;
-      }
-      alert("डाउनलोड करने में असमर्थ (Download not available): " + errMsg);
+  const handleDownloadBookletOrKey = (series, type) => {
+    if (!series) {
+      message.warning("Please select a booklet series first.");
+      return;
     }
-  };
-
-  const closeBookletModal = () => {
-    if (bookletModal.url) {
-      URL.revokeObjectURL(bookletModal.url);
-    }
-    setBookletModal({
-      isOpen: false,
-      title: "",
-      url: null,
-      downloadUrl: "",
-      series: "",
-      type: "",
-    });
+    const url = getBookletUrl(series, type, true);
+    window.open(url, "_blank");
   };
 
   // Real-time validation for Question Number
   const validateQuestionNumber = (val) => {
     if (val === "" || val === null || val === undefined) {
-      setQuestionError("कृपया 1 से 200 के मध्य प्रश्न संख्या दर्ज करें (Enter Q. No 1 - 200)");
+      setQuestionError("");
       return false;
     }
     const q = parseInt(val, 10);
     if (isNaN(q) || q < 1 || q > 200) {
-      setQuestionError("प्रश्न संख्या केवल 1 से 200 के बीच होनी चाहिए (Question must be 1 to 200)");
+      setQuestionError("Question number must be between 1 and 200");
       return false;
     }
     setQuestionError("");
@@ -245,7 +187,21 @@ const ObjectionPage = () => {
   const handleQuestionChange = (e) => {
     const val = e.target.value;
     setQuestionNo(val);
-    validateQuestionNumber(val);
+    const valid = validateQuestionNumber(val);
+    if (!val || !val.trim() || !valid) {
+      setSelectedOptions([]);
+      setSpecialOption(null);
+    }
+  };
+
+  const handleQuestionBlur = () => {
+    if (questionNo === "" || questionNo === null || questionNo === undefined) {
+      if (bookletSeries) {
+        setQuestionError("Please enter a Question Number between 1 and 200");
+      }
+    } else {
+      validateQuestionNumber(questionNo);
+    }
   };
 
   // Toggle individual option (A, B, C, D) - supports multi-selection
@@ -279,6 +235,7 @@ const ObjectionPage = () => {
     setSpecialOption(null);
     setDescription("");
     setDocumentFile(null);
+    setFileError("");
     setFileChecking(false);
     if (objections.length > 0 && objections[0].bookletSeries) {
       setBookletSeries(objections[0].bookletSeries);
@@ -321,32 +278,35 @@ const ObjectionPage = () => {
     window.scrollTo({ top: 300, behavior: "smooth" });
   };
 
-  // Handle Document Selection with File Size (<=5MB) and Page Count (<=3 pages for PDF)
+  // Handle Document Selection with File Size (<=5MB) and Page Count (<=5 pages for PDF)
   const handleDocumentChange = async (e) => {
     const file = e.target.files && e.target.files[0] ? e.target.files[0] : null;
     if (!file) {
       setDocumentFile(null);
+      setFileError("");
       return;
     }
 
     // 1. Check file size (5MB limit)
     if (file.size > 5 * 1024 * 1024) {
-      alert("साक्ष्य दस्तावेज का आकार 5 MB से अधिक नहीं होना चाहिए (File size must not exceed 5 MB).");
+      const msg = "Proof document size must not exceed 5 MB.";
+      setFileError(msg);
+      message.error(msg);
       if (fileInputRef.current) fileInputRef.current.value = "";
       setDocumentFile(null);
       return;
     }
 
-    // 2. If PDF, strictly validate page count (<= 3 pages)
+    // 2. If PDF, strictly validate page count (<= 5 pages)
     const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
     if (isPdf) {
       try {
         setFileChecking(true);
         const pages = await countPdfPages(file);
-        if (pages > 3) {
-          alert(
-            `साक्ष्य दस्तावेज अधिकतम 3 पृष्ठों (3 Pages) का ही होना चाहिए।\n\nआपके द्वारा चयनित PDF में ${pages} पृष्ठ हैं। कृपया केवल अधिकतम 3 पृष्ठों का दस्तावेज अपलोड करें।\n(Uploaded PDF contains ${pages} pages. Maximum allowed is 3 pages.)`
-          );
+        if (pages > 5) {
+          const msg = `Proof document must not exceed 5 pages. (Uploaded PDF contains ${pages} pages).`;
+          setFileError(msg);
+          message.error(msg);
           if (fileInputRef.current) fileInputRef.current.value = "";
           setDocumentFile(null);
           return;
@@ -358,6 +318,7 @@ const ObjectionPage = () => {
       }
     }
 
+    setFileError("");
     setDocumentFile(file);
   };
 
@@ -367,9 +328,19 @@ const ObjectionPage = () => {
     setErrorMessage("");
     setSuccessMessage("");
 
+    // Frontend validation for booklet series selection
+    if (!bookletSeries) {
+      const msg = "Please select your Question Booklet Series above first.";
+      setErrorMessage(msg);
+      message.warning(msg);
+      return;
+    }
+
     // Frontend validation for single booklet series rule
     if (objections.length > 0 && objections[0].bookletSeries && bookletSeries !== objections[0].bookletSeries) {
-      setErrorMessage(`अभ्यर्थी केवल एक ही सीरीज (${objections[0].bookletSeries}) में आपत्ति दर्ज कर सकते हैं (You can add objections only in Booklet Series ${objections[0].bookletSeries}).`);
+      const msg = `You can submit objections only in Booklet Series ${objections[0].bookletSeries}.`;
+      setErrorMessage(msg);
+      message.warning(msg);
       return;
     }
 
@@ -378,7 +349,9 @@ const ObjectionPage = () => {
     const qNum = parseInt(questionNo, 10);
 
     if (!isValidQ || isNaN(qNum) || qNum < 1 || qNum > 200) {
-      setErrorMessage("कृपया 1 से 200 के बीच वैध प्रश्न संख्या दर्ज करें (Please enter a valid Question Number between 1 and 200).");
+      const msg = "Please enter a valid Question Number between 1 and 200.";
+      setErrorMessage(msg);
+      message.warning(msg);
       return;
     }
 
@@ -393,14 +366,16 @@ const ObjectionPage = () => {
     }
 
     if (!finalClaim) {
-      setErrorMessage("कृपया अभ्यर्थी का दावा / उत्तर विकल्प चुनें (Please select one or more options, None of these, or All of the above).");
+      const msg = "Please select your claimed answer (Option A-D, All of the above, or None of these).";
+      setErrorMessage(msg);
+      message.warning(msg);
       return;
     }
 
     try {
       setSubmitting(true);
       const formData = new FormData();
-      formData.append("ExamName", candidate?.examName || "UK D.El.Ed. Entrance Examination 2026");
+      formData.append("ExamName", "UK D.El.Ed. Entrance Exam 2026");
       formData.append("BookletSeries", bookletSeries);
       formData.append("QuestionNo", qNum);
       formData.append("CandidateAnswer", finalClaim);
@@ -414,40 +389,47 @@ const ObjectionPage = () => {
         const res = await api.post(`/api/Objection/update/${editingId}`, formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        setSuccessMessage(res.data?.message || `Question #${qNum} challenge updated.`);
+        const successMsg = res.data?.message || `Question #${qNum} challenge updated.`;
+        setSuccessMessage(successMsg);
+        message.success(successMsg);
       } else {
         // Create new
         const res = await api.post("/api/Objection/submit", formData, {
           headers: { "Content-Type": "multipart/form-data" },
         });
-        setSuccessMessage(res.data?.message || `Question #${qNum} challenge saved to drafts.`);
+        const successMsg = res.data?.message || `Question #${qNum} challenge saved to drafts.`;
+        setSuccessMessage(successMsg);
+        message.success(successMsg);
       }
 
       resetForm();
       await loadCandidateData();
     } catch (err) {
       console.error("Error saving objection:", err);
-      setErrorMessage(err.response?.data?.message || "Failed to save objection. Please check inputs.");
+      const errMsg = err.response?.data?.message || "Failed to save objection. Please check inputs.";
+      setErrorMessage(errMsg);
+      message.error(errMsg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Delete Draft
-  const handleDelete = async (id, qNum) => {
-    if (!window.confirm(`Are you sure you want to remove draft objection for Question #${qNum}?`)) {
-      return;
-    }
+  // Delete Draft Execution
+  const executeDelete = async (id, qNum) => {
     try {
       setLoading(true);
       setErrorMessage("");
       const res = await api.delete(`/api/Objection/delete/${id}`);
-      setSuccessMessage(res.data?.message || `Question #${qNum} objection removed.`);
+      const successMsg = res.data?.message || `Question #${qNum} objection removed.`;
+      setSuccessMessage(successMsg);
+      message.success(successMsg);
       if (editingId === id) resetForm();
       await loadCandidateData();
     } catch (err) {
       console.error("Error deleting objection:", err);
-      setErrorMessage(err.response?.data?.message || "Failed to delete objection.");
+      const errMsg = err.response?.data?.message || "Failed to delete objection.";
+      setErrorMessage(errMsg);
+      message.error(errMsg);
     } finally {
       setLoading(false);
     }
@@ -459,25 +441,41 @@ const ObjectionPage = () => {
       setSubmitting(true);
       setErrorMessage("");
       const res = await api.post("/api/Objection/final-submit");
-      setSuccessMessage(res.data?.message || "Objections successfully Final Submitted and locked.");
+      const successMsg = res.data?.message || "Objections successfully Final Submitted and locked.";
+      setSuccessMessage(successMsg);
+      message.success(successMsg);
       setShowFinalModal(false);
       await loadCandidateData();
     } catch (err) {
       console.error("Error in final submission:", err);
-      setErrorMessage(err.response?.data?.message || "Final submission failed.");
+      const errMsg = err.response?.data?.message || "Final submission failed.";
+      setErrorMessage(errMsg);
+      message.error(errMsg);
     } finally {
       setSubmitting(false);
     }
   };
 
   // Document Viewer
+  const getDocUrl = (docId) => {
+    const rawBase = api.defaults.baseURL || "";
+    if (rawBase.startsWith("http://") || rawBase.startsWith("https://")) {
+      return `${rawBase.replace(/\/+$/, "")}/api/Objection/document/${docId}`;
+    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const cleanBase = rawBase.replace(/\/+$/, "");
+    return `${origin}${cleanBase}/api/Objection/document/${docId}`;
+  };
+
   const handleViewDoc = async (id) => {
     try {
       const res = await api.get(`/api/Objection/document/${id}`, { responseType: "blob" });
       const blobUrl = URL.createObjectURL(res.data);
       setPreviewDocUrl(blobUrl);
     } catch (err) {
-      alert("Unable to open proof document: " + (err.response?.data?.message || err.message));
+      const errMsg = "Unable to open proof document: " + (err.response?.data?.message || err.message);
+      message.error(errMsg);
+      setErrorMessage(errMsg);
     }
   };
 
@@ -487,38 +485,73 @@ const ObjectionPage = () => {
 
   if (loading && !candidate) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="text-gray-600 font-medium text-sm">लोड हो रहा है... (Loading Candidate Workspace)</p>
-      </div>
+      <Layout className="min-h-screen flex flex-col bg-slate-50 font-sans">
+        <div className="flex-1 flex flex-col items-center justify-center p-8">
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600 font-medium text-sm">Loading Candidate Workspace...</p>
+        </div>
+      </Layout>
     );
   }
 
+  const isQuestionTyped = Boolean(
+    bookletSeries &&
+    questionNo &&
+    questionNo.toString().trim() !== "" &&
+    !questionError &&
+    parseInt(questionNo, 10) >= 1 &&
+    parseInt(questionNo, 10) <= 200
+  );
+
   return (
-    <ObjectionRouteGuard>
-      <div className="min-h-screen bg-slate-100/70 py-6 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto space-y-6">
+    <Layout className="min-h-screen flex flex-col bg-slate-100/70 font-sans">
+      {/* Printable Styling */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #printable-objection-receipt, #printable-objection-receipt * {
+            visibility: visible;
+          }
+          #printable-objection-receipt {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            display: block !important;
+          }
+          #printable-objection-receipt a {
+            color: #1d4ed8 !important;
+            text-decoration: underline !important;
+          }
+        }
+      `}</style>
+
+      <ObjectionRouteGuard>
+        <div className="flex-1 py-6 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-6xl mx-auto space-y-6">
           {/* Header Card */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden no-print">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print:hidden">
             <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 text-white p-5 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="px-2.5 py-0.5 rounded-full bg-blue-700/60 text-blue-100 text-xs font-semibold tracking-wide uppercase">
-                      उत्तराखण्ड द्विवर्षीय डी०एल०एड० 2026
+                      UK D.El.Ed. 2026
                     </span>
                     {isFinalSubmitted ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-xs font-bold">
-                        <FaLock className="text-xs" /> अंतिम रूप से जमा (Locked)
+                        <FaLock className="text-xs" /> Final Submitted (Locked)
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400 text-amber-950 text-xs font-bold">
-                        ड्राफ्ट मोड (Draft Mode)
+                        Draft Mode
                       </span>
                     )}
                   </div>
                   <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-                    अनंतिम उत्तर कुंजी आपत्ति प्रबंधन पोर्टल
+                    Answer Key Objection Portal
                   </h1>
                   <p className="text-xs sm:text-sm text-blue-200 mt-0.5">
                     Provisional Answer Key Challenge System (Candidate Portal)
@@ -530,21 +563,21 @@ const ObjectionPage = () => {
                     to="/application"
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition"
                   >
-                    <FaArrowLeft /> डैशबोर्ड
+                    <FaArrowLeft /> Dashboard
                   </Link>
                   <Link
                     to="/objection-instructions"
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-semibold transition"
                   >
-                    <FaFileAlt /> निर्देश (Instructions)
+                    <FaFileAlt /> Instructions
                   </Link>
                   {isFinalSubmitted && (
                     <button
                       type="button"
                       onClick={handlePrintReceipt}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition shadow-sm"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition shadow-sm cursor-pointer"
                     >
-                      <FaPrint /> रसीद प्रिंट करें
+                      <FaPrint /> Print Receipt
                     </button>
                   )}
                 </div>
@@ -555,56 +588,128 @@ const ObjectionPage = () => {
             <div className="bg-slate-50 border-t border-slate-200 px-5 py-3 sm:px-6">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 <div>
-                  <span className="text-slate-500 block">पंजीकरण संख्या (Reg No)</span>
+                  <span className="text-slate-500 block">Registration No</span>
                   <span className="font-bold text-slate-800 text-sm">{candidate?.registrationNo || "-"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">अभ्यर्थी का नाम (Candidate)</span>
+                  <span className="text-slate-500 block">Candidate Name</span>
                   <span className="font-bold text-slate-800 text-sm">{candidate?.fullName || "-"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">अनुक्रमांक (Roll Number)</span>
+                  <span className="text-slate-500 block">Roll Number</span>
                   <span className="font-bold text-blue-800 text-sm">{candidate?.rollNo || "-"}</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 block">आवेदित वर्ग (Applied Stream)</span>
+                  <span className="text-slate-500 block">Applied Stream</span>
                   <span className="font-bold text-slate-800 text-sm">{candidate?.appliedCategory || "-"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Booklet Series Selection & Resources Strip (Just below Candidate Details) */}
+            <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border-t border-slate-200 px-5 py-3 sm:px-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* Series Buttons */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                    <FaBook className="text-blue-700" /> Booklet Series:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {BOOKLET_SERIES.map((s) => {
+                      const isLocked = objections.length > 0 && objections[0].bookletSeries && objections[0].bookletSeries !== s;
+                      const isSelected = bookletSeries === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          disabled={isLocked || isFinalSubmitted}
+                          onClick={() => {
+                            if (!isLocked && !isFinalSubmitted) {
+                              setBookletSeries(s);
+                              setErrorMessage("");
+                            }
+                          }}
+                          className={`w-9 h-9 flex items-center justify-center rounded-lg font-black text-sm border transition ${
+                            isSelected
+                              ? "bg-blue-700 text-white border-blue-700 shadow-md ring-2 ring-blue-400 scale-105"
+                              : isLocked
+                              ? "bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed opacity-50"
+                              : "bg-white text-slate-700 border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer"
+                          }`}
+                          title={isLocked ? `Locked: Objections restricted to Series ${objections[0].bookletSeries}` : `Select Series ${s}`}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {objections.length > 0 && objections[0].bookletSeries && (
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                      Locked: Series {objections[0].bookletSeries}
+                    </span>
+                  )}
+                </div>
+
+                {/* Viewing Booklet and Answer Key */}
+                <div className="flex items-center">
+                  {bookletSeries ? (
+                    <div className="flex flex-wrap items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs shadow-xs">
+                      <span className="font-bold text-slate-700">Series {bookletSeries}:</span>
+                      <a
+                        href={getBookletUrl(bookletSeries, "booklet", false)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold hover:underline cursor-pointer"
+                        title={`View Series ${bookletSeries} Question Booklet PDF`}
+                      >
+                        <FaEye className="text-blue-600 text-xs" /> View Booklet
+                      </a>
+                      <a
+                        href={getBookletUrl(bookletSeries, "booklet", true)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-400 hover:text-blue-700 transition cursor-pointer p-0.5"
+                        title={`Download Series ${bookletSeries} Question Booklet`}
+                      >
+                        <FaDownload className="text-[11px]" />
+                      </a>
+                      <span className="text-slate-300">|</span>
+                      <a
+                        href={getBookletUrl(bookletSeries, "answerkey", false)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-bold hover:underline cursor-pointer"
+                        title={`View Series ${bookletSeries} Answer Key PDF`}
+                      >
+                        <FaKey className="text-amber-500 text-xs" /> View Key
+                      </a>
+                      <a
+                        href={getBookletUrl(bookletSeries, "answerkey", true)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-400 hover:text-emerald-700 transition cursor-pointer p-0.5"
+                        title={`Download Series ${bookletSeries} Answer Key`}
+                      >
+                        <FaDownload className="text-[11px]" />
+                      </a>
+                    </div>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic flex items-center gap-1.5">
+                      <FaInfoCircle className="text-blue-500 text-xs" /> Select Booklet Series to view booklet & answer key
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Feedback Messages */}
-          {errorMessage && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-xl flex items-center justify-between text-red-800 text-sm no-print">
-              <div className="flex items-center gap-2">
-                <FaExclamationTriangle className="text-red-500 flex-shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-              <button onClick={() => setErrorMessage("")} className="text-red-500 hover:text-red-700">
-                <FaTimes />
-              </button>
-            </div>
-          )}
-          {successMessage && (
-            <div className="bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-xl flex items-center justify-between text-emerald-800 text-sm no-print">
-              <div className="flex items-center gap-2">
-                <FaCheckCircle className="text-emerald-500 flex-shrink-0" />
-                <span>{successMessage}</span>
-              </div>
-              <button onClick={() => setSuccessMessage("")} className="text-emerald-500 hover:text-emerald-700">
-                <FaTimes />
-              </button>
-            </div>
-          )}
-
           {/* If NOT Final Submitted -> Objection Entry Form */}
           {!isFinalSubmitted ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 no-print space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 print:hidden space-y-6">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <h2 className="text-base sm:text-lg font-bold text-slate-800 flex items-center gap-2">
                   <FaEdit className="text-blue-700" />
-                  {editingId ? `प्रश्न संख्या #${questionNo} पर आपत्ति संपादित करें` : "नई प्रश्न आपत्ति दर्ज करें (Add Question Challenge)"}
+                  {editingId ? `Edit Objection for Question #${questionNo}` : "Add Question Objection"}
                 </h2>
                 {editingId && (
                   <button
@@ -612,98 +717,25 @@ const ObjectionPage = () => {
                     onClick={resetForm}
                     className="text-xs text-red-600 hover:text-red-800 font-semibold underline"
                   >
-                    संपादित करना रद्द करें (Cancel Edit)
+                    Cancel Edit
                   </button>
                 )}
               </div>
 
               <form onSubmit={handleSaveObjection} className="space-y-5">
-                {/* Row 1: Booklet Series, Question Number (1-200), Candidate Claim */}
-                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                  {/* Booklet Series */}
-                  <div className="sm:col-span-6 lg:col-span-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-bold text-slate-700 uppercase">
-                        सीरीज (Series) <span className="text-red-500">*</span>
-                      </label>
-                      {objections.length > 0 && objections[0].bookletSeries && (
-                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                          सीरीज लॉक (Locked: {objections[0].bookletSeries})
-                        </span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-4 gap-1.5">
-                      {BOOKLET_SERIES.map((s) => {
-                        const isLocked = objections.length > 0 && objections[0].bookletSeries && objections[0].bookletSeries !== s;
-                        return (
-                          <button
-                            key={s}
-                            type="button"
-                            disabled={isLocked}
-                            onClick={() => {
-                              if (!isLocked) setBookletSeries(s);
-                            }}
-                            className={`py-2 text-center rounded-lg font-extrabold text-sm border transition ${
-                              bookletSeries === s
-                                ? "bg-blue-700 text-white border-blue-700 shadow-sm ring-2 ring-blue-400"
-                                : isLocked
-                                ? "bg-slate-100 text-slate-300 border-slate-200 cursor-not-allowed opacity-60"
-                                : "bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100 cursor-pointer"
-                            }`}
-                            title={isLocked ? `आप केवल सीरीज ${objections[0].bookletSeries} में ही आपत्ति दर्ज कर सकते हैं` : `Series ${s}`}
-                          >
-                            {s}
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {objections.length > 0 && objections[0].bookletSeries && (
-                      <p className="text-[10px] text-amber-800 font-medium mt-1">
-                        * एक अभ्यर्थी केवल एक ही सीरीज ({objections[0].bookletSeries}) में आपत्ति दर्ज कर सकता है।
-                      </p>
-                    )}
-
-                    {/* Small clean links showing only the candidate's selected series */}
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-2 text-xs">
-                      <span className="font-semibold text-slate-500 text-[11px]">सीरीज {bookletSeries}:</span>
-                      <button
-                        type="button"
-                        onClick={() => handleViewBookletOrKey(bookletSeries, "booklet")}
-                        className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-900 font-bold hover:underline cursor-pointer text-xs"
-                      >
-                        <FaEye className="text-blue-600 text-xs" /> पुस्तिका देखें
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadBookletOrKey(bookletSeries, "booklet")}
-                        className="text-slate-400 hover:text-blue-700 transition cursor-pointer"
-                        title={`सीरीज ${bookletSeries} पुस्तिका डाउनलोड करें`}
-                      >
-                        <FaDownload className="text-[10px]" />
-                      </button>
-                      <span className="text-slate-300">|</span>
-                      <button
-                        type="button"
-                        onClick={() => handleViewBookletOrKey(bookletSeries, "answerkey")}
-                        className="inline-flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-bold hover:underline cursor-pointer text-xs"
-                      >
-                        <FaKey className="text-amber-500 text-xs" /> उत्तर कुंजी देखें
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDownloadBookletOrKey(bookletSeries, "answerkey")}
-                        className="text-slate-400 hover:text-emerald-700 transition cursor-pointer"
-                        title={`सीरीज ${bookletSeries} उत्तर कुंजी डाउनलोड करें`}
-                      >
-                        <FaDownload className="text-[10px]" />
-                      </button>
-                    </div>
+                {!bookletSeries && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-xl text-xs font-semibold flex items-center gap-2">
+                    <FaInfoCircle className="text-amber-600 flex-shrink-0 text-base" />
+                    <span>Please select your Question Booklet Series above to start entering questions and objections.</span>
                   </div>
+                )}
 
+                {/* Row 1: Question Number (1-200) & Candidate Claim */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
                   {/* Manual Question Number Input (Range 1-200) */}
-                  <div className="sm:col-span-6 lg:col-span-3">
+                  <div className="lg:col-span-4">
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      प्रश्न संख्या (Question No. 1 - 200) <span className="text-red-500">*</span>
+                      Question Number (1 - 200) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -713,13 +745,16 @@ const ObjectionPage = () => {
                         step="1"
                         value={questionNo}
                         onChange={handleQuestionChange}
-                        onBlur={() => validateQuestionNumber(questionNo)}
+                        onBlur={handleQuestionBlur}
+                        disabled={!bookletSeries}
                         required
-                        placeholder="1 - 200"
-                        className={`w-full px-3 py-2 border rounded-lg text-sm font-extrabold text-slate-900 focus:ring-2 ${
-                          questionError
-                            ? "border-red-500 focus:ring-red-400 bg-red-50/30"
-                            : "border-slate-300 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder={bookletSeries ? "1 - 200" : "Select Series above first..."}
+                        className={`w-full px-3 py-2 border rounded-lg text-sm font-extrabold focus:ring-2 transition ${
+                          !bookletSeries
+                            ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                            : questionError
+                            ? "border-red-500 focus:ring-red-400 bg-red-50/30 text-slate-900"
+                            : "border-slate-300 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900"
                         }`}
                       />
                     </div>
@@ -729,20 +764,26 @@ const ObjectionPage = () => {
                       </span>
                     ) : (
                       <span className="text-[11px] text-slate-500 mt-1 block">
-                        मान्य रेंज: 1 से 200 (Valid range: 1 to 200)
+                        {bookletSeries ? "Valid range: 1 to 200" : "Series selection required"}
                       </span>
                     )}
                   </div>
 
                   {/* Candidate Claim (Supports Multiple Selection, None of these, All of the above) */}
-                  <div className="sm:col-span-12 lg:col-span-6">
+                  <div className="lg:col-span-8">
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-slate-700">
-                        अभ्यर्थी का दावा (Claimed Answer) <span className="text-red-500">*</span>
+                        Claimed Answer <span className="text-red-500">*</span>
                       </label>
-                      <span className="text-[10px] text-blue-700 font-semibold">
-                        (बहु-विकल्प / विशेष विकल्प चयन अनुमन्य)
-                      </span>
+                      {isQuestionTyped ? (
+                        <span className="text-[10px] text-blue-700 font-semibold">
+                          (Multiple options / special choices allowed)
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-amber-600 font-semibold">
+                          (Enter valid Question No. first to select answer)
+                        </span>
+                      )}
                     </div>
 
                     <div className="space-y-2">
@@ -754,13 +795,16 @@ const ObjectionPage = () => {
                             <button
                               key={opt}
                               type="button"
-                              onClick={() => handleToggleOption(opt)}
-                              className={`py-2 text-center rounded-lg font-black text-sm border transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                                isSelected
-                                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400"
-                                  : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                              disabled={!isQuestionTyped}
+                              onClick={() => isQuestionTyped && handleToggleOption(opt)}
+                              className={`py-2 text-center rounded-lg font-black text-sm border transition flex items-center justify-center gap-1.5 ${
+                                !isQuestionTyped
+                                  ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed opacity-60"
+                                  : isSelected
+                                  ? "bg-emerald-600 text-white border-emerald-600 shadow-sm ring-2 ring-emerald-400 cursor-pointer"
+                                  : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100 cursor-pointer"
                               }`}
-                              title={`Option ${opt} चयन करें (Click to toggle)`}
+                              title={isQuestionTyped ? `Select Option ${opt}` : "Enter Question Number first"}
                             >
                               <span>Option {opt}</span>
                               {isSelected && <FaCheckCircle className="text-xs" />}
@@ -773,53 +817,37 @@ const ObjectionPage = () => {
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
-                          onClick={() => handleSelectSpecial("ALL_OF_THE_ABOVE")}
-                          className={`py-2 px-2 text-center rounded-lg font-bold text-xs border transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                            specialOption === "ALL_OF_THE_ABOVE"
-                              ? "bg-blue-700 text-white border-blue-700 shadow-sm ring-2 ring-blue-400"
-                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                          disabled={!isQuestionTyped}
+                          onClick={() => isQuestionTyped && handleSelectSpecial("ALL_OF_THE_ABOVE")}
+                          className={`py-2 px-2 text-center rounded-lg font-bold text-xs border transition flex items-center justify-center gap-1.5 ${
+                            !isQuestionTyped
+                              ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed opacity-60"
+                              : specialOption === "ALL_OF_THE_ABOVE"
+                              ? "bg-blue-700 text-white border-blue-700 shadow-sm ring-2 ring-blue-400 cursor-pointer"
+                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100 cursor-pointer"
                           }`}
                         >
-                          <span>उपर्युक्त सभी (All of the above)</span>
+                          <span>All of the above</span>
                           {specialOption === "ALL_OF_THE_ABOVE" && <FaCheckCircle className="text-xs" />}
                         </button>
 
                         <button
                           type="button"
-                          onClick={() => handleSelectSpecial("NONE_OF_THESE")}
-                          className={`py-2 px-2 text-center rounded-lg font-bold text-xs border transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                            specialOption === "NONE_OF_THESE"
-                              ? "bg-purple-700 text-white border-purple-700 shadow-sm ring-2 ring-purple-400"
-                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                          disabled={!isQuestionTyped}
+                          onClick={() => isQuestionTyped && handleSelectSpecial("NONE_OF_THESE")}
+                          className={`py-2 px-2 text-center rounded-lg font-bold text-xs border transition flex items-center justify-center gap-1.5 ${
+                            !isQuestionTyped
+                              ? "bg-slate-50 text-slate-300 border-slate-200 cursor-not-allowed opacity-60"
+                              : specialOption === "NONE_OF_THESE"
+                              ? "bg-purple-700 text-white border-purple-700 shadow-sm ring-2 ring-purple-400 cursor-pointer"
+                              : "bg-white text-slate-700 border-slate-300 hover:bg-slate-100 cursor-pointer"
                           }`}
                         >
-                          <span>इनमें से कोई नहीं (None of these)</span>
+                          <span>None of these</span>
                           {specialOption === "NONE_OF_THESE" && <FaCheckCircle className="text-xs" />}
                         </button>
                       </div>
-
-                      {/* Realtime Selection Feedback Indicator */}
-                      <div className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 flex items-center justify-between text-xs">
-                        <span className="text-slate-500 font-medium">आपका दावा (Selected Claim):</span>
-                        {specialOption === "ALL_OF_THE_ABOVE" ? (
-                          <span className="font-extrabold text-blue-800 bg-blue-100 px-2 py-0.5 rounded">
-                            All of the above (उपर्युक्त सभी)
-                          </span>
-                        ) : specialOption === "NONE_OF_THESE" ? (
-                          <span className="font-extrabold text-purple-800 bg-purple-100 px-2 py-0.5 rounded">
-                            None of these (इनमें से कोई नहीं)
-                          </span>
-                        ) : selectedOptions.length > 0 ? (
-                          <span className="font-extrabold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                            Option {selectedOptions.join(", ")}
-                            {selectedOptions.length > 1 && " (Multiple Options)"}
-                          </span>
-                        ) : (
-                          <span className="font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded">
-                            कोई विकल्प चयनित नहीं (Please select an option)
-                          </span>
-                        )}
-                      </div>
+                    
                     </div>
                   </div>
                 </div>
@@ -829,14 +857,17 @@ const ObjectionPage = () => {
                   {/* Academic Justification */}
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                      आपत्ति का आधार / विवरण (Academic Justification / Book Reference)
+                      Academic Justification / Reference
                     </label>
                     <textarea
                       rows="3"
                       value={description}
+                      disabled={!bookletSeries}
                       onChange={(e) => setDescription(e.target.value)}
-                      placeholder="पुस्तक का नाम, लेखक, संस्करण, पृष्ठ संख्या एवं संक्षिप्त व्याख्या दर्ज करें..."
-                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-blue-500"
+                      placeholder={bookletSeries ? "Enter book title, author, edition, page number, and explanation..." : "Select Booklet Series first..."}
+                      className={`w-full px-3 py-2 border rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-blue-500 transition ${
+                        !bookletSeries ? "bg-slate-100 border-slate-200 cursor-not-allowed text-slate-400" : "border-slate-300 bg-white"
+                      }`}
                     ></textarea>
                   </div>
 
@@ -844,44 +875,52 @@ const ObjectionPage = () => {
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
                       <label className="text-xs font-bold text-slate-700">
-                        प्रामाणिक साक्ष्य संलग्न करें (Documentary Proof)
+                        Documentary Proof (Optional)
                       </label>
                       <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
-                        अधिकतम 3 पृष्ठ (Max 3 Pages)
+                        Max 5 Pages
                       </span>
                     </div>
-                    <div className="border-2 border-dashed border-slate-300 rounded-xl p-3 text-center bg-slate-50/60 hover:bg-slate-50 transition">
+                    <div className={`border-2 border-dashed rounded-xl p-3 text-center transition ${
+                      !bookletSeries ? "border-slate-200 bg-slate-100/60 cursor-not-allowed" : "border-slate-300 bg-slate-50/60 hover:bg-slate-50 cursor-pointer"
+                    }`}>
                       <input
                         ref={fileInputRef}
                         type="file"
                         accept=".pdf,.jpg,.jpeg,.png"
                         onChange={handleDocumentChange}
+                        disabled={!bookletSeries}
                         className="hidden"
                         id="objection-proof-file"
                       />
-                      <label htmlFor="objection-proof-file" className="cursor-pointer block">
+                      <label htmlFor={bookletSeries ? "objection-proof-file" : undefined} className={bookletSeries ? "cursor-pointer block" : "cursor-not-allowed block"}>
                         {fileChecking ? (
                           <div className="flex flex-col items-center justify-center py-1">
                             <FaSpinner className="animate-spin text-blue-600 text-lg mb-1" />
                             <span className="text-xs font-semibold text-blue-700">
-                              पृष्ठ संख्या जांची जा रही है (Verifying page count...)...
+                              Verifying page count...
                             </span>
                           </div>
                         ) : (
                           <>
-                            <FaUpload className="mx-auto text-slate-400 text-lg mb-1" />
-                            <span className="text-xs font-semibold text-blue-700 hover:underline">
-                              {documentFile ? documentFile.name : "दस्तावेज चुनें (Click to choose file)"}
+                            <FaUpload className={`mx-auto text-lg mb-1 ${!bookletSeries ? "text-slate-300" : "text-slate-400"}`} />
+                            <span className={`text-xs font-semibold ${!bookletSeries ? "text-slate-400" : "text-blue-700 hover:underline"}`}>
+                              {documentFile ? documentFile.name : bookletSeries ? "Choose File (PDF or Image)" : "Select Series first..."}
                             </span>
                             <p className="text-[10px] text-slate-500 mt-0.5">
                               {documentFile
-                                ? `${(documentFile.size / 1024 / 1024).toFixed(2)} MB चयनित (मान्य साक्ष्य)`
-                                : "PDF या Image (अधिकतम 5 MB एवं अधिकतम 3 पृष्ठ)"}
+                                ? `${(documentFile.size / 1024 / 1024).toFixed(2)} MB selected`
+                                : "PDF or Image (Max 5 MB & up to 5 pages)"}
                             </p>
                           </>
                         )}
                       </label>
                     </div>
+                    {fileError && (
+                      <span className="text-[11px] text-red-600 font-semibold mt-1.5 block">
+                        {fileError}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -893,35 +932,39 @@ const ObjectionPage = () => {
                       onClick={resetForm}
                       className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-100"
                     >
-                      रद्द करें (Cancel)
+                      Cancel
                     </button>
                   )}
                   <button
                     type="submit"
-                    disabled={submitting}
-                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                    disabled={!bookletSeries || !isQuestionTyped || submitting}
+                    className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FaCheckCircle />
                     {submitting
-                      ? "सहेजा जा रहा है..."
+                      ? "Saving..."
+                      : !bookletSeries
+                      ? "Select Series First"
+                      : !isQuestionTyped
+                      ? "Enter Question No."
                       : editingId
-                      ? "आपत्ति अपडेट करें (Update Challenge)"
-                      : "ड्राफ्ट आपत्ति जोड़ें (Save Draft Challenge)"}
+                      ? "Update Objection"
+                      : "Save Draft Objection"}
                   </button>
                 </div>
               </form>
             </div>
           ) : (
             /* Locked State Advisory */
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-emerald-900 no-print flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 text-emerald-900 print:hidden flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xl flex-shrink-0">
                   <FaLock />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-base">आपत्ति आवेदन अंतिम रूप से जमा एवं लॉक हो चुका है</h3>
+                  <h3 className="font-extrabold text-base">Objections Submitted & Locked</h3>
                   <p className="text-xs text-emerald-800 mt-0.5">
-                    Your challenges have been permanently locked on{" "}
+                    Your challenges were permanently locked on{" "}
                     {finalSubmittedOn
                       ? new Date(finalSubmittedOn).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
                       : "N/A"}{" "}
@@ -934,20 +977,20 @@ const ObjectionPage = () => {
                 onClick={handlePrintReceipt}
                 className="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold rounded-lg transition shadow-sm flex items-center gap-2 whitespace-nowrap cursor-pointer"
               >
-                <FaPrint /> रसीद प्रिंट करें (Print Confirmation)
+                <FaPrint /> Print Confirmation Slip
               </button>
             </div>
           )}
 
           {/* Draft/Submitted Objections Table */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden no-print">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print:hidden">
             <div className="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h3 className="text-sm sm:text-base font-bold text-slate-800 flex items-center gap-2">
                   <FaFileAlt className="text-blue-700" />
-                  दर्ज की गई आपत्तियों की सूची (List of Challenged Questions)
+                  List of Challenged Questions
                   <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
-                    कुल: {objections.length}
+                    Total: {objections.length}
                   </span>
                 </h3>
               </div>
@@ -958,7 +1001,7 @@ const ObjectionPage = () => {
                   onClick={() => setShowFinalModal(true)}
                   className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition shadow-sm cursor-pointer"
                 >
-                  <FaLock /> अंतिम रूप से जमा करें (Final Submit & Lock)
+                  <FaLock /> Final Submit & Lock
                 </button>
               )}
             </div>
@@ -966,9 +1009,9 @@ const ObjectionPage = () => {
             {objections.length === 0 ? (
               <div className="p-8 text-center text-slate-500">
                 <FaInfoCircle className="mx-auto text-3xl text-slate-300 mb-2" />
-                <p className="text-sm font-medium">अभी तक कोई आपत्ति दर्ज नहीं की गई है।</p>
+                <p className="text-sm font-medium">No objections submitted yet.</p>
                 <p className="text-xs mt-1">
-                  ऊपर दिए गए फॉर्म में प्रश्न संख्या (1 - 200) एवं साक्ष्य भरकर "ड्राफ्ट आपत्ति जोड़ें" पर क्लिक करें।
+                  Use the form above to add a question objection and click "Save Draft Objection".
                 </p>
               </div>
             ) : (
@@ -976,13 +1019,13 @@ const ObjectionPage = () => {
                 <table className="w-full text-left text-xs text-slate-700">
                   <thead className="bg-slate-50 border-b border-slate-200 uppercase font-bold text-[11px] text-slate-600">
                     <tr>
-                      <th className="py-3 px-3 text-center">क्र०</th>
-                      <th className="py-3 px-3 text-center">सीरीज</th>
-                      <th className="py-3 px-3 text-center">प्रश्न संख्या (1 - 200)</th>
-                      <th className="py-3 px-3 text-center">अभ्यर्थी का दावा (Claimed Answer)</th>
-                      <th className="py-3 px-3">साक्ष्य (Proof)</th>
-                      <th className="py-3 px-3">स्थिति (Status)</th>
-                      {!isFinalSubmitted && <th className="py-3 px-3 text-center">कार्रवाई (Action)</th>}
+                      <th className="py-3 px-3 text-center">S.No.</th>
+                      <th className="py-3 px-3 text-center">Series</th>
+                      <th className="py-3 px-3 text-center">Question No.</th>
+                      <th className="py-3 px-3 text-center">Claimed Answer</th>
+                      <th className="py-3 px-3">Proof</th>
+                      <th className="py-3 px-3">Status</th>
+                      {!isFinalSubmitted && <th className="py-3 px-3 text-center">Action</th>}
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200">
@@ -1003,7 +1046,7 @@ const ObjectionPage = () => {
                               onClick={() => handleViewDoc(item.id)}
                               className="inline-flex items-center gap-1 text-blue-700 hover:underline font-semibold"
                             >
-                              <FaEye /> देखें
+                              <FaEye /> View
                             </button>
                           ) : (
                             <span className="text-slate-400 italic">None</span>
@@ -1037,8 +1080,8 @@ const ObjectionPage = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleDelete(item.id, item.questionNo)}
-                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition"
+                                onClick={() => setDeleteConfirm({ id: item.id, qNum: item.questionNo })}
+                                className="p-1.5 text-red-600 hover:bg-red-50 rounded transition cursor-pointer"
                                 title="Delete"
                               >
                                 <FaTrash />
@@ -1055,45 +1098,45 @@ const ObjectionPage = () => {
           </div>
 
           {/* Printable Official Confirmation Receipt */}
-          <div className="print-only bg-white p-8 border border-slate-300 rounded-xl space-y-6">
+          <div id="printable-objection-receipt" className="hidden print:block bg-white p-8 border border-slate-300 rounded-xl space-y-6">
             <div className="text-center border-b-2 border-slate-800 pb-4">
               <h2 className="text-xl font-extrabold uppercase tracking-wide">
-                उत्तराखण्ड विद्यालयी शिक्षा परिषद्, रामनगर (नैनीताल)
+                Uttarakhand Board of School Education, Ramnagar (Nainital)
               </h2>
               <h3 className="text-base font-bold text-slate-800 mt-1">
-                द्विवर्षीय डी०एल०एड० प्रवेश परीक्षा - 2026
+                UK D.El.Ed. Entrance Examination - 2026
               </h3>
               <p className="text-sm font-semibold text-slate-600 mt-0.5">
-                अनंतिम उत्तर कुंजी आपत्ति रसीद (Objection Confirmation Slip)
+                Provisional Answer Key Objection Confirmation Slip
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-xs border border-slate-300 p-4 rounded-lg bg-slate-50">
               <div>
-                <p><strong>पंजीकरण संख्या (Registration No):</strong> {candidate?.registrationNo}</p>
-                <p className="mt-1"><strong>अभ्यर्थी का नाम (Candidate Name):</strong> {candidate?.fullName}</p>
-                <p className="mt-1"><strong>पिता का नाम (Father's Name):</strong> {candidate?.fatherName}</p>
+                <p><strong>Registration No:</strong> {candidate?.registrationNo}</p>
+                <p className="mt-1"><strong>Candidate Name:</strong> {candidate?.fullName}</p>
+                <p className="mt-1"><strong>Father's Name:</strong> {candidate?.fatherName}</p>
               </div>
               <div>
-                <p><strong>अनुक्रमांक (Roll No):</strong> {candidate?.rollNo || "-"}</p>
-                <p className="mt-1"><strong>आवेदित वर्ग (Applied Category):</strong> {candidate?.appliedCategory}</p>
+                <p><strong>Roll No:</strong> {candidate?.rollNo || "-"}</p>
+                <p className="mt-1"><strong>Applied Stream:</strong> {candidate?.appliedCategory}</p>
                 <p className="mt-1">
-                  <strong>अंतिम सबमिशन तिथि (Submitted On):</strong>{" "}
+                  <strong>Submitted On:</strong>{" "}
                   {finalSubmittedOn ? new Date(finalSubmittedOn).toLocaleString("en-IN") : "Draft"}
                 </p>
               </div>
             </div>
 
             <div>
-              <h4 className="text-xs font-bold uppercase mb-2">चुनौती दिए गए प्रश्नों का विवरण (Contested Questions):</h4>
+              <h4 className="text-xs font-bold uppercase mb-2">Contested Questions Summary:</h4>
               <table className="w-full text-left text-xs border-collapse border border-slate-300">
                 <thead>
                   <tr className="bg-slate-200">
-                    <th className="border border-slate-300 p-2 text-center">क्र०</th>
-                    <th className="border border-slate-300 p-2 text-center">सीरीज</th>
-                    <th className="border border-slate-300 p-2 text-center">प्रश्न सं० (1 - 200)</th>
-                    <th className="border border-slate-300 p-2 text-center">अभ्यर्थी का दावा (Claimed Answer)</th>
-                    <th className="border border-slate-300 p-2">साक्ष्य स्थिति</th>
+                    <th className="border border-slate-300 p-2 text-center">S.No.</th>
+                    <th className="border border-slate-300 p-2 text-center">Series</th>
+                    <th className="border border-slate-300 p-2 text-center">Question No.</th>
+                    <th className="border border-slate-300 p-2 text-center">Claimed Answer</th>
+                    <th className="border border-slate-300 p-2 text-center">Evidence Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1103,7 +1146,21 @@ const ObjectionPage = () => {
                       <td className="border border-slate-300 p-2 text-center font-bold">{o.bookletSeries}</td>
                       <td className="border border-slate-300 p-2 text-center font-bold">Q. {o.questionNo}</td>
                       <td className="border border-slate-300 p-2 text-center font-bold">{o.candidateAnswer}</td>
-                      <td className="border border-slate-300 p-2">{o.documentPath ? "Attached" : "None"}</td>
+                      <td className="border border-slate-300 p-2 text-center">
+                        {o.documentPath ? (
+                          <a
+                            href={getDocUrl(o.id)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-700 underline font-semibold hover:text-blue-900"
+                            title="Click to view attached document"
+                          >
+                            Attached (View Document)
+                          </a>
+                        ) : (
+                          <span className="text-slate-400 italic">None</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1111,29 +1168,29 @@ const ObjectionPage = () => {
             </div>
 
             <div className="border-t border-slate-300 pt-4 text-[11px] text-slate-600 leading-relaxed space-y-1">
-              <p><strong>घोषणा (Declaration):</strong> प्रमाणित किया जाता है कि मेरे द्वारा अनंतिम उत्तर कुंजी पर दर्ज कराई गई समस्त आपत्तियां सत्य एवं प्रामाणिक हैं।</p>
-              <p>नोट: यह कम्प्यूटर जनित पुष्टि पर्ची (Computer-generated Confirmation Slip) है, जिस पर हस्ताक्षर की आवश्यकता नहीं है।</p>
+              <p><strong>Declaration:</strong> Certified that all objections submitted by me against the provisional answer key are genuine and accurate.</p>
+              <p>Note: This is a computer-generated confirmation slip and does not require an ink signature.</p>
             </div>
           </div>
         </div>
 
         {/* Final Submission Modal */}
         {showFinalModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm no-print">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:hidden">
             <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-              <div className="bg-red-700 text-white p-5 text-center">
+              <div className="bg-blue-700 text-white p-5 text-center">
                 <FaLock className="mx-auto text-3xl mb-2" />
-                <h3 className="text-lg font-bold">क्या आप अंतिम रूप से जमा करना चाहते हैं?</h3>
-                <p className="text-xs text-red-100 mt-1">Final Submission & Lock Confirmation</p>
+                <h3 className="text-lg font-bold">Confirm Final Submission & Lock</h3>
+                <p className="text-xs text-red-100 mt-1">Objection Lock Confirmation</p>
               </div>
 
               <div className="p-6 space-y-4 text-xs text-slate-700 leading-relaxed">
                 <p className="font-semibold text-slate-900">
-                  कृपया ध्यानपूर्वक जाँच लें: आपने कुल <span className="text-red-700 font-bold">{objections.length}</span> प्रश्नों पर आपत्ति दर्ज की है।
+                  Please review carefully: You have challenged a total of <span className="text-red-700 font-bold">{objections.length}</span> question(s).
                 </p>
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-amber-900">
                   <FaExclamationTriangle className="inline mr-1.5 text-amber-600" />
-                  <strong>महत्वपूर्ण चेतावनी:</strong> "Final Submit" करने के पश्चात आप किसी भी प्रश्न की आपत्ति को न तो संपादित कर सकेंगे और न ही हटा अथवा नई आपत्ति जोड़ सकेंगे।
+                  <strong>Important Warning:</strong> Once "Final Submit & Lock" is completed, your objections will be permanently locked. You will NOT be able to edit, delete, or add any new objections.
                 </div>
                 <p>Are you sure you want to permanently lock and submit these objections?</p>
               </div>
@@ -1144,15 +1201,60 @@ const ObjectionPage = () => {
                   onClick={() => setShowFinalModal(false)}
                   className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 cursor-pointer"
                 >
-                  रद्द करें (Cancel)
+                  Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleFinalSubmit}
                   disabled={submitting}
-                  className="px-5 py-2 rounded-lg bg-red-700 hover:bg-red-800 text-white font-bold text-xs transition shadow-sm cursor-pointer disabled:opacity-50"
+                  className="px-5 py-2 rounded-lg bg-green-700 hover:bg-green-800 text-white font-bold text-xs transition shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  {submitting ? "जमा हो रहा है..." : "हाँ, अंतिम रूप से जमा करें (Confirm Lock)"}
+                  {submitting ? "Submitting..." : "Yes, Final Submit & Lock"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {deleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:hidden">
+            <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-fadeIn">
+              <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-blue-800 text-white p-5 text-center">
+                <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-white/10 flex items-center justify-center text-blue-200 shadow-inner">
+                  <FaTrash className="text-xl" />
+                </div>
+                <h3 className="text-lg font-bold tracking-tight">Remove Draft Objection</h3>
+                <p className="text-xs text-blue-200 mt-0.5">Confirm Deletion</p>
+              </div>
+
+              <div className="p-6 text-center space-y-2 text-slate-700">
+                <p className="text-sm font-medium">
+                  Are you sure you want to remove the draft objection for <strong className="text-slate-900">Question #{deleteConfirm.qNum}</strong>?
+                </p>
+                <p className="text-xs text-slate-500">
+                  This action cannot be undone.
+                </p>
+              </div>
+
+              <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirm(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const { id, qNum } = deleteConfirm;
+                    setDeleteConfirm(null);
+                    executeDelete(id, qNum);
+                  }}
+                  className="px-5 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white font-bold text-xs transition shadow-sm cursor-pointer"
+                >
+                  Yes, Remove Objection
                 </button>
               </div>
             </div>
@@ -1161,11 +1263,11 @@ const ObjectionPage = () => {
 
         {/* Evidence Document Preview Modal */}
         {previewDocUrl && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm no-print">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm print:hidden">
             <div className="max-w-3xl w-full h-[80vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden">
               <div className="p-4 bg-slate-800 text-white flex items-center justify-between">
                 <span className="font-bold text-sm flex items-center gap-2">
-                  <FaFilePdf /> साक्ष्य दस्तावेज पूर्वावलोकन (Evidence Document Preview)
+                  <FaFilePdf /> Evidence Document Preview
                 </span>
                 <button
                   type="button"
@@ -1184,53 +1286,9 @@ const ObjectionPage = () => {
             </div>
           </div>
         )}
-
-        {/* Question Booklet & Answer Key Modal */}
-        {bookletModal.isOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/75 backdrop-blur-sm no-print">
-            <div className="max-w-4xl w-full h-[88vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-fadeIn">
-              <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <FaFilePdf className="text-red-400 text-lg" />
-                  <span className="font-bold text-sm sm:text-base">
-                    {bookletModal.title}
-                  </span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => handleDownloadBookletOrKey(bookletModal.series, bookletModal.type)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer"
-                  >
-                    <FaDownload /> डाउनलोड करें
-                  </button>
-                  <button
-                    type="button"
-                    onClick={closeBookletModal}
-                    className="text-slate-300 hover:text-white p-1 text-lg rounded-lg hover:bg-slate-800 transition cursor-pointer"
-                  >
-                    <FaTimes />
-                  </button>
-                </div>
-              </div>
-              <div className="flex-1 bg-slate-100 p-2">
-                {bookletModal.url ? (
-                  <iframe
-                    src={bookletModal.url}
-                    title="Booklet / Key Preview"
-                    className="w-full h-full rounded-xl border border-slate-300 shadow-inner"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">
-                    दस्तावेज लोड हो रहा है...
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </ObjectionRouteGuard>
+        </div>
+      </ObjectionRouteGuard>
+    </Layout>
   );
 };
 

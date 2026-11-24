@@ -36,169 +36,72 @@ namespace DELED.Controllers
             _configuration = configuration;
             _superimposeService = superimposeService;
 
-            string? configuredPath = _configuration["ObjectionFilePath"] ?? _configuration["FilePath"];
-            if (string.IsNullOrWhiteSpace(configuredPath) || !Directory.Exists(configuredPath))
-            {
-                configuredPath = Path.Combine(Directory.GetCurrentDirectory(), "Uploads", "Objections");
-            }
-            else
-            {
-                configuredPath = Path.Combine(configuredPath, "Objections");
-            }
-
-            _storagePath = configuredPath;
-
-            string? bPath = _configuration["BookletFilePath"];
-            if (string.IsNullOrWhiteSpace(bPath))
-            {
-                string baseFp = _configuration["FilePath"] ?? Directory.GetCurrentDirectory();
-                bPath = Path.Combine(baseFp, "booklet");
-            }
-            _bookletPath = bPath;
-
-            string? aPath = _configuration["AnswerKeyFilePath"];
-            if (string.IsNullOrWhiteSpace(aPath))
-            {
-                string baseFp = _configuration["FilePath"] ?? Directory.GetCurrentDirectory();
-                aPath = Path.Combine(baseFp, "Answer");
-            }
-            _answerKeyPath = aPath;
+            string baseFp = _configuration["FilePath"] ?? string.Empty;
+            _storagePath = Path.Combine(baseFp, "Objections");
+            _bookletPath = Path.Combine(baseFp, "booklet");
+            _answerKeyPath = Path.Combine(baseFp, "Answer");
 
             try
             {
-                if (!Directory.Exists(_storagePath)) Directory.CreateDirectory(_storagePath);
-                if (!Directory.Exists(_bookletPath)) Directory.CreateDirectory(_bookletPath);
-                if (!Directory.Exists(_answerKeyPath)) Directory.CreateDirectory(_answerKeyPath);
+                if (!string.IsNullOrWhiteSpace(_storagePath) && !Directory.Exists(_storagePath))
+                {
+                    Directory.CreateDirectory(_storagePath);
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ObjectionController] Directory creation notice: {ex.Message}");
+                Console.WriteLine($"[ObjectionController] Storage directory notice: {ex.Message}");
             }
 
-            EnsureTableCreated();
         }
 
-        private void EnsureTableCreated()
+        private static DateTime? ParseTimelineDate(string? dateVal, string? subLabel, bool isEndOfDayDefault)
         {
-            if (_tableInitialized) return;
+            if (string.IsNullOrWhiteSpace(dateVal)) return null;
 
-            lock (_initLock)
+            try
             {
-                if (_tableInitialized) return;
+                string defaultTime = isEndOfDayDefault ? "23:59:59" : "00:00:00";
+                string timeStr = defaultTime;
 
-                try
+                if (!string.IsNullOrWhiteSpace(subLabel))
                 {
-                    string createTableSql = @"
-                        CREATE TABLE IF NOT EXISTS CandidateObjections (
-                            Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                            UserId INT NOT NULL,
-                            RegistrationNo VARCHAR(100) NOT NULL,
-                            RollNo VARCHAR(50) NULL,
-                            ExamName VARCHAR(150) NOT NULL DEFAULT 'UK D.El.Ed. Entrance Examination 2026',
-                            BookletSeries VARCHAR(10) NOT NULL,
-                            QuestionNo INT NOT NULL,
-                            CandidateAnswer VARCHAR(150) NOT NULL,
-                            Description TEXT NULL,
-                            DocumentPath VARCHAR(500) NULL,
-                            Status VARCHAR(50) NOT NULL DEFAULT 'Submitted',
-                            AdminRemarks TEXT NULL,
-                            ReviewedOn DATETIME NULL,
-                            ReviewedBy VARCHAR(150) NULL,
-                            IsFinalSubmitted TINYINT(1) NOT NULL DEFAULT 0,
-                            FinalSubmittedOn DATETIME NULL,
-                            CreatedOn DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            INDEX idx_cand_obj_user (UserId),
-                            INDEX idx_cand_obj_reg (RegistrationNo),
-                            INDEX idx_cand_obj_roll (RollNo),
-                            INDEX idx_cand_obj_qno (QuestionNo),
-                            INDEX idx_cand_obj_status (Status),
-                            INDEX idx_cand_obj_series (BookletSeries),
-                            INDEX idx_cand_obj_final (IsFinalSubmitted)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-                        CREATE TABLE IF NOT EXISTS ExamBookletsAndKeys (
-                            Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                            ExamName VARCHAR(150) NOT NULL DEFAULT 'UK D.El.Ed. Entrance Examination 2026',
-                            BookletSeries VARCHAR(10) NOT NULL,
-                            BookletFileName VARCHAR(255) NULL,
-                            BookletFilePath VARCHAR(500) NULL,
-                            AnswerKeyFileName VARCHAR(255) NULL,
-                            AnswerKeyFilePath VARCHAR(500) NULL,
-                            IsActive TINYINT(1) NOT NULL DEFAULT 1,
-                            CreatedOn DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            UpdatedOn DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
-                            UNIQUE KEY uk_exam_series (ExamName, BookletSeries),
-                            INDEX idx_ebk_series (BookletSeries),
-                            INDEX idx_ebk_active (IsActive)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-                        CREATE TABLE IF NOT EXISTS QuestionBooklets (
-                            Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                            ExamName VARCHAR(150) NOT NULL DEFAULT 'UK D.El.Ed. Entrance Examination 2026',
-                            BookletSeries VARCHAR(10) NOT NULL,
-                            FileName VARCHAR(255) NULL,
-                            FilePath VARCHAR(500) NULL,
-                            FileSize BIGINT NULL,
-                            TotalPages INT NULL,
-                            IsActive TINYINT(1) NOT NULL DEFAULT 1,
-                            UploadedBy VARCHAR(100) NULL,
-                            CreatedOn DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            UpdatedOn DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
-                            UNIQUE KEY uk_qb_exam_series (ExamName, BookletSeries),
-                            INDEX idx_qb_series (BookletSeries),
-                            INDEX idx_qb_active (IsActive)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-                        CREATE TABLE IF NOT EXISTS AnswerKeys (
-                            Id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-                            ExamName VARCHAR(150) NOT NULL DEFAULT 'UK D.El.Ed. Entrance Examination 2026',
-                            BookletSeries VARCHAR(10) NOT NULL,
-                            FileName VARCHAR(255) NULL,
-                            FilePath VARCHAR(500) NULL,
-                            FileSize BIGINT NULL,
-                            TotalPages INT NULL,
-                            IsActive TINYINT(1) NOT NULL DEFAULT 1,
-                            UploadedBy VARCHAR(100) NULL,
-                            CreatedOn DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                            UpdatedOn DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
-                            UNIQUE KEY uk_ak_exam_series (ExamName, BookletSeries),
-                            INDEX idx_ak_series (BookletSeries),
-                            INDEX idx_ak_active (IsActive)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
-
-                    _context.Database.ExecuteSqlRaw(createTableSql);
-
-                    // Seed default series records if not present
-                    string seedSql = @"
-                        INSERT IGNORE INTO ExamBookletsAndKeys (ExamName, BookletSeries, BookletFileName, BookletFilePath, AnswerKeyFileName, AnswerKeyFilePath, IsActive)
-                        VALUES 
-                        ('UK D.El.Ed. Entrance Examination 2026', 'A', 'Series_A.pdf', 'API/booklet/Series_A.pdf', 'AnswerKey_A.pdf', 'API/Answer/AnswerKey_A.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'B', 'Series_B.pdf', 'API/booklet/Series_B.pdf', 'AnswerKey_B.pdf', 'API/Answer/AnswerKey_B.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'C', 'Series_C.pdf', 'API/booklet/Series_C.pdf', 'AnswerKey_C.pdf', 'API/Answer/AnswerKey_C.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'D', 'Series_D.pdf', 'API/booklet/Series_D.pdf', 'AnswerKey_D.pdf', 'API/Answer/AnswerKey_D.pdf', 1);
-
-                        INSERT IGNORE INTO QuestionBooklets (ExamName, BookletSeries, FileName, FilePath, IsActive)
-                        VALUES 
-                        ('UK D.El.Ed. Entrance Examination 2026', 'A', 'Series_A.pdf', 'API/booklet/Series_A.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'B', 'Series_B.pdf', 'API/booklet/Series_B.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'C', 'Series_C.pdf', 'API/booklet/Series_C.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'D', 'Series_D.pdf', 'API/booklet/Series_D.pdf', 1);
-
-                        INSERT IGNORE INTO AnswerKeys (ExamName, BookletSeries, FileName, FilePath, IsActive)
-                        VALUES 
-                        ('UK D.El.Ed. Entrance Examination 2026', 'A', 'AnswerKey_A.pdf', 'API/Answer/AnswerKey_A.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'B', 'AnswerKey_B.pdf', 'API/Answer/AnswerKey_B.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'C', 'AnswerKey_C.pdf', 'API/Answer/AnswerKey_C.pdf', 1),
-                        ('UK D.El.Ed. Entrance Examination 2026', 'D', 'AnswerKey_D.pdf', 'API/Answer/AnswerKey_D.pdf', 1);";
-                    _context.Database.ExecuteSqlRaw(seedSql);
-                    _tableInitialized = true;
+                    var match = System.Text.RegularExpressions.Regex.Match(subLabel, @"(\d{1,2}:\d{2}\s*(?:AM|PM)?)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (match.Success)
+                    {
+                        timeStr = match.Groups[1].Value.Trim();
+                    }
                 }
-                catch (Exception ex)
+
+                string combined = $"{dateVal.Trim()} {timeStr.Trim()}";
+                if (DateTime.TryParse(combined, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var dt))
                 {
-                    Console.WriteLine($"[ObjectionController] Table verification notice: {ex.Message}");
-                    _tableInitialized = true; // Avoid retrying on every request
+                    return dt;
+                }
+
+                if (DateTime.TryParse(dateVal.Trim(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out dt))
+                {
+                    return isEndOfDayDefault ? dt.Date.AddHours(23).AddMinutes(59).AddSeconds(59) : dt.Date;
+                }
+
+                string[] formats = new[]
+                {
+                    "d MMMM yyyy", "dd MMMM yyyy", "d-MMMM-yyyy", "dd-MMMM-yyyy",
+                    "yyyy-MM-dd", "dd-MM-yyyy", "dd/MM/yyyy", "d/M/yyyy",
+                    "yyyy/MM/dd", "MM/dd/yyyy", "MMMM dd, yyyy", "dd MMM yyyy", "d MMM yyyy"
+                };
+
+                foreach (var fmt in formats)
+                {
+                    if (DateTime.TryParseExact(dateVal.Trim(), fmt, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var exactDt))
+                    {
+                        return isEndOfDayDefault ? exactDt.Date.AddHours(23).AddMinutes(59).AddSeconds(59) : exactDt.Date;
+                    }
                 }
             }
+            catch { }
+
+            return null;
         }
 
         private int GetUserIdFromToken()
@@ -223,34 +126,31 @@ namespace DELED.Controllers
                 DateTime? startDate = null;
                 DateTime? endDate = null;
 
-                // 1. Check RegistrationTimelines DB table
+                // 1. Check RegistrationTimelines DB table (Key: obj_starts / obj_closes, Id: 10/11)
                 try
                 {
-                    var timelines = _context.RegistrationTimelines
-                        .Where(t => t.Key.ToLower().Contains("objection") || (t.Label != null && t.Label.ToUpper().Contains("OBJECTION")))
-                        .ToList();
+                    var timelines = _context.RegistrationTimelines.AsNoTracking().ToList();
 
                     var startTimeline = timelines.FirstOrDefault(t =>
-                        t.Key.ToLower() == "objection_start" ||
-                        t.Key.ToLower() == "objection_starts" ||
-                        (t.Label != null && (t.Label.ToUpper().Contains("START") || t.Label.ToUpper().Contains("OPEN") || t.Label.ToUpper().Contains("प्रारंभ"))));
+                        string.Equals(t.Key, "obj_starts", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.Key, "objection_starts", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.Key, "objection_start", StringComparison.OrdinalIgnoreCase) ||
+                        (t.Label != null && t.Label.ToUpper().Contains("OBJECTION TRACKER STARTS")));
 
                     var closeTimeline = timelines.FirstOrDefault(t =>
-                        t.Key.ToLower() == "objection_close" ||
-                        t.Key.ToLower() == "objection_closed" ||
-                        t.Key.ToLower() == "objection_end" ||
-                        (t.Label != null && (t.Label.ToUpper().Contains("CLOSE") || t.Label.ToUpper().Contains("END") || t.Label.ToUpper().Contains("समाप्त"))));
+                        string.Equals(t.Key, "obj_closes", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.Key, "objection_closes", StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(t.Key, "objection_close", StringComparison.OrdinalIgnoreCase) ||
+                        (t.Label != null && t.Label.ToUpper().Contains("OBJECTION TRACKER CLOSES")));
 
-                    if (startTimeline != null && !string.IsNullOrWhiteSpace(startTimeline.DateValue))
+                    if (startTimeline != null)
                     {
-                        if (DateTime.TryParse(startTimeline.DateValue, out DateTime sVal))
-                            startDate = sVal;
+                        startDate = ParseTimelineDate(startTimeline.DateValue, startTimeline.SubLabel, false);
                     }
 
-                    if (closeTimeline != null && !string.IsNullOrWhiteSpace(closeTimeline.DateValue))
+                    if (closeTimeline != null)
                     {
-                        if (DateTime.TryParse(closeTimeline.DateValue, out DateTime cVal))
-                            endDate = cVal;
+                        endDate = ParseTimelineDate(closeTimeline.DateValue, closeTimeline.SubLabel, true);
                     }
                 }
                 catch { }
@@ -278,12 +178,12 @@ namespace DELED.Controllers
 
                 if (startDate.HasValue && now < startDate.Value)
                 {
-                    return (false, true, false, $"Answer Key Objection portal opens on {startDate.Value:dd/MM/yyyy hh:mm tt} IST.", startDate, endDate);
+                    return (false, true, false, $"Answer Key Objection portal opens on {startDate.Value:dd MMMM yyyy, hh:mm tt} IST.", startDate, endDate);
                 }
 
                 if (endDate.HasValue && now > endDate.Value)
                 {
-                    return (false, false, true, $"Answer Key Objection window closed on {endDate.Value:dd/MM/yyyy hh:mm tt} IST.", startDate, endDate);
+                    return (false, false, true, $"Answer Key Objection window closed on {endDate.Value:dd MMMM yyyy, hh:mm tt} IST.", startDate, endDate);
                 }
 
                 return (true, false, false, "Answer Key Objection window is currently active.", startDate, endDate);
@@ -351,7 +251,7 @@ namespace DELED.Controllers
                     FatherName = user.FatherName ?? "",
                     MotherName = personalDetails?.MotherName ?? "",
                     RollNo = allotment != null ? allotment.RollNumber.ToString() : "",
-                    ExamName = "उत्तराखण्ड द्विवर्षीय डी०एल०एड० प्रवेश परीक्षा 2026",
+                    ExamName = "UK D.El.Ed. Entrance Exam 2026",
                     AppliedCategory = personalDetails?.AppliedCategory,
                     IsFinalSubmitted = isFinalSubmitted,
                     FinalSubmittedOn = finalSubmittedOn,
@@ -491,9 +391,9 @@ namespace DELED.Controllers
                         using (var checkStream = req.DocumentFile.OpenReadStream())
                         {
                             int pdfPages = GetPdfPageCount(checkStream);
-                            if (pdfPages > 3)
+                            if (pdfPages > 5)
                             {
-                                return BadRequest(new { message = $"साक्ष्य दस्तावेज में पृष्ठों की संख्या 3 से अधिक नहीं होनी चाहिए। आपके द्वारा अपलोड की गई PDF में {pdfPages} पृष्ठ हैं (Uploaded PDF exceeds 3 pages limit. Found {pdfPages} pages)." });
+                                return BadRequest(new { message = $"साक्ष्य दस्तावेज में पृष्ठों की संख्या 5 से अधिक नहीं होनी चाहिए। आपके द्वारा अपलोड की गई PDF में {pdfPages} पृष्ठ हैं (Uploaded PDF exceeds 5 pages limit. Found {pdfPages} pages)." });
                             }
                         }
                     }
@@ -627,9 +527,9 @@ namespace DELED.Controllers
                         using (var checkStream = req.DocumentFile.OpenReadStream())
                         {
                             int pdfPages = GetPdfPageCount(checkStream);
-                            if (pdfPages > 3)
+                            if (pdfPages > 5)
                             {
-                                return BadRequest(new { message = $"साक्ष्य दस्तावेज में पृष्ठों की संख्या 3 से अधिक नहीं होनी चाहिए। आपके द्वारा अपलोड की गई PDF में {pdfPages} पृष्ठ हैं (Uploaded PDF exceeds 3 pages limit. Found {pdfPages} pages)." });
+                                return BadRequest(new { message = $"साक्ष्य दस्तावेज में पृष्ठों की संख्या 5 से अधिक नहीं होनी चाहिए। आपके द्वारा अपलोड की गई PDF में {pdfPages} पृष्ठ हैं (Uploaded PDF exceeds 5 pages limit. Found {pdfPages} pages)." });
                             }
                         }
                     }
@@ -880,17 +780,29 @@ namespace DELED.Controllers
         // ==========================================
         // 9. GET: api/Objection/document/{id}
         // ==========================================
+        [AllowAnonymous]
         [HttpGet("document/{id}")]
-        public async Task<IActionResult> GetDocument(int id)
+        public async Task<IActionResult> GetDocument(int id, [FromQuery] bool download = false)
         {
             try
             {
-                int userId = GetUserIdFromToken();
+                int userId = 0;
+                var nameClaim = User.Identity?.Name ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!string.IsNullOrEmpty(nameClaim))
+                {
+                    int.TryParse(nameClaim, out userId);
+                }
 
-                var objection = await _context.CandidateObjections.FirstOrDefaultAsync(o => o.Id == id && o.UserId == userId);
+                var objection = await _context.CandidateObjections.FirstOrDefaultAsync(o => o.Id == id);
                 if (objection == null || string.IsNullOrWhiteSpace(objection.DocumentPath))
                 {
                     return NotFound(new { message = "Evidence document not found." });
+                }
+
+                // If not final submitted and accessed without matching authenticated user
+                if (!objection.IsFinalSubmitted && (userId == 0 || objection.UserId != userId))
+                {
+                    return Unauthorized(new { message = "Invalid candidate authentication credentials." });
                 }
 
                 string fileName = Path.GetFileName(objection.DocumentPath);
@@ -911,11 +823,11 @@ namespace DELED.Controllers
                 };
 
                 var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-                return File(fileBytes, contentType, fileName);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
+                if (download)
+                {
+                    return File(fileBytes, contentType, fileName);
+                }
+                return File(fileBytes, contentType);
             }
             catch (Exception ex)
             {
@@ -924,7 +836,7 @@ namespace DELED.Controllers
         }
 
         /// <summary>
-        /// Reads PDF streams to determine page count for max 3 pages validation
+        /// Reads PDF streams to determine page count for max 5 pages validation
         /// </summary>
         private static int GetPdfPageCount(Stream stream)
         {
@@ -1055,7 +967,7 @@ namespace DELED.Controllers
         }
 
         /// <summary>
-        /// Resolves the physical path of a booklet or answer key PDF using DB or smart file detection
+        /// Resolves the physical path of a booklet or answer key PDF from FilePath
         /// </summary>
         private string? ResolveBookletOrKeyPath(string series, string type)
         {
@@ -1064,6 +976,11 @@ namespace DELED.Controllers
 
             string targetFolder = isKey ? _answerKeyPath : _bookletPath;
             string s = series.Trim().ToUpper();
+
+            if (!Directory.Exists(targetFolder))
+            {
+                return null;
+            }
 
             string? TryResolveDbPath(string? rawPath, string? rawFileName)
             {
@@ -1117,7 +1034,7 @@ namespace DELED.Controllers
                     }
                 }
 
-                // Fallback check in ExamBookletsAndKeys
+                // Check in ExamBookletsAndKeys
                 var record = _context.ExamBookletsAndKeys
                     .FirstOrDefault(b => b.BookletSeries.ToUpper() == s && b.IsActive);
 
@@ -1131,30 +1048,29 @@ namespace DELED.Controllers
             }
             catch { }
 
-            if (!Directory.Exists(targetFolder))
-            {
-                return null;
-            }
-
             // 2. Candidate filenames in targetFolder
-            string[] candidateNames = new[]
-            {
-                $"{s}.pdf",
-                $"Series_{s}.pdf",
-                $"Series {s}.pdf",
-                $"Series{s}.pdf",
-                $"Booklet_{s}.pdf",
-                $"Booklet {s}.pdf",
-                $"Booklet{s}.pdf",
-                $"AnswerKey_{s}.pdf",
-                $"AnswerKey {s}.pdf",
-                $"AnswerKey{s}.pdf",
-                $"Answer_{s}.pdf",
-                $"Answer {s}.pdf",
-                $"Answer{s}.pdf",
-                $"Key_{s}.pdf",
-                $"Key {s}.pdf"
-            };
+            string[] candidateNames = isKey
+                ? new[]
+                {
+                    $"AnswerKey_{s}.pdf",
+                    $"AnswerKey {s}.pdf",
+                    $"AnswerKey{s}.pdf",
+                    $"Answer_{s}.pdf",
+                    $"Answer {s}.pdf",
+                    $"Key_{s}.pdf",
+                    $"UTET_I_Series_{s}.pdf",
+                    $"Series_{s}.pdf",
+                    $"{s}.pdf"
+                }
+                : new[]
+                {
+                    $"Series_{s}.pdf",
+                    $"Series {s}.pdf",
+                    $"Series{s}.pdf",
+                    $"Booklet_{s}.pdf",
+                    $"Booklet {s}.pdf",
+                    $"{s}.pdf"
+                };
 
             foreach (var name in candidateNames)
             {
@@ -1162,7 +1078,7 @@ namespace DELED.Controllers
                 if (System.IO.File.Exists(p)) return p;
             }
 
-            // 3. Fallback: match any .pdf file in directory containing series letter
+            // 3. Fallback: match any .pdf file in targetFolder containing series letter
             try
             {
                 var allFiles = Directory.GetFiles(targetFolder, "*.pdf");
@@ -1171,7 +1087,7 @@ namespace DELED.Controllers
                     string fn = Path.GetFileNameWithoutExtension(f).ToUpper();
                     return fn == s || fn.EndsWith($"_{s}") || fn.EndsWith($" {s}") || fn.StartsWith($"{s}_") ||
                            fn.Contains($"SERIES_{s}") || fn.Contains($"SERIES {s}") || fn.Contains($"SERIES{s}") ||
-                           fn.Contains($"KEY_{s}") || fn.Contains($"KEY {s}");
+                           fn.Contains($"KEY_{s}") || fn.Contains($"BOOKLET_{s}");
                 });
                 if (match != null) return match;
             }

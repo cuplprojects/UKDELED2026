@@ -83,6 +83,7 @@ export default function ApplicationDashboard() {
 
   const [admitCardDownloading, setAdmitCardDownloading] = useState(false);
   const [admitTimelineStatus, setAdmitTimelineStatus] = useState(null);
+  const [objectionTimelineStatus, setObjectionTimelineStatus] = useState(null);
 
   const handleDownloadAdmitCard = async () => {
     if (!profile?.registrationNo) return;
@@ -249,6 +250,15 @@ export default function ApplicationDashboard() {
             }
           } catch (e) {
             console.error("Error fetching admit card timeline status", e);
+          }
+
+          try {
+            const objectionStatusRes = await api.get(`/api/Objection/timeline-status`);
+            if (objectionStatusRes.data) {
+              setObjectionTimelineStatus(objectionStatusRes.data);
+            }
+          } catch (e) {
+            console.error("Error fetching objection timeline status", e);
           }
 
           try {
@@ -892,8 +902,8 @@ export default function ApplicationDashboard() {
                     </button>
                   )}
 
-                  {/* Answer Key Objection Button */}
-                  {profile?.isPaymentCompleted && (
+                  {/* Answer Key Objection Button - Only shown when objection window is open according to obj_starts / obj_closes */}
+                  {profile?.isPaymentCompleted && objectionTimelineStatus?.isOpen && (
                     <button
                       onClick={() => navigate("/objection-instructions")}
                       className="flex items-center justify-center gap-2 p-3 sm:p-4 md:p-5 text-white font-extrabold text-xs sm:text-sm md:text-base rounded-lg transition duration-200 shadow-md bg-indigo-700 hover:bg-indigo-800 hover:scale-[1.01] cursor-pointer"
